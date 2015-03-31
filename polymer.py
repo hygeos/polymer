@@ -6,7 +6,7 @@ from level1_meris import Level1_MERIS
 from level2_hdf import Level2_HDF
 from level2_view import Level2_Memory, RGB
 from numpy import cos, pi, genfromtxt, NaN, zeros
-from luts import read_mlut_hdf, LUT, Idx
+from geoutils.luts import read_mlut_hdf, LUT, Idx
 from pylab import imshow, show, colorbar
 
 

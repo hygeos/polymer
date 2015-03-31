@@ -1,0 +1,3 @@
+[submodule "geoutils"]
+	path = geoutils
+	url = git@homes:~/geoutils

@@ -5,7 +5,6 @@
 import epr
 from block import Block
 import numpy as np
-from luts import LUT
 
 class Level1_MERIS(object):
     def __init__(self, filename):
