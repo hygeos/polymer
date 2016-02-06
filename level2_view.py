@@ -3,7 +3,7 @@
 
 import numpy as np
 from pylab import imshow, show, colorbar, figure
-from geoutils.luts import Idx
+from luts import Idx
 
 def contrast(x, max=1.):
     ''' stretch the contrast using a custom function '''
