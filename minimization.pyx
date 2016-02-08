@@ -5,9 +5,6 @@ from cython cimport floating
 from cpython.array cimport array, clone
 
 
-# TODO
-# pass additonal arguments to the function (structure ?)
-
 cdef class NelderMeadMinimizer:
 
     cdef int N

@@ -46,7 +46,7 @@ class Level1_MERIS(object):
                     xoffset=xoffset, yoffset=yoffset,
                     width=xsize, height=ysize)
 
-    def blocks(self, bands_read=None, blocksize=50):
+    def blocks(self, bands_read=None, blocksize=100):
 
         nbands = len(bands_read)
         nblocks = self.height/blocksize + 1
@@ -66,19 +66,19 @@ class Level1_MERIS(object):
             offset = (xoffset, yoffset)
 
             # initialize block
-            block = Block(id=iblock, offset=offset, size=size, bands=bands_read)
+            block = Block(offset=offset, size=size, bands=bands_read)
 
             # read geometry
-            block.set('ths', self.read_band('sun_zenith', size, offset))
-            block.set('thv', self.read_band('view_zenith', size, offset))
-            block.set('phis', self.read_band('sun_azimuth', size, offset))
-            block.set('phiv', self.read_band('view_azimuth', size, offset))
+            block.sza = self.read_band('sun_zenith', size, offset)
+            block.vza = self.read_band('view_zenith', size, offset)
+            block.saa = self.read_band('sun_azimuth', size, offset)
+            block.vaa = self.read_band('view_azimuth', size, offset)
 
             # read detector index
             di = self.read_band('detector_index', size, offset)
 
             # calculate F0 for each band
-            block.set('F0', np.zeros((nbands, ysize, xsize)) + np.NaN)
+            block.F0 = np.zeros((nbands, ysize, xsize)) + np.NaN
             for iband, band in enumerate(bands_read):
                 block.F0[iband,:,:] = self.F0[self.F0_band_names[band]][di]
 
@@ -87,7 +87,13 @@ class Level1_MERIS(object):
             for iband, band in enumerate(bands_read):
                 Ltoa_ = self.read_band(self.band_names[band], size, offset)
                 Ltoa[iband,:,:] = Ltoa_[:,:]
-            block.set('Ltoa', Ltoa)
+            block.Ltoa = Ltoa
+
+            # wind speed (zonal and merdional)
+            zwind = self.read_band('zonal_wind', size, offset)
+            mwind = self.read_band('merid_wind', size, offset)
+            block.wind_speed = np.sqrt(zwind**2 + mwind**2)
+
             print 'Reading', block
 
             yield block

@@ -16,9 +16,9 @@ def RGB(data):
     figure()
     shp = (data.shape[1], data.shape[2], 3)
     RGB = np.zeros(shp)
-    R = data[Idx(680, 'band', round=True), :, :]
-    G = data[Idx(550, 'band', round=True), :, :]
-    B = data[Idx(460, 'band', round=True), :, :]
+    R = data[Idx(680, round=True), :, :]
+    G = data[Idx(550, round=True), :, :]
+    B = data[Idx(460, round=True), :, :]
     RGB[:,:,0] = contrast(R/np.amax(R[~np.isnan(R)]))
     RGB[:,:,1] = contrast(G/np.amax(G[~np.isnan(G)]))
     RGB[:,:,2] = contrast(B/np.amax(B[~np.isnan(B)]))
@@ -35,15 +35,19 @@ class Level2_Memory(object):
         self.Ltoa = None
         self.Rtoa = None
         self.Rprime = None
-        self.ths = None
+        self.sza = None
+        self.bands = None
 
     def write(self, block):
 
         (xoff, yoff) = block.offset
         (wid, hei) = block.size
 
-        if self.ths is None:
-            self.ths = np.zeros(self.shape) + np.NaN
+        if self.bands is None:
+            self.bands = block.bands
+
+        if self.sza is None:
+            self.sza = np.zeros(self.shape) + np.NaN
 
         if self.Ltoa is None:
             self.Ltoa = np.zeros((len(block.bands),)+self.shape) + np.NaN
@@ -57,7 +61,7 @@ class Level2_Memory(object):
         self.Ltoa[:,yoff:yoff+hei,xoff:xoff+wid] = block.Ltoa[:,:,:]
         self.Rtoa[:,yoff:yoff+hei,xoff:xoff+wid] = block.Rtoa[:,:,:]
         self.Rprime[:,yoff:yoff+hei,xoff:xoff+wid] = block.Rprime[:,:,:]
-        self.ths[yoff:yoff+hei,xoff:xoff+wid] = block.ths[:,:]
+        self.sza[yoff:yoff+hei,xoff:xoff+wid] = block.sza[:,:]
 
     def finish(self):
         pass

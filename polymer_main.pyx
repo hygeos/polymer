@@ -7,8 +7,8 @@ include "minimization.pyx"
 
 cdef class F(NelderMeadMinimizer):
 
-    def __init__(self):
-        super().__init__(self)
+    def __init__(self, *args, **kwargs):
+        super(self.__class__, self).__init__(*args, **kwargs)
 
     cdef float eval(self, float [:] x):
         return 0.
@@ -31,6 +31,7 @@ cdef optimize(double [:,:,:] Rprime):
 
 
 def polymer_optimize(block):
-    print block.Rprime.shape
+
+    # apply the cythonized function
     optimize(block.Rprime)
 

@@ -35,7 +35,6 @@ class Params(object):
 
 class Params_MERIS(Params):
     def __init__(self):
-        self.bands_l1   = [412,443,490,510,560,620,665,681,709,754,760,779,865,885,900]
         self.bands_corr = [412,443,490,510,560,620,665,        754,    779,865]
         self.bands_oc =   [412,443,490,510,560,620,665,        754,    779,865]
         self.bands_rw =   [412,443,490,510,560,620,665,        754,    779,865]
@@ -45,35 +44,13 @@ class Params_MERIS(Params):
 
 def convert_reflectance(block, params):
 
-    block.set('Rtoa', np.zeros(block.Ltoa.shape)+np.NaN)
+    block.Rtoa = np.zeros(block.Ltoa.shape)+np.NaN
 
     coef = 1.   # FIXME, sun-earth distance coefficient
 
-    for i, b in enumerate(block.bands):
+    for i in xrange(block.nbands):
 
-        mus = np.cos(block.ths*np.pi/180.)
-
-        block.Rtoa[i,:,:] = block.Ltoa[i,:,:]*np.pi/(mus*block.F0[i,:,:]*coef)
-
-def init_block(block):
-    # TODO: move this to class block ?
-
-    if not hasattr(block, 'mus'):
-        setattr(block, 'mus', np.cos(block.ths*np.pi/180.))
-
-    if not hasattr(block, 'muv'):
-        setattr(block, 'muv', np.cos(block.thv*np.pi/180.))
-
-    # calculate relative attribute if necessary
-    if not hasattr(block, 'phi'):
-        phi = block.phis-block.phiv
-        phi[phi<0.] += 360;
-        phi[phi>360.] -= 360;
-        phi[phi>180.] = 360. - phi[phi>180.]
-        block.set('phi', phi)
-
-    # FIXME
-    block.set('wind', np.zeros_like(block.phi)+5.)
+        block.Rtoa[i,:,:] = block.Ltoa[i,:,:]*np.pi/(block.mus*block.F0[i,:,:]*coef)
 
 
 def gas_correction(block):
@@ -81,15 +58,15 @@ def gas_correction(block):
 
 def rayleigh_correction(block, mlut):
 
-    block.set('Rprime', np.zeros(block.Ltoa.shape)+np.NaN)
+    block.Rprime = np.zeros(block.Ltoa.shape)+np.NaN
 
-    for i, b in enumerate(block.bands):
+    for i in xrange(block.nbands):
 
         block.Rprime[i,:,:] = block.Rtoa[i,:,:] - mlut['Rmolgli'][
                 Idx(block.muv),
-                Idx(block.phi),
+                Idx(block.raa),
                 Idx(block.mus),
-                i, Idx(block.wind)]
+                i, Idx(block.wind_speed)]
     # print block.Rprime.data[:,:,:]
         # FIXME:
         # ordre mus muv
@@ -107,9 +84,7 @@ def polymer(params, level1, level2):
     mlut = read_mlut_hdf(params.lut_file)
 
     # loop over the blocks
-    for i, b in enumerate(level1.blocks(params.bands_read())):
-
-        init_block(b)
+    for b in level1.blocks(params.bands_read()):
 
         convert_reflectance(b, params)
 
@@ -130,7 +105,7 @@ def main():
             Level1_MERIS('/mfs/proj/CNES_GLITTER_2009/DATA_HYGEOS/20041104_06/MER_RR__1PQBCM20041105_060121_000002002031_00449_14030_0002.N1'),
             l2,
             )
-    # RGB(l2.Rtoa)
+    # RGB(LUT(l2.Rtoa, axes=[l2.bands, None, None]))
     # RGB(l2.Rprime)
     # show()
 
