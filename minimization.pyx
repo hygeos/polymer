@@ -7,7 +7,7 @@ from cpython.array cimport array, clone
 
 cdef class NelderMeadMinimizer:
 
-    cdef int N
+    cdef int N   # number of dimensions
     cdef float [:] fsim
     cdef float [:,:] sim
     cdef float[:] y, xcc, xc, xr, xe

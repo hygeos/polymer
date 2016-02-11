@@ -12,7 +12,7 @@ import warnings
 
 # cython imports
 import pyximport ; pyximport.install()
-from polymer_main import polymer_optimize
+from polymer_main import PolymerMinimizer
 
 
 '''
@@ -83,6 +83,8 @@ def polymer(params, level1, level2):
     # read the look-up table
     mlut = read_mlut_hdf(params.lut_file)
 
+    opt = PolymerMinimizer()
+
     # loop over the blocks
     for b in level1.blocks(params.bands_read()):
 
@@ -92,7 +94,7 @@ def polymer(params, level1, level2):
 
         rayleigh_correction(b, mlut)
 
-        polymer_optimize(b)
+        opt.minimize(b)
 
         level2.write(b)
 
