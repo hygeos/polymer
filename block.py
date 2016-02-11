@@ -12,11 +12,13 @@ class Block(object):
         self.bands = bands
         self._data  = {}
 
-        self.sza = None  # sun zenith angle (degrees)
-        self.vza = None  # view zenith angle (degrees)
-        self.saa = None  # sun azimuth angle (degrees)
-        self.vaa = None  # view azimuth angle (degrees)
-        self.F0 = None   # solar irradiance
+        self.sza = None       # sun zenith angle [degrees] (nx, ny)
+        self.vza = None       # view zenith angle [degrees] (nx, ny)
+        self.saa = None       # sun azimuth angle [degrees] (nx, ny)
+        self.vaa = None       # view azimuth angle [degrees] (nx, ny)
+        self.F0 = None        # per-pixel solar irradiance (nbands, nx, ny)
+        self.wavelen = None   # per-pixel wavelength [nm] (nbands, nx, ny)
+
 
         self.Ltoa = None  # TOA radiance (nbands, nx, ny)
         self.Rtoa = None  # TOA reflectance
@@ -25,31 +27,36 @@ class Block(object):
 
         self.wind_speed = None # wind speed module (m/s)
 
+        # properties
+        self._raa = None
+        self._mus = None
+        self._muv = None
+
     def __str__(self):
         return 'block: size {}, offset {}'.format(self.size, self.offset)
 
     @property
     def raa(self):
         ''' relative azimuth angle, in degrees '''
-        if not 'raa' in self._data:
+        if self._raa is None:
             raa = self.saa - self.vaa
             raa[raa<0.] += 360;
             raa[raa>360.] -= 360;
             raa[raa>180.] = 360. - raa[raa>180.]
-            self._data['raa'] = raa
-        return self._data['raa']
+            self._raa = raa
+        return self._raa
 
     @property
     def mus(self):
-        if not 'mus' in self._data:
-            self._data['mus'] = np.cos(self.sza*np.pi/180.)
-        return self._data['mus']
+        if self._mus is None:
+            self._mus = np.cos(self.sza*np.pi/180.)
+        return self._mus
 
     @property
     def muv(self):
-        if not 'muv' in self._data:
-            self._data['muv'] = np.cos(self.vza*np.pi/180.)
-        return self._data['muv']
+        if self._muv is None:
+            self._muv = np.cos(self.vza*np.pi/180.)
+        return self._muv
 
     @property
     def nbands(self):

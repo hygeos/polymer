@@ -26,6 +26,13 @@ quelques notes pour le développement éventuel de Polymer en python
 
 
 class Params(object):
+    def __init__(self):
+        '''
+        define common parameters
+        '''
+        pass
+
+
     def bands_read(self):
         bands_read = set(self.bands_corr)
         bands_read = bands_read.union(self.bands_oc)
@@ -35,6 +42,8 @@ class Params(object):
 
 class Params_MERIS(Params):
     def __init__(self):
+        super(self.__class__, self).__init__()
+
         self.bands_corr = [412,443,490,510,560,620,665,        754,    779,865]
         self.bands_oc =   [412,443,490,510,560,620,665,        754,    779,865]
         self.bands_rw =   [412,443,490,510,560,620,665,        754,    779,865]
@@ -58,7 +67,7 @@ def gas_correction(block):
 
 def rayleigh_correction(block, mlut):
 
-    block.Rprime = np.zeros(block.Ltoa.shape)+np.NaN
+    block.Rprime = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
 
     for i in xrange(block.nbands):
 
@@ -72,7 +81,6 @@ def rayleigh_correction(block, mlut):
         # ordre mus muv
         # fournir la vitesse du vent
         # clarifier les indices des bandes
-
 
 
 def polymer(params, level1, level2):
@@ -100,15 +108,17 @@ def polymer(params, level1, level2):
 
     level2.finish()
 
+    return level2
+
 def main():
-    l2 = Level2_Memory()
-    polymer(
+    # l2 = Level2_Memory()
+    l2 = polymer(
             Params_MERIS(),
             Level1_MERIS('/mfs/proj/CNES_GLITTER_2009/DATA_HYGEOS/20041104_06/MER_RR__1PQBCM20041105_060121_000002002031_00449_14030_0002.N1'),
-            l2,
+            Level2_Memory(),
             )
     # RGB(LUT(l2.Rtoa, axes=[l2.bands, None, None]))
-    # RGB(l2.Rprime)
+    # RGB(LUT(l2.Rprime, axes=[l2.bands, None, None]))
     # show()
 
 if __name__ == '__main__':

@@ -2,7 +2,6 @@
 import numpy as np
 cimport numpy as np
 from cython cimport floating
-from cpython.array cimport array, clone
 
 
 cdef class NelderMeadMinimizer:
@@ -26,7 +25,7 @@ cdef class NelderMeadMinimizer:
         raise Exception('NelderMeadMinimizer.eval() shall be implemented')
 
     cdef minimize(self,
-                np.ndarray[float, ndim=1] x0,
+                float [:] x0,
                 int maxiter=-1,
                 float xtol=1e-4,
                 float ftol=1e-4,
@@ -44,9 +43,6 @@ cdef class NelderMeadMinimizer:
                 Relative error in ``fun(xopt)`` acceptable for convergence.
             maxiter : int
                 Maximum number of iterations to perform.
-
-        This function is called by the `minimize` function with
-        `method=Nelder-Mead`. It is not supposed to be called directly.
 
         (from scipy)
         """
@@ -173,12 +169,12 @@ cdef class NelderMeadMinimizer:
         return np.asarray(x), iterations, fval
 
 
-cdef class Min(NelderMeadMinimizer):
-    cdef float eval(self, float[:] x):
-        return (1-x[0])**2 + 100*(x[1]-x[0]**2)**2
+# cdef class Min(NelderMeadMinimizer):
+    # cdef float eval(self, float[:] x):
+        # return (1-x[0])**2 + 100*(x[1]-x[0]**2)**2
 
-def test():
+# def test():
 
-    x0 = np.array([0, 0], dtype='float32')
+    # x0 = np.array([0, 0], dtype='float32')
 
-    print Min(2).minimize(x0)
+    # print Min(2).minimize(x0)

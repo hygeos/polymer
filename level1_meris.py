@@ -7,6 +7,7 @@ from block import Block
 import numpy as np
 
 class Level1_MERIS(object):
+
     def __init__(self, filename):
 
         self.prod = epr.Product(filename)
@@ -36,6 +37,19 @@ class Level1_MERIS(object):
                     865: 'E0_band12', 885: 'E0_band13',
                     900: 'E0_band14',
                     }
+        self.wav_band_names = {
+                    412: 'lam_band0', 443: 'lam_band1',
+                    490: 'lam_band2', 510: 'lam_band3',
+                    560: 'lam_band4', 620: 'lam_band5',
+                    665: 'lam_band6', 681: 'lam_band7',
+                    709: 'lam_band8', 754: 'lam_band9',
+                    760: 'lam_band10', 779: 'lam_band11',
+                    865: 'lam_band12', 885: 'lam_band13',
+                    900: 'lam_band14',
+                }
+
+        # initialize detector wavelength
+        self.detector_wavelength = np.genfromtxt('/home/francois/MERIS/POLYMER/auxdata/meris/smile/v2/central_wavelen_rr.txt', names=True)
 
         print 'Opened "{}", ({}x{})'.format(filename, self.width, self.height)
 
@@ -81,6 +95,11 @@ class Level1_MERIS(object):
             block.F0 = np.zeros((nbands, ysize, xsize)) + np.NaN
             for iband, band in enumerate(bands_read):
                 block.F0[iband,:,:] = self.F0[self.F0_band_names[band]][di]
+
+            # calculate detector wavelength for each band
+            block.wavelen = np.zeros((nbands, ysize, xsize), dtype='float32') + np.NaN
+            for iband, band in enumerate(bands_read):
+                block.wavelen[iband,:,:] = self.detector_wavelength[self.wav_band_names[band]][di]
 
             # read TOA
             Ltoa = np.zeros((nbands, ysize, xsize)) + np.NaN
