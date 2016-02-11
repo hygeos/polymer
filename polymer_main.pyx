@@ -14,34 +14,30 @@ cdef class F(NelderMeadMinimizer):
 
     cdef float[:] Rprime
     cdef float[:] wav
-    cdef float[:] Rw
     cdef WaterModel w
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, watermodel, *args, **kwargs):
 
         super(self.__class__, self).__init__(*args, **kwargs)
 
-        self.w = ParkRuddick()
-        self.Rw = None
+        self.w = watermodel
 
-    cdef init(self, float [:] Rprime, float [:] wav):
+    cdef init(self, float[:] Rprime, float[:] wav):
         '''
         set the input parameters for the current pixel
         '''
         self.Rprime = Rprime
         self.wav = wav
 
-        if self.Rw is None:
-            self.Rw = np.zeros(len(Rprime), dtype='float32')
 
-
-    cdef float eval(self, float [:] x):
+    cdef float eval(self, float[:] x):
         '''
         Evaluate cost function for vector parameters x
         '''
-        # calculate the water reflectance for the current parameters
-        for i in range(len(self.wav)):
-            self.Rw[i] = 0.  # FIXME
+        cdef float[:] Rw
+
+        # calculate the. water reflectance for the current parameters
+        Rw = self.w.calc_rho(x)
 
         return 0.
 
@@ -51,12 +47,15 @@ cdef class PolymerMinimizer:
     cdef F f
     cdef int Nparams
 
-    def __init__(self):
+    def __init__(self, watermodel):
 
         self.Nparams = 2
-        self.f = F(self.Nparams)
+        self.f = F(watermodel, self.Nparams)
 
     cdef loop(self, float [:,:,:] Rprime, float [:,:,:] wav):
+        '''
+        cython method which loops over the block pixels
+        '''
 
         cdef int Nb = Rprime.shape[0]
         cdef int Nx = Rprime.shape[1]

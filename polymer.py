@@ -12,7 +12,7 @@ import warnings
 
 # cython imports
 import pyximport ; pyximport.install()
-from polymer_main import PolymerMinimizer
+from polymer_main import PolymerMinimizer, ParkRuddick
 
 
 '''
@@ -83,7 +83,7 @@ def rayleigh_correction(block, mlut):
         # clarifier les indices des bandes
 
 
-def polymer(params, level1, level2):
+def polymer(params, level1, watermodel, level2):
 
     # initialize output file
     level2.init(level1)
@@ -91,7 +91,7 @@ def polymer(params, level1, level2):
     # read the look-up table
     mlut = read_mlut_hdf(params.lut_file)
 
-    opt = PolymerMinimizer()
+    opt = PolymerMinimizer(watermodel)
 
     # loop over the blocks
     for b in level1.blocks(params.bands_read()):
@@ -115,8 +115,10 @@ def main():
     l2 = polymer(
             Params_MERIS(),
             Level1_MERIS('/mfs/proj/CNES_GLITTER_2009/DATA_HYGEOS/20041104_06/MER_RR__1PQBCM20041105_060121_000002002031_00449_14030_0002.N1'),
+            ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/AboveRrs_gCoef_w5.dat'),
             Level2_Memory(),
             )
+    print l2
     # RGB(LUT(l2.Rtoa, axes=[l2.bands, None, None]))
     # RGB(LUT(l2.Rprime, axes=[l2.bands, None, None]))
     # show()
