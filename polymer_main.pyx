@@ -4,6 +4,7 @@ cimport numpy as np
 
 include "minimization.pyx"
 include "water.pyx"
+include "interpolation.pyx"
 
 
 cdef class F(NelderMeadMinimizer):
@@ -73,10 +74,29 @@ cdef class PolymerMinimizer:
                 self.f.init(Rprime[:,i,j], wav[:,i,j])
                 self.f.minimize(x0)
 
+    cdef test_interp(self):
+        cdef int[:] i0 = np.array([1, 1], dtype='int32')
+
+        interp = CLUT(np.eye(3, dtype='float32'))
+        # print '->', interp.get(i0)
+        cdef float[:] x0 = np.array([0.1, 0.9], dtype='float32')
+        # print '->', interp.interp(x0)
+        x0[0] = -1
+        # print '->', interp.interp(x0, i0)
+        interp = CLUT(np.eye(5, dtype='float32'),
+                debug=True,
+                axes=[[10, 11, 12, 12.5, 12.7][::1], np.arange(5)*10])
+        for v in np.linspace(9.9,13,20):
+            i = interp.lookup(0, v)
+
+
     def minimize(self, block):
         '''
         Call minimization code for a block
         (def method visible from python code)
         '''
+        # self.test_interp()   # FIXME
+
         self.loop(block.Rprime, block.wavelen)
+
 

@@ -60,9 +60,60 @@ class Level1_MERIS(object):
                     xoffset=xoffset, yoffset=yoffset,
                     width=xsize, height=ysize)
 
-    def blocks(self, bands_read=None, blocksize=100):
 
-        nbands = len(bands_read)
+    def read_block(self, size, offset, bands):
+        '''
+        size: size of the block
+        offset: offset of the block
+        bands: list of bands identifiers
+        req: list of identifiers of required datasets
+        '''
+
+        (xsize, ysize) = size
+        (xoffset, yoffset) = offset
+        nbands = len(bands)
+
+        # initialize block
+        block = Block(offset=offset, size=size, bands=bands)
+
+        # read geometry
+        block.sza = self.read_band('sun_zenith', size, offset)
+        block.vza = self.read_band('view_zenith', size, offset)
+        block.saa = self.read_band('sun_azimuth', size, offset)
+        block.vaa = self.read_band('view_azimuth', size, offset)
+
+        # read detector index
+        di = self.read_band('detector_index', size, offset)
+
+        # calculate F0 for each band
+        block.F0 = np.zeros((nbands, ysize, xsize)) + np.NaN
+        for iband, band in enumerate(bands):
+            block.F0[iband,:,:] = self.F0[self.F0_band_names[band]][di]
+
+        # calculate detector wavelength for each band
+        block.wavelen = np.zeros((nbands, ysize, xsize), dtype='float32') + np.NaN
+        for iband, band in enumerate(bands):
+            block.wavelen[iband,:,:] = self.detector_wavelength[self.wav_band_names[band]][di]
+
+        # read TOA
+        Ltoa = np.zeros((nbands, ysize, xsize)) + np.NaN
+        for iband, band in enumerate(bands):
+            Ltoa_ = self.read_band(self.band_names[band], size, offset)
+            Ltoa[iband,:,:] = Ltoa_[:,:]
+        block.Ltoa = Ltoa
+
+        # wind speed (zonal and merdional)
+        zwind = self.read_band('zonal_wind', size, offset)
+        mwind = self.read_band('merid_wind', size, offset)
+        block.wind_speed = np.sqrt(zwind**2 + mwind**2)
+
+        print 'Read', block
+
+        return block
+
+
+    def blocks(self, bands_read, blocksize=100):
+
         nblocks = self.height/blocksize + 1
         for iblock in xrange(nblocks):
 
@@ -79,41 +130,5 @@ class Level1_MERIS(object):
             yoffset = iblock*blocksize
             offset = (xoffset, yoffset)
 
-            # initialize block
-            block = Block(offset=offset, size=size, bands=bands_read)
-
-            # read geometry
-            block.sza = self.read_band('sun_zenith', size, offset)
-            block.vza = self.read_band('view_zenith', size, offset)
-            block.saa = self.read_band('sun_azimuth', size, offset)
-            block.vaa = self.read_band('view_azimuth', size, offset)
-
-            # read detector index
-            di = self.read_band('detector_index', size, offset)
-
-            # calculate F0 for each band
-            block.F0 = np.zeros((nbands, ysize, xsize)) + np.NaN
-            for iband, band in enumerate(bands_read):
-                block.F0[iband,:,:] = self.F0[self.F0_band_names[band]][di]
-
-            # calculate detector wavelength for each band
-            block.wavelen = np.zeros((nbands, ysize, xsize), dtype='float32') + np.NaN
-            for iband, band in enumerate(bands_read):
-                block.wavelen[iband,:,:] = self.detector_wavelength[self.wav_band_names[band]][di]
-
-            # read TOA
-            Ltoa = np.zeros((nbands, ysize, xsize)) + np.NaN
-            for iband, band in enumerate(bands_read):
-                Ltoa_ = self.read_band(self.band_names[band], size, offset)
-                Ltoa[iband,:,:] = Ltoa_[:,:]
-            block.Ltoa = Ltoa
-
-            # wind speed (zonal and merdional)
-            zwind = self.read_band('zonal_wind', size, offset)
-            mwind = self.read_band('merid_wind', size, offset)
-            block.wind_speed = np.sqrt(zwind**2 + mwind**2)
-
-            print 'Reading', block
-
-            yield block
+            yield self.read_block(size, offset, bands_read)
 
