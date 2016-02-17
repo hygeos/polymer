@@ -1,13 +1,18 @@
 import numpy as np
 cimport numpy as np
 
+from os.path import join
+
 
 cdef class WaterModel:
     '''
     Base class for water reflectance models
     '''
+    cdef init(self, float [:] wav, float sza, float vza, float raa):
+        raise Exception('WaterModel.init(...) shall be implemented')
+
     cdef float[:] calc_rho(self, float[:] x):
-        raise Exception('WaterModel.calc_rho() shall be implemented')
+        raise Exception('WaterModel.calc_rho(...) shall be implemented')
 
 
 cdef class ParkRuddick(WaterModel):
@@ -17,26 +22,42 @@ cdef class ParkRuddick(WaterModel):
     cdef float[:] bw   # scattering coefficient
     cdef float[:] A    # absorption parameters A and B (Bricaud)
     cdef float[:] B    # absorption parameters A and B (Bricaud)
+    cdef CLUT BW
+    cdef float bw500
 
-    def __init__(self, filename):
-        print 'TODO: read', filename
+    def __init__(self, directory):
+
         self.Rw = None
 
+        # read water scattering coefficient
+        data_bw = np.genfromtxt(join(directory, 'morel_buiteveld_bsw.txt'), skip_header=1)
+        self.BW = CLUT(data_bw[:,1].astype('float32'), axes=[data_bw[:,0]], debug=True)   # FIXME (DEBUG)
+        assert data_bw[-1,0] == 500.
+        self.bw500 = data_bw[-1,1]
 
-    cdef init(self, float [:] wav,
-            float sza, float vza, float raa,
-            float wind):
+
+    cdef init(self, float [:] wav, float sza, float vza, float raa):
         '''
         set initialize the model parameters
         '''
+        cdef int i
+        cdef int ret
         self.wav = wav
-
 
         # array initialization (unique)
         if self.Rw is None:
-            self.Rw = np.array(len(wav), dtype='float32')
-            self.A = np.array(len(wav), dtype='float32')
-            self.B = np.array(len(wav), dtype='float32')
+            self.Rw = np.zeros(len(wav), dtype='float32')
+            self.bw = np.zeros(len(wav), dtype='float32')
+
+        # interpolate scattering coefficient
+        for i, w in enumerate(wav):
+            ret = self.BW.lookup(0, w)
+            if ret > 0:
+                self.bw[i] = self.bw500 * (w/500.)**-4.
+            elif ret < 0:
+                raise Exception('Error')
+            else:
+                self.bw[i] = self.BW.interp()
 
     cdef float[:] calc_rho(self, float[:] x):
         '''

@@ -115,7 +115,7 @@ def main():
     l2 = polymer(
             Params_MERIS(),
             Level1_MERIS('/mfs/proj/CNES_GLITTER_2009/DATA_HYGEOS/20041104_06/MER_RR__1PQBCM20041105_060121_000002002031_00449_14030_0002.N1'),
-            ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/AboveRrs_gCoef_w5.dat'),
+            ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/'),
             Level2_Memory(),
             )
     print l2
