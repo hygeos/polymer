@@ -30,8 +30,10 @@ cdef class ParkRuddick(WaterModel):
     cdef CLUT GI_PR  # gi coefficients
     cdef CLUT GII_PR  # pre-interpolated gi coefficients (for one pixel)
     cdef CLUT AB_BRIC
+    cdef CLUT RAMAN
     cdef float bw500
     cdef float a700
+    cdef float mus
 
     cdef int[:] index  # multi-purpose vector
 
@@ -74,6 +76,13 @@ cdef class ParkRuddick(WaterModel):
         assert lambda_bric95[-1] == 700
         self.a700 = ap_bricaud[-1,1]
 
+        #
+        # read Raman correction
+        #
+        raman = np.genfromtxt(join(directory, 'raman_westberry13.txt'), comments='#')
+        # (wl, chl)
+        self.RAMAN = CLUT(raman[:,1:], axes=[raman[:,0],
+                [0.01,0.02,0.03,0.04,0.07,0.1,0.2,0.3,0.5,0.7,1.,2.,5.]])
 
     def read_gi(self, directory):
         '''
@@ -128,6 +137,7 @@ cdef class ParkRuddick(WaterModel):
         cdef int i, j
         cdef int ret
         self.wav = wav
+        self.mus = np.cos(sza*np.pi/180.)
 
         #
         # array initialization (unique)
@@ -249,7 +259,7 @@ cdef class ParkRuddick(WaterModel):
         if (S < 0.011): S=0.011
 
         # wavelength loop
-        for i in range(N):
+        for i in range(len(self.wav)):
             lam = self.wav[i]
 
             #
@@ -310,13 +320,16 @@ cdef class ParkRuddick(WaterModel):
                 rho += gi * omegapow
 
             rho *= np.pi # conversion remote sensing reflectance -> reflectance
-            print lam, chl, rho
 
-            # TODO: raman
-
+            # raman correction
+            # TODO: pre-interpolate RAMAN in lam?
+            ret = self.RAMAN.lookup(0, lam)
+            if ret < 0:
+                raise Exception('Error in lookup for RAMAN (lambda)')
+            ret = self.RAMAN.lookup(1, chl)  # clip both ends
+            rho *= 1. + (self.RAMAN.interp()*self.mus/0.866)
 
             self.Rw[i] = rho
-
 
 
         return self.Rw
