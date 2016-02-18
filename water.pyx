@@ -186,6 +186,15 @@ cdef class ParkRuddick(WaterModel):
                 self.index[0] = i
                 self.index[1] = j
                 self.GII_PR.set(np.NaN, self.index)
+        #
+        # lookup the ths, thv and phi axes
+        #
+        ret = self.GI_PR.lookup(2, sza)
+        if ret != 0: raise Exception('Error in GI_PR sza lookup')
+        ret = self.GI_PR.lookup(3, vza)
+        if ret != 0: raise Exception('Error in GI_PR vza lookup')
+        ret = self.GI_PR.lookup(4, raa)
+        if ret != 0: raise Exception('Error in GI_PR raa lookup')
 
 
     cdef float[:] calc_rho(self, float[:] x):
@@ -201,7 +210,11 @@ cdef class ParkRuddick(WaterModel):
         cdef float bbw, gamma, bp550, bbp550, bb, bbp
         cdef float aw, aphy, aCDM, a, aCDM443, S
         cdef float lam
-        cdef float gammab, omegab
+        cdef float gammab, omegab, omegapow, gi
+        cdef int i, j
+        cdef int ret
+        cdef int igb
+        cdef float rho
 
         if N >= 2:
             fb = 10**x[1]
@@ -268,7 +281,42 @@ cdef class ParkRuddick(WaterModel):
             omegab = bb/(a + bb)
             gammab = bbp/bb
 
-            # TODO: continue
+            omegapow = 1.
+            rho = 0.
+            ret = self.GII_PR.lookup(0, gammab)
+            if ret != 0:
+                raise Exception('GII_PR lookup error')
+
+            # pre-interpolation
+            for igb in range(self.GII_PR._inf[0], self.GII_PR._inf[0]+2):
+                self.index[0] = igb
+                self.index[1] = 0
+                if np.isnan(self.GII_PR.get(self.index)):
+                    self.GI_PR.index(0, igb)
+                    # NOTE: axes ths, thv and phi have already been lookedup on init()
+                    for j in range(4):
+                        self.GI_PR.index(1, j)
+                        self.index[1] = j
+                        self.GII_PR.set(self.GI_PR.interp(), self.index)
+
+
+            for j in range(4):
+                self.GII_PR.index(1, j)
+
+                omegapow *= omegab
+
+                gi = self.GII_PR.interp()
+
+                rho += gi * omegapow
+
+            rho *= np.pi # conversion remote sensing reflectance -> reflectance
+            print lam, chl, rho
+
+            # TODO: raman
+
+
+            self.Rw[i] = rho
+
 
 
         return self.Rw
