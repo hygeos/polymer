@@ -30,7 +30,7 @@ cdef class CLUT:
         '''
         self.shape = np.array(list(A.shape)).astype('int32')
         self.ndim = A.ndim
-        self.data = A.ravel(order='C')
+        self.data = A.astype('float32').ravel(order='C')
         self.debug = debug
 
         self._index = np.zeros(A.ndim, dtype='int32')-999
@@ -133,7 +133,10 @@ cdef class CLUT:
         set current index on dimension i using integer indexing
         (no interpolation)
         '''
-        raise NotImplementedError
+        self._inf[i] = j
+        self._interp[i] = 0
+
+        return 0
 
 
     cdef int indexf(self, int i, float x):
@@ -141,7 +144,11 @@ cdef class CLUT:
         set current index of dimension i using floating index
         (interpolation)
         '''
-        raise NotImplementedError
+        self._inf[i] = <int>x
+        self._x[i] = x - self._inf[i]
+        self._interp[i] = 1
+
+        return 0
 
 
     cdef int lookup(self, int i, float v):
