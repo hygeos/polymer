@@ -12,7 +12,8 @@ import warnings
 
 # cython imports
 import pyximport ; pyximport.install()
-from polymer_main import PolymerMinimizer, ParkRuddick
+from polymer_main import PolymerMinimizer
+from water import ParkRuddick
 
 
 '''

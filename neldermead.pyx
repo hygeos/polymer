@@ -6,11 +6,6 @@ from cython cimport floating
 
 cdef class NelderMeadMinimizer:
 
-    cdef int N   # number of dimensions
-    cdef float [:] fsim
-    cdef float [:,:] sim
-    cdef float[:] y, xcc, xc, xr, xe
-
     def __init__(self, int N):
         self.N = N
         self.fsim = np.zeros((N + 1,), dtype='float32')
@@ -29,13 +24,13 @@ cdef class NelderMeadMinimizer:
                 int maxiter=-1,
                 float xtol=1e-4,
                 float ftol=1e-4,
-                disp=False):
+                int disp=0):
         """
         Minimization of scalar function of one or more variables using the
         Nelder-Mead algorithm.
 
         Options for the Nelder-Mead algorithm are:
-            disp : bool
+            disp : int
                 Set to True to print convergence messages.
             xtol : float
                 Relative error in solution `xopt` acceptable for convergence.

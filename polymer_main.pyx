@@ -2,9 +2,8 @@
 import numpy as np
 cimport numpy as np
 
-include "minimization.pyx"
-include "water.pyx"
-include "interpolation.pyx"
+from neldermead cimport NelderMeadMinimizer
+from water cimport WaterModel
 
 
 cdef class F(NelderMeadMinimizer):
@@ -81,27 +80,27 @@ cdef class PolymerMinimizer:
                 self.f.init(Rprime[:,i,j], wav[:,i,j], sza[i,j], vza[i,j], raa[i,j])
                 self.f.minimize(x0)
 
-    cdef test_interp(self):
-        # TODO: remove
-        cdef int[:] i0 = np.array([1, 1], dtype='int32')
+    # cdef test_interp(self):
+    #     # TODO: remove
+    #     cdef int[:] i0 = np.array([1, 1], dtype='int32')
 
-        interp = CLUT(np.eye(3, dtype='float32'))
-        # print '->', interp.get(i0)
-        cdef float[:] x0 = np.array([0.1, 0.9], dtype='float32')
-        # print '->', interp.interp(x0)
-        x0[0] = -1
-        # print '->', interp.interp(x0, i0)
-        interp = CLUT(np.eye(5, dtype='float32'),
-                debug=True,
-                axes=[[10, 11, 12, 12.5, 12.7][::1], np.arange(5)*10])
-        interp2 = CLUT(np.eye(5, dtype='float32'),
-                debug=True,
-                axes=[[10, 11, 12, 12.5, 12.7][::-1], np.arange(5)*10])
-        for v in np.linspace(9.9,13,50):
-            # res = interp.lookup(0, v)
-            # print '->', v, res, interp._inf[0], interp._x[0], interp._interp[0]
-            res = interp2.lookup(0, v)
-            print '->', v, res, interp2._inf[0], interp2._x[0], interp2._interp[0]
+    #     interp = CLUT(np.eye(3, dtype='float32'))
+    #     # print '->', interp.get(i0)
+    #     cdef float[:] x0 = np.array([0.1, 0.9], dtype='float32')
+    #     # print '->', interp.interp(x0)
+    #     x0[0] = -1
+    #     # print '->', interp.interp(x0, i0)
+    #     interp = CLUT(np.eye(5, dtype='float32'),
+    #             debug=True,
+    #             axes=[[10, 11, 12, 12.5, 12.7][::1], np.arange(5)*10])
+    #     interp2 = CLUT(np.eye(5, dtype='float32'),
+    #             debug=True,
+    #             axes=[[10, 11, 12, 12.5, 12.7][::-1], np.arange(5)*10])
+    #     for v in np.linspace(9.9,13,50):
+    #         # res = interp.lookup(0, v)
+    #         # print '->', v, res, interp._inf[0], interp._x[0], interp._interp[0]
+    #         res = interp2.lookup(0, v)
+    #         print '->', v, res, interp2._inf[0], interp2._x[0], interp2._interp[0]
 
 
     def minimize(self, block):

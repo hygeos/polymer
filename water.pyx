@@ -3,6 +3,9 @@ cimport numpy as np
 
 from os.path import join
 
+from clut cimport CLUT
+
+
 
 cdef class WaterModel:
     '''
