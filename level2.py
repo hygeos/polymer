@@ -5,6 +5,13 @@ import numpy as np
 from pylab import imshow, show, colorbar, figure
 from luts import Idx
 
+class Level2_HDF(object):
+    def __init__(self, filename):
+        pass
+    def write(self, data):
+        pass
+
+
 def contrast(x, max=1.):
     ''' stretch the contrast using a custom function '''
     R = np.sin(x/max*np.pi/2)**0.5
