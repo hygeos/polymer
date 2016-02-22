@@ -52,11 +52,24 @@ class Params_MERIS(Params):
 
         # read solar irradiance
 
+
+def coeff_sun_earth_distance(jday):
+    A=1.00014
+    B=0.01671
+    C=0.9856002831
+    D=3.4532858
+    E=360.
+    F=0.00014
+
+    coef  = 1./((A - B*np.cos(2*np.pi*(C*jday - D)/E) - F*np.cos(4*np.pi*(C*jday - D)/E))**2)
+
+    return coef
+
 def convert_reflectance(block, params):
 
     block.Rtoa = np.zeros(block.Ltoa.shape)+np.NaN
 
-    coef = 1.   # FIXME, sun-earth distance coefficient
+    coef = coeff_sun_earth_distance(block.jday)
 
     for i in xrange(block.nbands):
 

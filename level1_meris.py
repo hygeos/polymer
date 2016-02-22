@@ -5,6 +5,7 @@
 import epr
 from block import Block
 import numpy as np
+from datetime import datetime
 
 class Level1_MERIS(object):
 
@@ -50,6 +51,24 @@ class Level1_MERIS(object):
 
         # initialize detector wavelength
         self.detector_wavelength = np.genfromtxt('/home/francois/MERIS/POLYMER/auxdata/meris/smile/v2/central_wavelen_rr.txt', names=True)
+
+        # read the file date
+        mph = self.prod.get_mph()
+        dat = mph.get_field('SENSING_START').get_elem(0)
+        dat = dat.replace('-JAN-', '-01-')  # NOTE:
+        dat = dat.replace('-FEB-', '-02-')  # parsing with '%d-%b-%Y...' may be
+        dat = dat.replace('-MAR-', '-03-')  # locale-dependent
+        dat = dat.replace('-APR-', '-04-')
+        dat = dat.replace('-MAY-', '-05-')
+        dat = dat.replace('-JUN-', '-06-')
+        dat = dat.replace('-JUL-', '-07-')
+        dat = dat.replace('-AUG-', '-08-')
+        dat = dat.replace('-SEP-', '-09-')
+        dat = dat.replace('-OCT-', '-10-')
+        dat = dat.replace('-NOV-', '-11-')
+        dat = dat.replace('-DEC-', '-12-')
+        self.date = datetime.strptime(dat, '%d-%m-%Y %H:%M:%S.%f')
+
 
         print 'Opened "{}", ({}x{})'.format(filename, self.width, self.height)
 
@@ -106,6 +125,9 @@ class Level1_MERIS(object):
         zwind = self.read_band('zonal_wind', size, offset)
         mwind = self.read_band('merid_wind', size, offset)
         block.wind_speed = np.sqrt(zwind**2 + mwind**2)
+
+        # set julian day
+        block.jday = self.date.timetuple().tm_yday
 
         print 'Read', block
 
