@@ -1,5 +1,6 @@
 import numpy as np
 cimport numpy as np
+from libc.math cimport isnan
 
 cdef class CLUT:
 
@@ -133,7 +134,7 @@ cdef class CLUT:
         return 0
 
 
-    cdef int lookup(self, int i, float v):
+    cdef int lookup(self, int i, float v) except -999:
         '''
         index lookup for axis i with value v:
         sets up index j such that v[j] < v and interpolation ratio
@@ -147,6 +148,9 @@ cdef class CLUT:
         '''
         cdef long int j, jj
         cdef float lower, upper
+
+        if isnan(v):
+            raise Exception('lookup of NaN')
 
         if not self.dim_has_axis[i]:
             raise Exception('Trying to use index lookup without associated axis')
@@ -178,6 +182,8 @@ cdef class CLUT:
 
         # index in the lookup array
         j = <long int>((v - self.bounds[i,0])*self.scaling[i])
+        if j < 0:
+            raise Exception('Index error in lookup: index={}, value={}'.format(j, v))
 
         # index in the array
         jj = self.invax[i,j]

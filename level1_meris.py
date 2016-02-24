@@ -49,6 +49,17 @@ class Level1_MERIS(object):
                     900: 'lam_band14',
                 }
 
+        self.K_OZ = {
+                    412: 0.000301800 , 443: 0.00327200 ,
+                    490: 0.0211900   , 510: 0.0419600  ,
+                    560: 0.104100    , 620: 0.109100   ,
+                    665: 0.0511500   , 681: 0.0359600  ,
+                    709: 0.0196800   , 754: 0.00955800 ,
+                    760: 0.00730400  , 779: 0.00769300 ,
+                    865: 0.00219300  , 885: 0.00121100 ,
+                    900: 0.00151600 ,
+                }
+
         # initialize detector wavelength
         self.detector_wavelength = np.genfromtxt('/home/francois/MERIS/POLYMER/auxdata/meris/smile/v2/central_wavelen_rr.txt', names=True)
 
@@ -73,8 +84,8 @@ class Level1_MERIS(object):
         print 'Opened "{}", ({}x{})'.format(filename, self.width, self.height)
 
     def read_band(self, band_name, size, offset):
-        (xsize, ysize) = size
-        (xoffset, yoffset) = offset
+        (ysize, xsize) = size
+        (yoffset, xoffset) = offset
         return self.prod.get_band(band_name).read_as_array(
                     xoffset=xoffset, yoffset=yoffset,
                     width=xsize, height=ysize)
@@ -88,8 +99,8 @@ class Level1_MERIS(object):
         req: list of identifiers of required datasets
         '''
 
-        (xsize, ysize) = size
-        (xoffset, yoffset) = offset
+        (ysize, xsize) = size
+        # (xoffset, yoffset) = offset
         nbands = len(bands)
 
         # initialize block
@@ -126,6 +137,9 @@ class Level1_MERIS(object):
         mwind = self.read_band('merid_wind', size, offset)
         block.wind_speed = np.sqrt(zwind**2 + mwind**2)
 
+        # ozone
+        block.ozone = self.read_band('ozone', size, offset)
+
         # set julian day
         block.jday = self.date.timetuple().tm_yday
 
@@ -145,12 +159,12 @@ class Level1_MERIS(object):
                 ysize = self.height-(nblocks-1)*blocksize
             else:
                 ysize = blocksize
-            size = (xsize, ysize)
+            size = (ysize, xsize)
 
             # determine the block offset
             xoffset = 0
             yoffset = iblock*blocksize
-            offset = (xoffset, yoffset)
+            offset = (yoffset, xoffset)
 
             yield self.read_block(size, offset, bands_read)
 

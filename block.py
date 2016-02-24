@@ -10,7 +10,6 @@ class Block(object):
         self.size = size
         self.offset = offset
         self.bands = bands
-        self._data  = {}
 
         self.sza = None       # sun zenith angle [degrees] (nx, ny)
         self.vza = None       # view zenith angle [degrees] (nx, ny)
@@ -31,6 +30,7 @@ class Block(object):
         self._raa = None
         self._mus = None
         self._muv = None
+        self._air_mass = None
 
     def __str__(self):
         return 'block: size {}, offset {}'.format(self.size, self.offset)
@@ -51,6 +51,12 @@ class Block(object):
         if self._mus is None:
             self._mus = np.cos(self.sza*np.pi/180.)
         return self._mus
+
+    @property
+    def air_mass(self):
+        if self._air_mass is None:
+            self._air_mass = 1/self.muv + 1/self.mus
+        return self._air_mass
 
     @property
     def muv(self):

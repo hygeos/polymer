@@ -297,11 +297,13 @@ cdef class ParkRuddick(WaterModel):
             omegapow = 1.
             rho = 0.
             ret = self.GII_PR.lookup(0, gammab)
-            if ret != 0:
-                raise Exception('GII_PR lookup error')
+            # if ret != 0:  # FIXME: test return values
+                # raise Exception('GII_PR lookup error: gammab={}'.format(gammab))
 
             # pre-interpolation
             for igb in range(self.GII_PR._inf[0], self.GII_PR._inf[0]+2):
+                if igb >= self.GII_PR.shape[0]:
+                    continue
                 self.index[0] = igb
                 self.index[1] = 0
                 if np.isnan(self.GII_PR.get(self.index)):

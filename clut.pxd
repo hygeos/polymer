@@ -1,5 +1,6 @@
 cdef class CLUT:
 
+    # attributes
     cdef float[:] data
     cdef int ndim
     cdef float[:,:] axes   # (axis index, values)
@@ -18,9 +19,10 @@ cdef class CLUT:
     cdef int[:] reverse   # whether each axis is reversed
     cdef int debug
 
+    # cdef methods
     cdef float get(self, int[:] x)
     cdef set(self, float value, int[:] x)
     cdef int index(self, int i, int j)
     cdef int indexf(self, int i, float x)
-    cdef int lookup(self, int i, float v)
+    cdef int lookup(self, int i, float v) except -999
     cdef float interp(self)

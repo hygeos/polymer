@@ -8,9 +8,16 @@ from luts import Idx
 class Level2_HDF(object):
     def __init__(self, filename):
         pass
-    def write(self, data):
+    def write(self, block):
         pass
 
+class Level2_NETCDF(object):
+
+    def __init__(self, filename):
+        pass
+
+    def write(self, block):
+        pass
 
 def contrast(x, max=1.):
     ''' stretch the contrast using a custom function '''
@@ -47,8 +54,8 @@ class Level2_Memory(object):
 
     def write(self, block):
 
-        (xoff, yoff) = block.offset
-        (wid, hei) = block.size
+        (yoff, xoff) = block.offset
+        (hei, wid) = block.size
 
         if self.bands is None:
             self.bands = block.bands

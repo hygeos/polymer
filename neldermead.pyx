@@ -16,7 +16,7 @@ cdef class NelderMeadMinimizer:
         self.xr = np.zeros(N, dtype='float32')
         self.xe = np.zeros(N, dtype='float32')
 
-    cdef float eval(self, float[:] x):
+    cdef float eval(self, float[:] x) except? -999:
         raise Exception('NelderMeadMinimizer.eval() shall be implemented')
 
     cdef minimize(self,

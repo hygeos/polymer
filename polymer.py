@@ -3,8 +3,7 @@
 
 
 from level1_meris import Level1_MERIS
-from level2_hdf import Level2_HDF
-from level2_view import Level2_Memory, RGB
+from level2 import Level2_Memory, RGB, Level2_HDF
 import numpy as np
 from luts import read_mlut_hdf, LUT, Idx
 from pylab import imshow, show, colorbar
@@ -50,8 +49,6 @@ class Params_MERIS(Params):
         self.bands_rw =   [412,443,490,510,560,620,665,        754,    779,865]
         self.lut_file = '/home/francois/MERIS/POLYMER/LUTS/MERIS/LUTB.hdf'
 
-        # read solar irradiance
-
 
 def coeff_sun_earth_distance(jday):
     A=1.00014
@@ -76,8 +73,32 @@ def convert_reflectance(block, params):
         block.Rtoa[i,:,:] = block.Ltoa[i,:,:]*np.pi/(block.mus*block.F0[i,:,:]*coef)
 
 
-def gas_correction(block):
-    pass
+def gas_correction(block, l1):
+
+    block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.NaN
+
+    #
+    # ozone correction
+    #
+    # make sure that ozone is in DU
+    if (block.ozone < 50).any() or (block.ozone > 1000).any():
+        raise Exception('Error, ozone is assumed in DU')
+
+    # bands loop
+    for i, b in enumerate(block.bands):
+
+        tauO3 = l1.K_OZ[b] * block.ozone * 1e-3  # convert from DU to cm*atm
+
+        # ozone transmittance
+        trans_O3 = np.exp(-tauO3 * block.air_mass)
+
+        block.Rtoa_gc[i,:,:] = block.Rtoa[i,:,:]/trans_O3
+
+    #
+    # NO2 correction
+    #
+    warnings.warn('TODO: implement NO2 correction')
+
 
 def rayleigh_correction(block, mlut):
 
@@ -85,16 +106,11 @@ def rayleigh_correction(block, mlut):
 
     for i in xrange(block.nbands):
 
-        block.Rprime[i,:,:] = block.Rtoa[i,:,:] - mlut['Rmolgli'][
+        block.Rprime[i,:,:] = block.Rtoa_gc[i,:,:] - mlut['Rmolgli'][
                 Idx(block.muv),
                 Idx(block.raa),
                 Idx(block.mus),
                 i, Idx(block.wind_speed)]
-    # print block.Rprime.data[:,:,:]
-        # FIXME:
-        # ordre mus muv
-        # fournir la vitesse du vent
-        # clarifier les indices des bandes
 
 
 def polymer(params, level1, watermodel, level2):
@@ -112,11 +128,11 @@ def polymer(params, level1, watermodel, level2):
 
         convert_reflectance(b, params)
 
-        gas_correction(b)
+        gas_correction(b, level1)
 
         rayleigh_correction(b, mlut)
 
-        opt.minimize(b)
+        opt.minimize(b, params)
 
         level2.write(b)
 
