@@ -11,6 +11,7 @@ cdef class CLUT:
                 * a list or array of floats (index lookup is activated)
                 * None: index lookup is not activated
         '''
+        cdef int i
         self.shape = np.array(list(A.shape)).astype('int32')
         self.ndim = A.ndim
         self.data = A.astype('float32').ravel(order='C')
@@ -225,7 +226,7 @@ cdef class CLUT:
         cdef float coef
         cdef float rvalue = 0.
         cdef int j, d, b, D
-        cdef n_dim_interp = 0
+        cdef int n_dim_interp = 0
 
         for j in range(self.ndim):
             if self._interp[j]:

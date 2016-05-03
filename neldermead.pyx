@@ -1,4 +1,3 @@
-
 import numpy as np
 cimport numpy as np
 from cython cimport floating
@@ -19,7 +18,7 @@ cdef class NelderMeadMinimizer:
     cdef float eval(self, float[:] x) except? -999:
         raise Exception('NelderMeadMinimizer.eval() shall be implemented')
 
-    cdef minimize(self,
+    cdef float [:] minimize(self,
                 float [:] x0,
                 int maxiter=-1,
                 float xtol=1e-4,
@@ -78,9 +77,9 @@ cdef class NelderMeadMinimizer:
         # sort so sim[0,:] has the lowest function value
         self.sim = np.take(self.sim, ind, 0)
 
-        cdef int iterations = 1
+        self.niter = 1
 
-        while iterations < maxiter:
+        while self.niter < maxiter:
 
             stop = 1
             for k in range(1, N):
@@ -146,9 +145,9 @@ cdef class NelderMeadMinimizer:
             ind = np.argsort(self.fsim)
             self.sim = np.take(self.sim, ind, 0)
             self.fsim = np.take(self.fsim, ind, 0)
-            iterations += 1
+            self.niter += 1
 
-        x = self.sim[0]
+        x = self.sim[0,:]
         fval = np.min(self.fsim)
         warnflag = 0
 
@@ -161,15 +160,6 @@ cdef class NelderMeadMinimizer:
                                 # status=warnflag, success=(warnflag == 0),
                                 # message=msg, x=x)
 
-        return np.asarray(x), iterations, fval
+        return x
 
 
-# cdef class Min(NelderMeadMinimizer):
-    # cdef float eval(self, float[:] x):
-        # return (1-x[0])**2 + 100*(x[1]-x[0]**2)**2
-
-# def test():
-
-    # x0 = np.array([0, 0], dtype='float32')
-
-    # print Min(2).minimize(x0)

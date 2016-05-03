@@ -4,6 +4,7 @@ cimport numpy as np
 from os.path import join
 
 from clut cimport CLUT
+from libc.math cimport exp, M_PI, isnan
 
 
 
@@ -37,6 +38,7 @@ cdef class ParkRuddick(WaterModel):
     cdef float bw500
     cdef float a700
     cdef float mus
+    cdef int Nwav
 
     cdef int[:] index  # multi-purpose vector
 
@@ -140,6 +142,7 @@ cdef class ParkRuddick(WaterModel):
         cdef int i, j
         cdef int ret
         self.wav = wav
+        self.Nwav = len(wav)
         self.mus = np.cos(sza*np.pi/180.)
 
         #
@@ -262,7 +265,7 @@ cdef class ParkRuddick(WaterModel):
         if (S < 0.011): S=0.011
 
         # wavelength loop
-        for i in range(len(self.wav)):
+        for i in range(self.Nwav):
             lam = self.wav[i]
 
             #
@@ -287,7 +290,7 @@ cdef class ParkRuddick(WaterModel):
             # phytoplankton absorption
             aphy = self.a_bric[i] * chl**(1-self.b_bric[i])
 
-            aCDM = aCDM443 * np.exp(-S*(lam - 443))
+            aCDM = aCDM443 * exp(-S*(lam - 443))
 
             a = aw + aphy + aCDM
 
@@ -306,7 +309,7 @@ cdef class ParkRuddick(WaterModel):
                     continue
                 self.index[0] = igb
                 self.index[1] = 0
-                if np.isnan(self.GII_PR.get(self.index)):
+                if isnan(self.GII_PR.get(self.index)):
                     self.GI_PR.index(0, igb)
                     # NOTE: axes ths, thv and phi have already been lookedup on init()
                     for j in range(4):
@@ -324,7 +327,7 @@ cdef class ParkRuddick(WaterModel):
 
                 rho += gi * omegapow
 
-            rho *= np.pi # conversion remote sensing reflectance -> reflectance
+            rho *= M_PI # conversion remote sensing reflectance -> reflectance
 
             # raman correction
             # TODO: pre-interpolate RAMAN in lam?

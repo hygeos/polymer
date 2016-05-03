@@ -3,10 +3,13 @@ from Cython.Build import cythonize
 
 
 debug=True
+annotate=True
 
 
 if debug:
-    compiler_directives = {}
+    compiler_directives = {
+            'profile': True,
+            }
 else:
     compiler_directives = {
             'boundscheck': False,
@@ -15,8 +18,10 @@ else:
             }
 
 
-setup(ext_modules = cythonize(['*.pyx'],
-    compiler_directives=compiler_directives,
-    annotate=debug,
-    ))
+setup(
+    ext_modules = cythonize(['*.pyx'],
+            compiler_directives=compiler_directives,
+            annotate=annotate,
+        )
+    )
 

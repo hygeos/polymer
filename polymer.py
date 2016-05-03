@@ -10,7 +10,7 @@ from pylab import imshow, show, colorbar
 import warnings
 
 # cython imports
-import pyximport ; pyximport.install()
+# import pyximport ; pyximport.install()
 from polymer_main import PolymerMinimizer
 from water import ParkRuddick
 
@@ -101,8 +101,13 @@ def gas_correction(block, l1):
 
 
 def rayleigh_correction(block, mlut):
+    '''
+    Rayleigh correction
+    + transmission interpolation
+    '''
 
     block.Rprime = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
+    block.Tmol = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
 
     for i in xrange(block.nbands):
 
@@ -112,8 +117,15 @@ def rayleigh_correction(block, mlut):
                 Idx(block.mus),
                 i, Idx(block.wind_speed)]
 
+        # TODO: share axes indices
+        block.Tmol[i,:,:]  = mlut['Tmolgli'][Idx(block.mus), i, Idx(block.wind_speed)]
+        block.Tmol[i,:,:] *= mlut['Tmolgli'][Idx(block.muv), i, Idx(block.wind_speed)]
+
 
 def polymer(params, level1, watermodel, level2):
+    '''
+    Polymer atmospheric correction
+    '''
 
     # initialize output file
     level2.init(level1)
@@ -141,16 +153,30 @@ def polymer(params, level1, watermodel, level2):
     return level2
 
 def main():
-    # l2 = Level2_Memory()
+    profile=True
+    if profile:
+        import cProfile, pstats, StringIO
+        pr = cProfile.Profile()
+        pr.enable()
+
     l2 = polymer(
             Params_MERIS(),
-            Level1_MERIS('/mfs/proj/CNES_GLITTER_2009/DATA_HYGEOS/20041104_06/MER_RR__1PQBCM20041105_060121_000002002031_00449_14030_0002.N1'),
+            Level1_MERIS('/mfs/proj/CNES_GLITTER_2009/DATA_HYGEOS/20041104_06/MER_RR__1PQBCM20041105_060121_000002002031_00449_14030_0002.N1', eline=1),
             ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/'),
             Level2_Memory(),
             )
     print l2
+    if profile:
+        pr.disable()
+        s = StringIO.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print s.getvalue()
     # RGB(LUT(l2.Rtoa, axes=[l2.bands, None, None]))
     # RGB(LUT(l2.Rprime, axes=[l2.bands, None, None]))
+    # imshow(l2.logchl, interpolation='nearest')
+    # colorbar()
     # show()
 
 if __name__ == '__main__':

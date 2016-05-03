@@ -51,6 +51,7 @@ class Level2_Memory(object):
         self.Rprime = None
         self.sza = None
         self.bands = None
+        self.logchl = None
 
     def write(self, block):
 
@@ -62,6 +63,9 @@ class Level2_Memory(object):
 
         if self.sza is None:
             self.sza = np.zeros(self.shape) + np.NaN
+
+        if self.logchl is None:
+            self.logchl = np.zeros(self.shape) + np.NaN
 
         if self.Ltoa is None:
             self.Ltoa = np.zeros((len(block.bands),)+self.shape) + np.NaN
@@ -76,6 +80,7 @@ class Level2_Memory(object):
         self.Rtoa[:,yoff:yoff+hei,xoff:xoff+wid] = block.Rtoa[:,:,:]
         self.Rprime[:,yoff:yoff+hei,xoff:xoff+wid] = block.Rprime[:,:,:]
         self.sza[yoff:yoff+hei,xoff:xoff+wid] = block.sza[:,:]
+        self.logchl[yoff:yoff+hei,xoff:xoff+wid] = block.logchl[:,:]
 
     def finish(self):
         pass

@@ -9,11 +9,21 @@ from datetime import datetime
 
 class Level1_MERIS(object):
 
-    def __init__(self, filename):
+    def __init__(self, filename, sline=0, eline=-1):
 
         self.prod = epr.Product(filename)
         self.width = self.prod.get_scene_width()
-        self.height = self.prod.get_scene_height()
+        self.totalheight = self.prod.get_scene_height()
+
+        self.sline = sline
+        self.eline = eline
+        self.height = self.totalheight
+        self.height -= sline
+        if eline < 0:
+            self.height += eline + 1
+        else:
+            self.height -= self.totalheight - eline - 1
+
         self.shape = (self.height, self.width)
         self.band_names = {
                 412: 'Radiance_1', 443: 'Radiance_2',
@@ -84,11 +94,14 @@ class Level1_MERIS(object):
         print 'Opened "{}", ({}x{})'.format(filename, self.width, self.height)
 
     def read_band(self, band_name, size, offset):
+        '''
+        offset: within the area of interest
+        '''
         (ysize, xsize) = size
         (yoffset, xoffset) = offset
         return self.prod.get_band(band_name).read_as_array(
-                    xoffset=xoffset, yoffset=yoffset,
-                    width=xsize, height=ysize)
+                    xoffset=xoffset, yoffset=yoffset+self.sline,
+                    width=xsize, height=ysize+self.sline)
 
 
     def read_block(self, size, offset, bands):
