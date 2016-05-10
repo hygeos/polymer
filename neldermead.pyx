@@ -6,9 +6,14 @@ from cython cimport floating
 cdef class NelderMeadMinimizer:
 
     def __init__(self, int N):
+        '''
+        Initialize the minimizer with a number of dimensions N
+        '''
         self.N = N
         self.fsim = np.zeros((N + 1,), dtype='float32')
         self.sim = np.zeros((N + 1, N), dtype='float32')
+        self.ssim = np.zeros((N + 1, N), dtype='float32')
+        self.ind = np.zeros((N + 1,), dtype='int32')
         self.y = np.zeros(N, dtype='float32')
         self.xcc = np.zeros(N, dtype='float32')
         self.xc = np.zeros(N, dtype='float32')
@@ -52,17 +57,12 @@ cdef class NelderMeadMinimizer:
         cdef float nonzdelt = 0.05
         cdef float zdelt = 0.00025
         cdef int stop, k, j
-        cdef float[:] X0 = x0  # convert to memoryview
         cdef float[:] y = self.y
-        cdef float[:] xcc = self.xcc
-        cdef float[:] xc = self.xc
-        cdef float[:] xr = self.xr
-        cdef float[:] xe = self.xe
 
-        self.sim[0,:] = X0
+        self.sim[0,:] = x0
         self.fsim[0] = self.eval(x0)
         for k in range(0, N):
-            y[:] = X0[:]
+            y[:] = x0[:]
             if y[k] != 0:
                 y[k] = (1 + nonzdelt)*y[k]
             else:
@@ -72,10 +72,11 @@ cdef class NelderMeadMinimizer:
             f = self.eval(y)
             self.fsim[k + 1] = f
 
-        cdef np.ndarray[long, ndim=1] ind = np.argsort(self.fsim)
-        self.fsim = np.take(self.fsim, ind, 0)
-        # sort so sim[0,:] has the lowest function value
-        self.sim = np.take(self.sim, ind, 0)
+        combsort(self.fsim, self.N+1, self.ind)
+
+        # use indices to sort the simulation parameters
+        for k in range(self.N+1):
+            self.sim[k,:] = self.ssim[self.ind[k],:]
 
         self.niter = 1
 
@@ -93,45 +94,45 @@ cdef class NelderMeadMinimizer:
 
             xbar = np.add.reduce(self.sim[:-1], 0) / N
             for k in range(N):
-                xr[k] = (1 + rho) * xbar[k] - rho * self.sim[-1,k]
-            fxr = self.eval(xr)
+                self.xr[k] = (1 + rho) * xbar[k] - rho * self.sim[-1,k]
+            fxr = self.eval(self.xr)
             doshrink = 0
 
             if fxr < self.fsim[0]:
                 for k in range(N):
-                    xe[k] = (1 + rho * chi) * xbar[k] - rho * chi * self.sim[-1,k]
-                fxe = self.eval(xe)
+                    self.xe[k] = (1 + rho * chi) * xbar[k] - rho * chi * self.sim[-1,k]
+                fxe = self.eval(self.xe)
 
                 if fxe < fxr:
-                    self.sim[-1] = xe
+                    self.sim[-1] = self.xe
                     self.fsim[-1] = fxe
                 else:
-                    self.sim[-1] = xr
+                    self.sim[-1] = self.xr
                     self.fsim[-1] = fxr
             else:  # fsim[0] <= fxr
                 if fxr < self.fsim[N-1]:
-                    self.sim[-1] = xr
+                    self.sim[-1] = self.xr
                     self.fsim[N] = fxr
                 else:  # fxr >= fsim[-2]
                     # Perform contraction
                     if fxr < self.fsim[N]:
                         for k in range(N):
-                            xc[k] = (1 + psi * rho) * xbar[k] - psi * rho * self.sim[-1,k]
-                        fxc = self.eval(xc)
+                            self.xc[k] = (1 + psi * rho) * xbar[k] - psi * rho * self.sim[-1,k]
+                        fxc = self.eval(self.xc)
 
                         if fxc <= fxr:
-                            self.sim[-1] = xc
+                            self.sim[-1] = self.xc
                             self.fsim[N] = fxc
                         else:
                             doshrink = 1
                     else:
                         # Perform an inside contraction
                         for k in range(N):
-                            xcc[k] = (1 - psi) * xbar[k] + psi * self.sim[-1,k]
-                        fxcc = self.eval(xcc)
+                            self.xcc[k] = (1 - psi) * xbar[k] + psi * self.sim[-1,k]
+                        fxcc = self.eval(self.xcc)
 
                         if fxcc < self.fsim[N]:
-                            self.sim[-1] = xcc
+                            self.sim[-1] = self.xcc
                             self.fsim[N] = fxcc
                         else:
                             doshrink = 1
@@ -162,4 +163,51 @@ cdef class NelderMeadMinimizer:
 
         return x
 
+
+cdef combsort(float[:] inp, int N, int[:] ind):
+    '''
+    in-place sort of array inp of size N using comb sort.
+    returns sorting indexes in array ind.
+    '''
+    cdef int gap = N
+    cdef int swapped = 0
+    cdef float shrink = 1.3
+    cdef int i
+    cdef int ix
+    cdef float tmp
+    for i in range(N):
+        ind[i] = i
+
+    while not ((gap == 1) and (not swapped)):
+        gap = int(gap/shrink)
+        if gap < 1:
+            gap = 1
+        i = 0
+        swapped = 0
+
+        while i + gap < N:
+
+            if inp[i] > inp[i+gap]:
+
+                # swap the values in place
+                tmp = inp[i+gap]
+                inp[i+gap] = inp[i]
+                inp[i] = tmp
+
+                # swap also the index
+                ix = ind[i+gap]
+                ind[i+gap] = ind[i]
+                ind[i] = ix
+
+                swapped = 1
+
+            # if inp[i] == inp[i+gap]:
+                # swapped = 1
+
+            i += 1
+
+    # verification
+    # for i in range(N-1):
+        # if inp[i+1] < inp[i]:
+            # print 'ERROR'
 

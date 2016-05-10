@@ -161,7 +161,7 @@ def main():
 
     l2 = polymer(
             Params_MERIS(),
-            Level1_MERIS('/mfs/proj/CNES_GLITTER_2009/DATA_HYGEOS/20041104_06/MER_RR__1PQBCM20041105_060121_000002002031_00449_14030_0002.N1', eline=1),
+            Level1_MERIS('/mfs/proj/CNES_GLITTER_2009/DATA_HYGEOS/20041104_06/MER_RR__1PQBCM20041105_060121_000002002031_00449_14030_0002.N1', eline=5),
             ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/'),
             Level2_Memory(),
             )
@@ -169,9 +169,10 @@ def main():
     if profile:
         pr.disable()
         s = StringIO.StringIO()
-        sortby = 'cumulative'
+        # sortby = 'cumulative'
+        sortby = 'tottime'
         ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-        ps.print_stats()
+        ps.print_stats(20)
         print s.getvalue()
     # RGB(LUT(l2.Rtoa, axes=[l2.bands, None, None]))
     # RGB(LUT(l2.Rprime, axes=[l2.bands, None, None]))
