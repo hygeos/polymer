@@ -1,6 +1,7 @@
 import numpy as np
 cimport numpy as np
 from cython cimport floating
+from libc.math cimport abs
 
 
 cdef class NelderMeadMinimizer:
@@ -60,19 +61,22 @@ cdef class NelderMeadMinimizer:
         cdef float zdelt = 0.00025
         cdef int stop, k, j
         cdef float[:] y = self.y
+        cdef float fxr, fxe, fxc, fxcc
 
-        self.sim[0,:] = x0
+        for j in range(N):
+            self.sim[0,j] = x0[j]
         self.fsim[0] = self.eval(x0)
         for k in range(N):
-            y[:] = x0[:]
+            for j in range(N):
+                y[j] = x0[j]
             if y[k] != 0:
                 y[k] = (1 + nonzdelt)*y[k]
             else:
                 y[k] = zdelt
 
-            self.sim[k + 1] = y
-            f = self.eval(y)
-            self.fsim[k + 1] = f
+            for j in range(N):
+                self.sim[k + 1, j] = y[j]
+            self.fsim[k + 1] = self.eval(y)
 
         # FIXME
         # ind = np.argsort(self.fsim)
@@ -84,9 +88,11 @@ cdef class NelderMeadMinimizer:
 
         # use indices to sort the simulation parameters
         for k in range(self.N+1):
-            self.ssim[k,:] = self.sim[self.ind[k],:]
+            for j in range(N):
+                self.ssim[k,j] = self.sim[self.ind[k],j]
         for k in range(self.N+1):
-            self.sim[k,:] = self.ssim[k,:]
+            for j in range(N):
+                self.sim[k,j] = self.ssim[k,j]
 
         # FIXME
         # print 'VERIF2', np.array(self.ind)
@@ -100,10 +106,10 @@ cdef class NelderMeadMinimizer:
 
             stop = 1
             for k in range(1, N):
-                if np.abs(self.fsim[k] - self.fsim[0]) > ftol:
+                if abs(self.fsim[k] - self.fsim[0]) > ftol:
                     stop = 0
                 for j in range(N):
-                    if np.abs(self.sim[k,j] - self.sim[0,j]) > xtol:
+                    if abs(self.sim[k,j] - self.sim[0,j]) > xtol:
                         stop = 0
             if stop:
                 break
@@ -126,14 +132,17 @@ cdef class NelderMeadMinimizer:
                 fxe = self.eval(self.xe)
 
                 if fxe < fxr:
-                    self.sim[-1] = self.xe
-                    self.fsim[-1] = fxe
+                    for k in range(N):
+                        self.sim[N,k] = self.xe[k]
+                    self.fsim[N] = fxe
                 else:
-                    self.sim[-1] = self.xr
-                    self.fsim[-1] = fxr
+                    for k in range(N):
+                        self.sim[N,k] = self.xr[k]
+                    self.fsim[N] = fxr
             else:  # fsim[0] <= fxr
                 if fxr < self.fsim[N-1]:
-                    self.sim[-1] = self.xr
+                    for k in range(N):
+                        self.sim[N,k] = self.xr[k]
                     self.fsim[N] = fxr
                 else:  # fxr >= fsim[-2]
                     # Perform contraction
@@ -143,7 +152,8 @@ cdef class NelderMeadMinimizer:
                         fxc = self.eval(self.xc)
 
                         if fxc <= fxr:
-                            self.sim[-1] = self.xc
+                            for k in range(N):
+                                self.sim[N, k] = self.xc[k]
                             self.fsim[N] = fxc
                         else:
                             doshrink = 1
@@ -154,7 +164,8 @@ cdef class NelderMeadMinimizer:
                         fxcc = self.eval(self.xcc)
 
                         if fxcc < self.fsim[N]:
-                            self.sim[-1] = self.xcc
+                            for k in range(N):
+                                self.sim[N,k] = self.xcc[k]
                             self.fsim[N] = fxcc
                         else:
                             doshrink = 1
@@ -163,14 +174,18 @@ cdef class NelderMeadMinimizer:
                         for j in range(1, N+1):
                             for k in range(N):
                                 self.sim[j,k] = self.sim[0,k] + sigma * (self.sim[j,k] - self.sim[0,k])
-                            self.fsim[j] = self.eval(self.sim[j])
+                                y[k] = self.sim[j,k]
+                            self.fsim[j] = self.eval(y)
 
             combsort(self.fsim, self.N+1, self.ind)
             # use indices to sort the simulation parameters
             for k in range(self.N+1):
-                self.ssim[k,:] = self.sim[self.ind[k],:]
+                for j in range(N):
+                    self.ssim[k,j] = self.sim[self.ind[k],j]
             for k in range(self.N+1):
-                self.sim[k,:] = self.ssim[k,:]
+                for j in range(N):
+                    self.sim[k,j] = self.ssim[k,j]
+
             # FIXME
             # ind = np.argsort(self.fsim)
             # self.sim = np.take(self.sim, ind, 0)
@@ -178,9 +193,10 @@ cdef class NelderMeadMinimizer:
 
             self.niter += 1
 
-        x = self.sim[0,:]
-        fval = np.min(self.fsim)
-        warnflag = 0
+        # x = self.sim[0,:]
+        # fval = np.min(self.fsim)
+        # assert (np.diff(self.fsim) >= 0).all()
+        # warnflag = 0
 
         # if iterations >= maxiter:
             # print 'maxiter'
@@ -191,7 +207,9 @@ cdef class NelderMeadMinimizer:
                                 # status=warnflag, success=(warnflag == 0),
                                 # message=msg, x=x)
 
-        return x
+        for j in range(N):
+            y[j] = self.sim[0,j]
+        return y
 
 
 cdef combsort(float[:] inp, int N, int[:] ind):
@@ -268,6 +286,7 @@ cdef test_minimize():
             # np.array([0, 10], dtype='float32'),
             ]:
         X = np.array(r.minimize(X0))
+        assert r.niter > 10
         assert (np.abs(X - 1) < 0.01).all(), (X0, X)
 
 
