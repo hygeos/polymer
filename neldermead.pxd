@@ -4,6 +4,7 @@ cdef class NelderMeadMinimizer:
     cdef float [:] fsim
     cdef float [:,:] sim
     cdef float [:,:] ssim
+    cdef float [:] xbar
     cdef float[:] y, xcc, xc, xr, xe
     cdef float eval(self, float[:] x) except? -999
     cdef int[:] ind

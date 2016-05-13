@@ -215,7 +215,8 @@ cdef class ParkRuddick(WaterModel):
 
     cdef float[:] calc_rho(self, float[:] x):
         '''
-        calculate the reflectance above the water surface at all bands
+        calculate the reflectance above the water surface at all bands,
+        for a parameter vector x
         '''
 
         # x is [logchl, logfb, logfa] or shorter
@@ -348,3 +349,9 @@ cdef class MorelMaritorena(WaterModel):
         raise NotImplementedError
     cdef float[:] calc_rho(self, float[:] x):
         raise NotImplementedError
+
+def test():
+    pr = ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/')
+    pr.init(np.linspace(401, 800, 100, dtype='float32'), 0, 0, 0)
+    a = pr.calc_rho(np.array([0., 0.], dtype='float32'))
+    # print np.array(a)

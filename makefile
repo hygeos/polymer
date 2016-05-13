@@ -8,3 +8,6 @@ clean:
 	rm -fv *.pyc
 	rm -fv *.c
 	rm -fv *.so
+
+test: all
+	nosetests -v

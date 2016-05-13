@@ -13,6 +13,7 @@ cdef class NelderMeadMinimizer:
         self.fsim = np.zeros((N + 1,), dtype='float32')
         self.sim = np.zeros((N + 1, N), dtype='float32')
         self.ssim = np.zeros((N + 1, N), dtype='float32')
+        self.xbar = np.zeros(N, dtype='float32')
         self.ind = np.zeros((N + 1,), dtype='int32')
         self.y = np.zeros(N, dtype='float32')
         self.xcc = np.zeros(N, dtype='float32')
@@ -72,11 +73,25 @@ cdef class NelderMeadMinimizer:
             f = self.eval(y)
             self.fsim[k + 1] = f
 
+        ind = np.argsort(self.fsim)
+        # FIXME
+        # print 'VERIF1', ind
+        # print np.take(self.fsim, ind, 0)
+        # print np.take(self.sim, ind, 0)
+
         combsort(self.fsim, self.N+1, self.ind)
 
         # use indices to sort the simulation parameters
         for k in range(self.N+1):
-            self.sim[k,:] = self.ssim[self.ind[k],:]
+            self.ssim[k,:] = self.sim[self.ind[k],:]
+        for k in range(self.N+1):
+            self.sim[k,:] = self.ssim[k,:]
+
+        # FIXME
+        # print 'VERIF2', np.array(self.ind)
+        # print np.array(self.fsim)
+        # print np.array(self.sim)
+
 
         self.niter = 1
 
@@ -92,15 +107,21 @@ cdef class NelderMeadMinimizer:
             if stop:
                 break
 
-            xbar = np.add.reduce(self.sim[:-1], 0) / N
+            for j in range(self.N):
+                self.xbar[j] = 0.
+                for k in range(self.N):
+                    self.xbar[j] += self.sim[k,j]
+                self.xbar[j] /= N
+
+            # xbar = np.add.reduce(self.sim[:-1], 0) / N  # FIXME
             for k in range(N):
-                self.xr[k] = (1 + rho) * xbar[k] - rho * self.sim[-1,k]
+                self.xr[k] = (1 + rho) * self.xbar[k] - rho * self.sim[-1,k]
             fxr = self.eval(self.xr)
             doshrink = 0
 
             if fxr < self.fsim[0]:
                 for k in range(N):
-                    self.xe[k] = (1 + rho * chi) * xbar[k] - rho * chi * self.sim[-1,k]
+                    self.xe[k] = (1 + rho * chi) * self.xbar[k] - rho * chi * self.sim[-1,k]
                 fxe = self.eval(self.xe)
 
                 if fxe < fxr:
@@ -117,7 +138,7 @@ cdef class NelderMeadMinimizer:
                     # Perform contraction
                     if fxr < self.fsim[N]:
                         for k in range(N):
-                            self.xc[k] = (1 + psi * rho) * xbar[k] - psi * rho * self.sim[-1,k]
+                            self.xc[k] = (1 + psi * rho) * self.xbar[k] - psi * rho * self.sim[-1,k]
                         fxc = self.eval(self.xc)
 
                         if fxc <= fxr:
@@ -128,7 +149,7 @@ cdef class NelderMeadMinimizer:
                     else:
                         # Perform an inside contraction
                         for k in range(N):
-                            self.xcc[k] = (1 - psi) * xbar[k] + psi * self.sim[-1,k]
+                            self.xcc[k] = (1 - psi) * self.xbar[k] + psi * self.sim[-1,k]
                         fxcc = self.eval(self.xcc)
 
                         if fxcc < self.fsim[N]:
@@ -210,4 +231,42 @@ cdef combsort(float[:] inp, int N, int[:] ind):
     # for i in range(N-1):
         # if inp[i+1] < inp[i]:
             # print 'ERROR'
+
+
+
+def test_combsort():
+    N = 10
+    A = np.random.randn(N).astype('float32')
+    AA = A.copy()
+    I = np.zeros(N, dtype='int32')
+    combsort(A, N, I)
+    assert (np.diff(A) >= 0).all()
+    assert (AA[I] == A).all()
+
+
+cdef class Rosenbrock(NelderMeadMinimizer):
+    cdef float eval(self, float[:] x) except? -999:
+        # rosenbrock function
+        return (1-x[0])*(1-x[0]) + 100*(x[1]-x[0]*x[0])*(x[1]-x[0]*x[0])
+
+cdef test_minimize():
+    r = Rosenbrock(2)
+    for X0 in [
+            np.array([0, 0], dtype='float32'),
+            np.array([-1, -1], dtype='float32'),
+            # np.array([0, -1], dtype='float32'),
+            # np.array([10, 0], dtype='float32'),
+            # np.array([0, 10], dtype='float32'),
+            ]:
+        X = np.array(r.minimize(X0))
+        assert (np.abs(X - 1) < 0.01).all(), (X0, X)
+
+
+
+def test():
+    '''
+    module-wise testing
+    '''
+    test_combsort()
+    test_minimize()
 

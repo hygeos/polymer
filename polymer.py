@@ -153,7 +153,7 @@ def polymer(params, level1, watermodel, level2):
     return level2
 
 def main():
-    profile=True
+    profile=False
     if profile:
         import cProfile, pstats, StringIO
         pr = cProfile.Profile()

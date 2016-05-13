@@ -263,3 +263,37 @@ cdef class CLUT:
         return rvalue
 
 
+def test_get():
+    cdef CLUT A = CLUT(np.array([[1, 2, 3], [4, 5, 6]]), axes=[None, None])
+
+    assert A.get(np.array([0, 0], dtype='int32')) == 1
+    assert A.get(np.array([1, 1], dtype='int32')) == 5
+
+def test_lookup():
+
+    cdef CLUT A = CLUT(np.array([[1, 2, 3], [4, 5, 6]]), axes=[[1, 2], [10, 11, 12]])
+
+    assert A.lookup(0, 1.5) == 0
+    assert A.lookup(0, 0.5) < 0
+    assert A.lookup(0, 2.5) > 0
+
+    assert A.lookup(1, 11.5) == 0
+    assert A.lookup(1, 0.) < 0
+    assert A.lookup(1, 100.) > 0
+
+def test_interp():
+    cdef CLUT A = CLUT(np.array([[1, 2, 3], [4, 5, 6]]), axes=[[1, 2], [10, 11, 12]])
+
+    assert A.lookup(0, 1.5) == 0
+    assert A.lookup(1, 11.5) == 0
+
+    print A.interp()
+    assert A.interp() == 4
+
+def test():
+    '''
+    test this module
+    '''
+    test_get()
+    test_interp()
+
