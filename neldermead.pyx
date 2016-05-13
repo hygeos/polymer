@@ -46,7 +46,8 @@ cdef class NelderMeadMinimizer:
 
         (from scipy)
         """
-        assert self.N == len(x0)
+        if self.N != len(x0):
+            raise Exception('')
         cdef int N = self.N
         if maxiter < 0:
             maxiter = N * 200
@@ -62,7 +63,7 @@ cdef class NelderMeadMinimizer:
 
         self.sim[0,:] = x0
         self.fsim[0] = self.eval(x0)
-        for k in range(0, N):
+        for k in range(N):
             y[:] = x0[:]
             if y[k] != 0:
                 y[k] = (1 + nonzdelt)*y[k]
@@ -73,8 +74,8 @@ cdef class NelderMeadMinimizer:
             f = self.eval(y)
             self.fsim[k + 1] = f
 
-        ind = np.argsort(self.fsim)
         # FIXME
+        # ind = np.argsort(self.fsim)
         # print 'VERIF1', ind
         # print np.take(self.fsim, ind, 0)
         # print np.take(self.sim, ind, 0)
@@ -164,9 +165,17 @@ cdef class NelderMeadMinimizer:
                                 self.sim[j,k] = self.sim[0,k] + sigma * (self.sim[j,k] - self.sim[0,k])
                             self.fsim[j] = self.eval(self.sim[j])
 
-            ind = np.argsort(self.fsim)
-            self.sim = np.take(self.sim, ind, 0)
-            self.fsim = np.take(self.fsim, ind, 0)
+            combsort(self.fsim, self.N+1, self.ind)
+            # use indices to sort the simulation parameters
+            for k in range(self.N+1):
+                self.ssim[k,:] = self.sim[self.ind[k],:]
+            for k in range(self.N+1):
+                self.sim[k,:] = self.ssim[k,:]
+            # FIXME
+            # ind = np.argsort(self.fsim)
+            # self.sim = np.take(self.sim, ind, 0)
+            # self.fsim = np.take(self.fsim, ind, 0)
+
             self.niter += 1
 
         x = self.sim[0,:]
