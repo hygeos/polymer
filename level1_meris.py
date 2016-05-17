@@ -6,6 +6,9 @@ import epr
 from block import Block
 import numpy as np
 from datetime import datetime
+import warnings
+from common import L2FLAGS
+
 
 class Level1_MERIS(object):
 
@@ -17,12 +20,12 @@ class Level1_MERIS(object):
 
         self.sline = sline
         self.eline = eline
-        self.height = self.totalheight
-        self.height -= sline
         if eline < 0:
+            self.height = self.totalheight
+            self.height -= sline
             self.height += eline + 1
         else:
-            self.height -= self.totalheight - eline - 1
+            self.height = eline-sline
 
         self.shape = (self.height, self.width)
         self.band_names = {
@@ -71,7 +74,7 @@ class Level1_MERIS(object):
                 }
 
         # initialize detector wavelength
-        self.detector_wavelength = np.genfromtxt('/home/francois/MERIS/POLYMER/auxdata/meris/smile/v2/central_wavelen_rr.txt', names=True)
+        self.detector_wavelength = np.genfromtxt('/home/francois/MERIS/POLYMER/auxdata/meris/smile/v2/central_wavelen_rr.txt', names=True)   # FIXME
 
         # read the file date
         mph = self.prod.get_mph()
@@ -100,9 +103,18 @@ class Level1_MERIS(object):
         (ysize, xsize) = size
         (yoffset, xoffset) = offset
         return self.prod.get_band(band_name).read_as_array(
-                    xoffset=xoffset, yoffset=yoffset+self.sline,
-                    width=xsize, height=ysize+self.sline)
+                    xoffset=xoffset, yoffset=yoffset,
+                    width=xsize, height=ysize)
 
+
+    def read_bitmask(self, size, offset, bmexpr):
+
+        (ysize, xsize) = size
+        (yoffset, xoffset) = offset
+        raster = epr.create_bitmask_raster(xsize, ysize)
+        self.prod.read_bitmask_raster(bmexpr, xoffset, yoffset, raster)
+
+        return raster.data
 
     def read_block(self, size, offset, bands):
         '''
@@ -156,14 +168,20 @@ class Level1_MERIS(object):
         # set julian day
         block.jday = self.date.timetuple().tm_yday
 
+        # read bitmask
+        block.bitmask = L2FLAGS['LAND']*self.read_bitmask(size, offset,
+                'l1_flags.LAND_OCEAN')
+        block.bitmask += L2FLAGS['L1_INVALID']*self.read_bitmask(size, offset,
+                '(l1_flags.INVALID) OR (l1_flags.SUSPECT) OR (l1_flags.COSMETIC)')
+
         print 'Read', block
 
         return block
 
 
-    def blocks(self, bands_read, blocksize=100):
+    def blocks(self, bands_read, blocksize=10):
 
-        nblocks = self.height/blocksize + 1
+        nblocks = int(np.ceil(float(self.height)/blocksize))
         for iblock in xrange(nblocks):
 
             # determine block size

@@ -2,7 +2,7 @@ from distutils.core import setup
 from Cython.Build import cythonize
 
 
-debug=True
+debug=False
 annotate=True
 
 

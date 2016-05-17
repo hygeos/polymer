@@ -3,13 +3,29 @@
 
 import numpy as np
 from pylab import imshow, show, colorbar, figure
+from pyhdf.SD import SD, SDC
 from luts import Idx
 
 class Level2_HDF(object):
     def __init__(self, filename):
-        pass
+        self.filename = filename
+        self.hdf = SD(filename, SDC.WRITE | SDC.CREATE)
+
+    def init(self, level1):
+        self.shape = level1.shape
+        self.sds = self.hdf.create('logchl', SDC.FLOAT32, self.shape)
+
     def write(self, block):
-        pass
+        print 'write', block
+        (yoff, xoff) = block.offset
+        (hei, wid) = block.size
+
+        self.sds[yoff:yoff+hei,xoff:xoff+wid] = block.logchl[:,:]
+
+    def finish(self):
+        self.sds.endaccess()
+        self.hdf.end()
+
 
 class Level2_NETCDF(object):
 
@@ -52,6 +68,8 @@ class Level2_Memory(object):
         self.sza = None
         self.bands = None
         self.logchl = None
+        self.cloudmask = None
+        self.Rnir = None
 
     def write(self, block):
 
@@ -76,11 +94,20 @@ class Level2_Memory(object):
         if self.Rprime is None:
             self.Rprime = np.zeros((len(block.bands),)+self.shape) + np.NaN
 
+        if self.cloudmask is None:
+            self.cloudmask = np.zeros(self.shape, dtype='uint16')
+
+        if self.Rnir is None:
+            self.Rnir = np.zeros(self.shape, dtype='float32')
+
+
         self.Ltoa[:,yoff:yoff+hei,xoff:xoff+wid] = block.Ltoa[:,:,:]
         self.Rtoa[:,yoff:yoff+hei,xoff:xoff+wid] = block.Rtoa[:,:,:]
         self.Rprime[:,yoff:yoff+hei,xoff:xoff+wid] = block.Rprime[:,:,:]
         self.sza[yoff:yoff+hei,xoff:xoff+wid] = block.sza[:,:]
-        self.logchl[yoff:yoff+hei,xoff:xoff+wid] = block.logchl[:,:]
+        # self.logchl[yoff:yoff+hei,xoff:xoff+wid] = block.logchl[:,:]
+        self.cloudmask[yoff:yoff+hei,xoff:xoff+wid] = block.cloudmask[:,:]
+        self.Rnir[yoff:yoff+hei,xoff:xoff+wid] = block.Rnir[:,:]
 
     def finish(self):
         pass

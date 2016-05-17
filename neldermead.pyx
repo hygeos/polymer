@@ -29,15 +29,12 @@ cdef class NelderMeadMinimizer:
                 float [:] x0,
                 int maxiter=-1,
                 float xtol=1e-4,
-                float ftol=1e-4,
-                int disp=0):
+                float ftol=1e-4):
         """
         Minimization of scalar function of one or more variables using the
         Nelder-Mead algorithm.
 
         Options for the Nelder-Mead algorithm are:
-            disp : int
-                Set to True to print convergence messages.
             xtol : float
                 Relative error in solution `xopt` acceptable for convergence.
             ftol : float

@@ -343,6 +343,14 @@ cdef class ParkRuddick(WaterModel):
 
         return self.Rw
 
+    def calc(self, wav, logchl, logfb=0., sza=0., vza=0., raa=0.):
+        ''' water reflectance calculation (python interface) '''
+        self.init(wav.astype('float32'), float(sza), float(vza), float(raa))
+        params = np.zeros(2, dtype='float32')
+        params[0] = logchl
+        params[1] = logfb
+        R = self.calc_rho(params)
+        return np.array(R)
 
 cdef class MorelMaritorena(WaterModel):
     def __init__(self):

@@ -12,6 +12,5 @@ cdef class NelderMeadMinimizer:
                 float [:] x0,
                 int maxiter=*,
                 float xtol=*,
-                float ftol=*,
-                int disp=*)
+                float ftol=*)
 

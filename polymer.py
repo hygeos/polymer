@@ -8,6 +8,8 @@ import numpy as np
 from luts import read_mlut_hdf, LUT, Idx
 from pylab import imshow, show, colorbar
 import warnings
+from utils import stdNxN
+from common import BITMASK_INVALID
 
 # cython imports
 # import pyximport ; pyximport.install()
@@ -47,7 +49,13 @@ class Params_MERIS(Params):
         self.bands_corr = [412,443,490,510,560,620,665,        754,    779,865]
         self.bands_oc =   [412,443,490,510,560,620,665,        754,    779,865]
         self.bands_rw =   [412,443,490,510,560,620,665,        754,    779,865]
+
         self.lut_file = '/home/francois/MERIS/POLYMER/LUTS/MERIS/LUTB.hdf'
+        self.lut_bands = [412,443,490,510,560,620,665,681,709,754,760,779,865,885,900]
+
+        self.band_cloudmask = 865
+        self.thres_Rcloud = 0.2
+        self.thres_Rcloud_std = 0.04
 
 
 def coeff_sun_earth_distance(jday):
@@ -77,6 +85,9 @@ def gas_correction(block, l1):
 
     block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.NaN
 
+    # ok = (block.bitmask & BITMASK_INVALID) == 0
+    # FIXME
+
     #
     # ozone correction
     #
@@ -100,7 +111,23 @@ def gas_correction(block, l1):
     warnings.warn('TODO: implement NO2 correction')
 
 
-def rayleigh_correction(block, mlut):
+def cloudmask(b, params, mlut):
+
+    # FIXME
+    # cloud mask is not properly calculated at the edges of blocks
+
+    inir_block = b.bands.index(params.band_cloudmask)
+    inir_lut = params.lut_bands.index(params.band_cloudmask)
+    b.Rnir = b.Rtoa_gc[inir_block,:,:] - mlut['Rmol'][
+            Idx(b.muv),
+            Idx(b.raa),
+            Idx(b.mus),
+            inir_lut]
+    b.cloudmask = b.Rnir > params.thres_Rcloud
+    b.cloudmask |= stdNxN(b.Rnir, 3) > params.thres_Rcloud_std
+
+
+def rayleigh_correction(block, mlut, params):
     '''
     Rayleigh correction
     + transmission interpolation
@@ -109,17 +136,20 @@ def rayleigh_correction(block, mlut):
     block.Rprime = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
     block.Tmol = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
 
+    # TODO: don't process masked
+
     for i in xrange(block.nbands):
+        ilut = params.lut_bands.index(block.bands[i])
 
         block.Rprime[i,:,:] = block.Rtoa_gc[i,:,:] - mlut['Rmolgli'][
                 Idx(block.muv),
                 Idx(block.raa),
                 Idx(block.mus),
-                i, Idx(block.wind_speed)]
+                ilut, Idx(block.wind_speed)]
 
         # TODO: share axes indices
-        block.Tmol[i,:,:]  = mlut['Tmolgli'][Idx(block.mus), i, Idx(block.wind_speed)]
-        block.Tmol[i,:,:] *= mlut['Tmolgli'][Idx(block.muv), i, Idx(block.wind_speed)]
+        block.Tmol[i,:,:]  = mlut['Tmolgli'][Idx(block.mus), ilut, Idx(block.wind_speed)]
+        block.Tmol[i,:,:] *= mlut['Tmolgli'][Idx(block.muv), ilut, Idx(block.wind_speed)]
 
 
 def polymer(params, level1, watermodel, level2):
@@ -142,44 +172,17 @@ def polymer(params, level1, watermodel, level2):
 
         gas_correction(b, level1)
 
-        rayleigh_correction(b, mlut)
+        cloudmask(b, params, mlut)
 
-        opt.minimize(b, params)
+        rayleigh_correction(b, mlut, params)
+
+        # FIXME
+        # warnings.warn('TODO: reactivate minimization')
+        # opt.minimize(b, params)
 
         level2.write(b)
 
     level2.finish()
 
     return level2
-
-def main():
-    profile=False
-    if profile:
-        import cProfile, pstats, StringIO
-        pr = cProfile.Profile()
-        pr.enable()
-
-    l2 = polymer(
-            Params_MERIS(),
-            Level1_MERIS('/mfs/proj/CNES_GLITTER_2009/DATA_HYGEOS/20041104_06/MER_RR__1PQBCM20041105_060121_000002002031_00449_14030_0002.N1', eline=5),
-            ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/'),
-            Level2_Memory(),
-            )
-    print l2
-    if profile:
-        pr.disable()
-        s = StringIO.StringIO()
-        # sortby = 'cumulative'
-        sortby = 'tottime'
-        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-        ps.print_stats(20)
-        print s.getvalue()
-    # RGB(LUT(l2.Rtoa, axes=[l2.bands, None, None]))
-    # RGB(LUT(l2.Rprime, axes=[l2.bands, None, None]))
-    # imshow(l2.logchl, interpolation='nearest')
-    # colorbar()
-    # show()
-
-if __name__ == '__main__':
-    main()
 
