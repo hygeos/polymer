@@ -103,7 +103,7 @@ class Level1_MERIS(object):
         (ysize, xsize) = size
         (yoffset, xoffset) = offset
         return self.prod.get_band(band_name).read_as_array(
-                    xoffset=xoffset, yoffset=yoffset,
+                    xoffset=xoffset, yoffset=yoffset+self.sline,
                     width=xsize, height=ysize)
 
 
@@ -112,7 +112,7 @@ class Level1_MERIS(object):
         (ysize, xsize) = size
         (yoffset, xoffset) = offset
         raster = epr.create_bitmask_raster(xsize, ysize)
-        self.prod.read_bitmask_raster(bmexpr, xoffset, yoffset, raster)
+        self.prod.read_bitmask_raster(bmexpr, xoffset, yoffset+self.sline, raster)
 
         return raster.data
 
@@ -125,7 +125,6 @@ class Level1_MERIS(object):
         '''
 
         (ysize, xsize) = size
-        # (xoffset, yoffset) = offset
         nbands = len(bands)
 
         # initialize block
