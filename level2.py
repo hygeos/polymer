@@ -60,54 +60,32 @@ class Level2_Memory(object):
     Just store the product in memory
     '''
 
-    def init(self, level1):
+    def init(self, level1, list_datasets=[
+            'Rtoa', 'Rprime', 'Rnir', 'bitmask', 'logchl']):
         self.shape = level1.shape
-        self.Ltoa = None
-        self.Rtoa = None
-        self.Rprime = None
-        self.sza = None
-        self.bands = None
-        self.logchl = None
-        self.cloudmask = None
-        self.Rnir = None
+        self.list_datasets = list_datasets
 
     def write(self, block):
 
         (yoff, xoff) = block.offset
         (hei, wid) = block.size
 
-        if self.bands is None:
-            self.bands = block.bands
+        for d in self.list_datasets:
 
-        if self.sza is None:
-            self.sza = np.zeros(self.shape) + np.NaN
+            data = block.__dict__[d]
 
-        if self.logchl is None:
-            self.logchl = np.zeros(self.shape) + np.NaN
+            if data.ndim == 2:
+                if d not in self.__dict__:
+                    self.__dict__[d] = np.zeros(self.shape, dtype=data.dtype)
+                self.__dict__[d][yoff:yoff+hei,xoff:xoff+wid] = data[:,:]
 
-        if self.Ltoa is None:
-            self.Ltoa = np.zeros((len(block.bands),)+self.shape) + np.NaN
+            elif data.ndim == 3:
+                if d not in self.__dict__:
+                    self.__dict__[d] = np.zeros(((len(block.bands),)+self.shape), dtype=data.dtype)
+                self.__dict__[d][:,yoff:yoff+hei,xoff:xoff+wid] = data[:,:,:]
 
-        if self.Rtoa is None:
-            self.Rtoa = np.zeros((len(block.bands),)+self.shape) + np.NaN
-
-        if self.Rprime is None:
-            self.Rprime = np.zeros((len(block.bands),)+self.shape) + np.NaN
-
-        if self.cloudmask is None:
-            self.cloudmask = np.zeros(self.shape, dtype='uint16')
-
-        if self.Rnir is None:
-            self.Rnir = np.zeros(self.shape, dtype='float32')
-
-
-        self.Ltoa[:,yoff:yoff+hei,xoff:xoff+wid] = block.Ltoa[:,:,:]
-        self.Rtoa[:,yoff:yoff+hei,xoff:xoff+wid] = block.Rtoa[:,:,:]
-        self.Rprime[:,yoff:yoff+hei,xoff:xoff+wid] = block.Rprime[:,:,:]
-        self.sza[yoff:yoff+hei,xoff:xoff+wid] = block.sza[:,:]
-        # self.logchl[yoff:yoff+hei,xoff:xoff+wid] = block.logchl[:,:]
-        self.cloudmask[yoff:yoff+hei,xoff:xoff+wid] = block.cloudmask[:,:]
-        self.Rnir[yoff:yoff+hei,xoff:xoff+wid] = block.Rnir[:,:]
+            else:
+                raise Exception('Error')
 
     def finish(self):
         pass

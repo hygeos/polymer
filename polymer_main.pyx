@@ -1,6 +1,8 @@
 import numpy as np
 cimport numpy as np
 from numpy.linalg import inv
+from common import BITMASK_INVALID
+from libc.math cimport nan
 
 from neldermead cimport NelderMeadMinimizer
 from water cimport WaterModel
@@ -163,12 +165,16 @@ cdef class PolymerMinimizer:
 
     cdef F f
     cdef int Nparams
+    cdef int BITMASK_INVALID
+    cdef float NaN
 
     def __init__(self, watermodel):
 
         self.Nparams = 2
         Ncoef = 3   # number of atmospheric coefficients
         self.f = F(Ncoef, watermodel, self.Nparams)
+        self.BITMASK_INVALID = BITMASK_INVALID
+        self.NaN = np.NaN
 
     cdef loop(self, float [:,:,:] Rprime,
               float [:,:] logchl,
@@ -178,7 +184,8 @@ cdef class PolymerMinimizer:
               float [:,:,:] wav,
               float [:,:] sza,
               float [:,:] vza,
-              float [:,:] raa
+              float [:,:] raa,
+              unsigned short [:,:] bitmask
               ):
         '''
         cython method which does the main pixel loop
@@ -198,13 +205,18 @@ cdef class PolymerMinimizer:
         #
         for i in range(Nx):
             for j in range(Ny):
+
+                if (bitmask[i,j] & self.BITMASK_INVALID) != 0:
+                    logchl[i,j] = self.NaN
+                    continue
+
                 self.f.init(
                         Rprime[:,i,j],
                         A[i,j,:,:], pA[i,j,:,:],
                         Tmol[:,i,j],
                         wav[:,i,j],
                         sza[i,j], vza[i,j], raa[i,j])
-                x = self.f.minimize(x0, maxiter=20)
+                x = self.f.minimize(x0, maxiter=50)
                 logchl[i,j] = x[0]
 
 
@@ -217,10 +229,10 @@ cdef class PolymerMinimizer:
         A = atm_func(block, params)
         pA = pseudoinverse(A)
 
-        print block.size, block.sza.shape
         block.logchl = np.zeros(block.size, dtype='float32')
 
         self.loop(block.Rprime, block.logchl, A, pA, block.Tmol,
-                block.wavelen, block.sza, block.vza, block.raa)
+                block.wavelen, block.sza, block.vza, block.raa,
+                block.bitmask)
 
 

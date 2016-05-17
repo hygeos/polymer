@@ -169,7 +169,7 @@ class Level1_MERIS(object):
 
         # read bitmask
         block.bitmask = L2FLAGS['LAND']*self.read_bitmask(size, offset,
-                'l1_flags.LAND_OCEAN')
+                'l1_flags.LAND_OCEAN').astype('uint16')
         block.bitmask += L2FLAGS['L1_INVALID']*self.read_bitmask(size, offset,
                 '(l1_flags.INVALID) OR (l1_flags.SUSPECT) OR (l1_flags.COSMETIC)')
 

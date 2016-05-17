@@ -9,7 +9,7 @@ from luts import read_mlut_hdf, LUT, Idx
 from pylab import imshow, show, colorbar
 import warnings
 from utils import stdNxN
-from common import BITMASK_INVALID
+from common import BITMASK_INVALID, L2FLAGS
 
 # cython imports
 # import pyximport ; pyximport.install()
@@ -32,8 +32,8 @@ class Params(object):
         '''
         define common parameters
         '''
-        pass
-
+        self.thres_Rcloud = 0.2
+        self.thres_Rcloud_std = 0.04
 
     def bands_read(self):
         bands_read = set(self.bands_corr)
@@ -54,8 +54,6 @@ class Params_MERIS(Params):
         self.lut_bands = [412,443,490,510,560,620,665,681,709,754,760,779,865,885,900]
 
         self.band_cloudmask = 865
-        self.thres_Rcloud = 0.2
-        self.thres_Rcloud_std = 0.04
 
 
 def coeff_sun_earth_distance(jday):
@@ -76,16 +74,18 @@ def convert_reflectance(block, params):
 
     coef = coeff_sun_earth_distance(block.jday)
 
+    ok = (block.bitmask & BITMASK_INVALID) == 0
+
     for i in xrange(block.nbands):
 
-        block.Rtoa[i,:,:] = block.Ltoa[i,:,:]*np.pi/(block.mus*block.F0[i,:,:]*coef)
+        block.Rtoa[i,ok] = block.Ltoa[i,ok]*np.pi/(block.mus[ok]*block.F0[i,ok]*coef)
 
 
 def gas_correction(block, l1):
 
     block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.NaN
 
-    # ok = (block.bitmask & BITMASK_INVALID) == 0
+    ok = (block.bitmask & BITMASK_INVALID) == 0
     # FIXME
 
     #
@@ -98,12 +98,12 @@ def gas_correction(block, l1):
     # bands loop
     for i, b in enumerate(block.bands):
 
-        tauO3 = l1.K_OZ[b] * block.ozone * 1e-3  # convert from DU to cm*atm
+        tauO3 = l1.K_OZ[b] * block.ozone[ok] * 1e-3  # convert from DU to cm*atm
 
         # ozone transmittance
-        trans_O3 = np.exp(-tauO3 * block.air_mass)
+        trans_O3 = np.exp(-tauO3 * block.air_mass[ok])
 
-        block.Rtoa_gc[i,:,:] = block.Rtoa[i,:,:]/trans_O3
+        block.Rtoa_gc[i,ok] = block.Rtoa[i,ok]/trans_O3
 
     #
     # NO2 correction
@@ -111,20 +111,21 @@ def gas_correction(block, l1):
     warnings.warn('TODO: implement NO2 correction')
 
 
-def cloudmask(b, params, mlut):
+def cloudmask(block, params, mlut):
 
-    # FIXME
-    # cloud mask is not properly calculated at the edges of blocks
+    ok = (block.bitmask & BITMASK_INVALID) == 0
 
-    inir_block = b.bands.index(params.band_cloudmask)
+    inir_block = block.bands.index(params.band_cloudmask)
     inir_lut = params.lut_bands.index(params.band_cloudmask)
-    b.Rnir = b.Rtoa_gc[inir_block,:,:] - mlut['Rmol'][
-            Idx(b.muv),
-            Idx(b.raa),
-            Idx(b.mus),
+    block.Rnir = block.Rtoa_gc[inir_block,:,:] - mlut['Rmol'][
+            Idx(block.muv),
+            Idx(block.raa),
+            Idx(block.mus),
             inir_lut]
-    b.cloudmask = b.Rnir > params.thres_Rcloud
-    b.cloudmask |= stdNxN(b.Rnir, 3) > params.thres_Rcloud_std
+    cloudmask = block.Rnir > params.thres_Rcloud
+    cloudmask |= stdNxN(block.Rnir, 3, ok) > params.thres_Rcloud_std
+
+    block.bitmask += L2FLAGS['CLOUD_BASE'] * cloudmask.astype('uint8')
 
 
 def rayleigh_correction(block, mlut, params):
@@ -136,20 +137,22 @@ def rayleigh_correction(block, mlut, params):
     block.Rprime = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
     block.Tmol = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
 
-    # TODO: don't process masked
+    ok = (block.bitmask & BITMASK_INVALID) == 0
 
     for i in xrange(block.nbands):
         ilut = params.lut_bands.index(block.bands[i])
 
-        block.Rprime[i,:,:] = block.Rtoa_gc[i,:,:] - mlut['Rmolgli'][
-                Idx(block.muv),
-                Idx(block.raa),
-                Idx(block.mus),
-                ilut, Idx(block.wind_speed)]
+        block.Rprime[i,ok] = block.Rtoa_gc[i,ok] - mlut['Rmolgli'][
+                Idx(block.muv[ok]),
+                Idx(block.raa[ok]),
+                Idx(block.mus[ok]),
+                ilut, Idx(block.wind_speed[ok])]
 
         # TODO: share axes indices
-        block.Tmol[i,:,:]  = mlut['Tmolgli'][Idx(block.mus), ilut, Idx(block.wind_speed)]
-        block.Tmol[i,:,:] *= mlut['Tmolgli'][Idx(block.muv), ilut, Idx(block.wind_speed)]
+        block.Tmol[i,ok]  = mlut['Tmolgli'][Idx(block.mus[ok]),
+                ilut, Idx(block.wind_speed[ok])]
+        block.Tmol[i,ok] *= mlut['Tmolgli'][Idx(block.muv[ok]),
+                ilut, Idx(block.wind_speed[ok])]
 
 
 def polymer(params, level1, watermodel, level2):
@@ -176,9 +179,7 @@ def polymer(params, level1, watermodel, level2):
 
         rayleigh_correction(b, mlut, params)
 
-        # FIXME
-        # warnings.warn('TODO: reactivate minimization')
-        # opt.minimize(b, params)
+        opt.minimize(b, params)
 
         level2.write(b)
 
