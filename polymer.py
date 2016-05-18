@@ -28,7 +28,7 @@ quelques notes pour le développement éventuel de Polymer en python
 
 class Params(object):
     '''
-    Sensor non-specific initialization parameters
+    Sensor non-specific parameters
     '''
     def __init__(self):
         '''
@@ -52,6 +52,9 @@ class Params(object):
 
 
 class Params_MERIS(Params):
+    '''
+    MERIS-specific parameters
+    '''
     def __init__(self):
         super(self.__class__, self).__init__()
 

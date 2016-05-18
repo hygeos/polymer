@@ -32,6 +32,9 @@ class Block(object):
         self._muv = None
         self._air_mass = None
 
+    def __getitem__(self, name):
+        return self.__dict__[name]
+
     def __str__(self):
         return 'block: size {}, offset {}'.format(self.size, self.offset)
 
