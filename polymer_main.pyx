@@ -40,7 +40,7 @@ cdef class F(NelderMeadMinimizer):
         self.C = np.zeros(Ncoef, dtype='float32')
         self.Ncoef = Ncoef
 
-    cdef init(self, float[:] Rprime, float[:,:] A, float[:,:] pA,
+    cdef init_pixel(self, float[:] Rprime, float[:,:] A, float[:,:] pA,
             float[:] Tmol,
             float[:] wav, float sza, float vza, float raa):
         '''
@@ -236,25 +236,36 @@ cdef class PolymerMinimizer:
                     logchl[i,j] = self.NaN
                     continue
 
-                self.f.init(
+                self.f.init_pixel(
                         Rprime[:,i,j],
                         A[i,j,:,:], pA[i,j,:,:],
                         Tmol[:,i,j],
                         wav[:,i,j],
                         sza[i,j], vza[i,j], raa[i,j])
 
-                x = self.f.minimize(x0,
-                                    self.initial_step,
-                                    self.size_end_iter,
-                                    maxiter=150)
+                self.f.init(x0, self.initial_step)
 
-                if in_bounds(x, self.bounds):
-                    x0[:] = x[:]
+                while self.f.niter < 150:
+
+                    self.f.iterate()
+
+                    if self.f.size() < self.size_end_iter:
+                        break
+                    if not in_bounds(self.f.xmin, self.bounds):
+                        break
+
+                logchl[i,j] = self.f.xmin[0]
+                niter[i,j] = self.f.niter
+
+                # initialization of next pixel
+                if in_bounds(self.f.xmin, self.bounds):
+                    x0[:] = self.f.xmin[:]
                 else:
                     x0[:] = self.initial_point[:]
 
-                logchl[i,j] = x[0]
-                niter[i,j] = self.f.niter
+
+            # reinitialize
+            x0[:] = self.f.xmin[:]
 
 
     def minimize(self, block, params):

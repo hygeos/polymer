@@ -17,6 +17,7 @@ cdef class NelderMeadMinimizer:
         self.xbar = np.zeros(N, dtype='float32')
         self.ind = np.zeros((N + 1,), dtype='int32')
         self.y = np.zeros(N, dtype='float32')
+        self.xmin = np.zeros(N, dtype='float32')
         self.xcc = np.zeros(N, dtype='float32')
         self.xc = np.zeros(N, dtype='float32')
         self.xr = np.zeros(N, dtype='float32')
@@ -28,13 +29,12 @@ cdef class NelderMeadMinimizer:
 
     cdef float size(self):
         '''
-        calculate the simplex size as average lengths of vectors from center to corners
+        calculate the simplex size as average lengths of vectors from center xbar to corners
         '''
         cdef int i, j
         cdef float val, dx, s
 
         # calculate center
-        # FIXME: not needed
         for j in range(self.N):
             val = 0.
             for i in range(self.N+1):
@@ -55,25 +55,20 @@ cdef class NelderMeadMinimizer:
 
         return s/(self.N+1)
 
-
-    cdef float[:] minimize(self,
-                float[:] x0,
-                float[:] dx,
-                float size_end_iter,
-                int maxiter=-1):
-        """
-        Minimization of scalar function of one or more variables using the
-        Nelder-Mead algorithm.
-        """
+    cdef init(self,
+            float[:] x0,
+            float[:] dx,
+            ):
+        '''
+        Initialize the Nelder-Mead minimize with initial vector x0 and initial
+        step dx
+        '''
+        self.niter = 1
         if self.N != len(x0):
             raise Exception('')
         cdef int N = self.N
-        if maxiter < 0:
-            maxiter = N * 200
-
-        cdef int k, j
         cdef float[:] y = self.y
-        cdef float fxr, fxe, fxc, fxcc
+        cdef int k, j
 
         for j in range(N):
             self.sim[0,j] = x0[j]
@@ -97,107 +92,118 @@ cdef class NelderMeadMinimizer:
             for j in range(N):
                 self.sim[k,j] = self.ssim[k,j]
 
-        self.niter = 1
+
+    cdef iterate(self):
+        cdef int N = self.N
+        cdef float[:] y = self.y
+        cdef float fxr, fxe, fxc, fxcc
+        cdef int k, j
+
+        self.niter += 1
+
+        # calculate centroid of all points but last
+        for j in range(N):
+            self.xbar[j] = 0.
+            for k in range(self.N):
+                self.xbar[j] += self.sim[k,j]
+            self.xbar[j] /= N
+
+        # reflection
+        for k in range(N):
+            self.xr[k] = 2*self.xbar[k] - self.sim[-1,k]
+        fxr = self.eval(self.xr)
+        doshrink = 0
+
+        if fxr < self.fsim[0]:
+            # the reflected point is the best so far:
+            # expand
+            for k in range(N):
+                self.xe[k] = 3*self.xbar[k] - 2*self.sim[-1,k]
+            fxe = self.eval(self.xe)
+
+            if fxe < fxr:
+                for k in range(N):
+                    self.sim[N,k] = self.xe[k]
+                self.fsim[N] = fxe
+            else:
+                for k in range(N):
+                    self.sim[N,k] = self.xr[k]
+                self.fsim[N] = fxr
+        else:  # fsim[0] <= fxr
+            if fxr < self.fsim[N-1]:
+                for k in range(N):
+                    self.sim[N,k] = self.xr[k]
+                self.fsim[N] = fxr
+            else:  # fxr >= fsim[-2]
+                # Perform contraction
+                if fxr < self.fsim[N]:
+                    for k in range(N):
+                        self.xc[k] = 1.5 * self.xbar[k] - 0.5 * self.sim[-1,k]
+                    fxc = self.eval(self.xc)
+
+                    if fxc <= fxr:
+                        for k in range(N):
+                            self.sim[N, k] = self.xc[k]
+                        self.fsim[N] = fxc
+                    else:
+                        doshrink = 1
+                else:
+                    # Perform an inside contraction
+                    for k in range(N):
+                        self.xcc[k] = 0.5*(self.xbar[k] + self.sim[-1,k])
+                    fxcc = self.eval(self.xcc)
+
+                    if fxcc < self.fsim[N]:
+                        for k in range(N):
+                            self.sim[N,k] = self.xcc[k]
+                        self.fsim[N] = fxcc
+                    else:
+                        doshrink = 1
+
+                if doshrink:
+                    for j in range(1, N+1):
+                        for k in range(N):
+                            self.sim[j,k] = self.sim[0,k] + 0.5 * (self.sim[j,k] - self.sim[0,k])
+                            y[k] = self.sim[j,k]
+                        self.fsim[j] = self.eval(y)
+
+        combsort(self.fsim, self.N+1, self.ind)
+        # use indices to sort the simulation parameters
+        for k in range(self.N+1):
+            for j in range(N):
+                self.ssim[k,j] = self.sim[self.ind[k],j]
+        for k in range(self.N+1):
+            for j in range(N):
+                self.sim[k,j] = self.ssim[k,j]
+
+        for j in range(self.N):
+            self.xmin[j] = self.sim[0,j]
+
+    cdef float[:] minimize(self,
+                float[:] x0,
+                float[:] dx,
+                float size_end_iter,
+                int maxiter=-1):
+        """
+        Minimization of scalar function of one or more variables using the
+        Nelder-Mead algorithm.
+        """
+        if maxiter < 0:
+            maxiter = self.N * 200
+
+        self.init(x0, dx)
+
 
         while self.niter < maxiter:
 
             if self.size() < size_end_iter:
                 break
 
-            # calculate centroid of all points but last
-            for j in range(self.N):
-                self.xbar[j] = 0.
-                for k in range(self.N):
-                    self.xbar[j] += self.sim[k,j]
-                self.xbar[j] /= N
+            self.iterate()
 
-            # reflection
-            for k in range(N):
-                self.xr[k] = 2*self.xbar[k] - self.sim[-1,k]
-            fxr = self.eval(self.xr)
-            doshrink = 0
 
-            if fxr < self.fsim[0]:
-                # the reflected point is the best so far:
-                # expand
-                for k in range(N):
-                    self.xe[k] = 3*self.xbar[k] - 2*self.sim[-1,k]
-                fxe = self.eval(self.xe)
 
-                if fxe < fxr:
-                    for k in range(N):
-                        self.sim[N,k] = self.xe[k]
-                    self.fsim[N] = fxe
-                else:
-                    for k in range(N):
-                        self.sim[N,k] = self.xr[k]
-                    self.fsim[N] = fxr
-            else:  # fsim[0] <= fxr
-                if fxr < self.fsim[N-1]:
-                    for k in range(N):
-                        self.sim[N,k] = self.xr[k]
-                    self.fsim[N] = fxr
-                else:  # fxr >= fsim[-2]
-                    # Perform contraction
-                    if fxr < self.fsim[N]:
-                        for k in range(N):
-                            self.xc[k] = 1.5 * self.xbar[k] - 0.5 * self.sim[-1,k]
-                        fxc = self.eval(self.xc)
-
-                        if fxc <= fxr:
-                            for k in range(N):
-                                self.sim[N, k] = self.xc[k]
-                            self.fsim[N] = fxc
-                        else:
-                            doshrink = 1
-                    else:
-                        # Perform an inside contraction
-                        for k in range(N):
-                            self.xcc[k] = 0.5*(self.xbar[k] + self.sim[-1,k])
-                        fxcc = self.eval(self.xcc)
-
-                        if fxcc < self.fsim[N]:
-                            for k in range(N):
-                                self.sim[N,k] = self.xcc[k]
-                            self.fsim[N] = fxcc
-                        else:
-                            doshrink = 1
-
-                    if doshrink:
-                        for j in range(1, N+1):
-                            for k in range(N):
-                                self.sim[j,k] = self.sim[0,k] + 0.5 * (self.sim[j,k] - self.sim[0,k])
-                                y[k] = self.sim[j,k]
-                            self.fsim[j] = self.eval(y)
-
-            combsort(self.fsim, self.N+1, self.ind)
-            # use indices to sort the simulation parameters
-            for k in range(self.N+1):
-                for j in range(N):
-                    self.ssim[k,j] = self.sim[self.ind[k],j]
-            for k in range(self.N+1):
-                for j in range(N):
-                    self.sim[k,j] = self.ssim[k,j]
-
-            self.niter += 1
-
-        # x = self.sim[0,:]
-        # fval = np.min(self.fsim)
-        # assert (np.diff(self.fsim) >= 0).all()
-        # warnflag = 0
-
-        # if iterations >= maxiter:
-            # print 'maxiter'
-        # else:
-            # print 'success'
-
-        # result = OptimizeResult(fun=fval, nit=iterations, nfev=fcalls[0],
-                                # status=warnflag, success=(warnflag == 0),
-                                # message=msg, x=x)
-
-        for j in range(N):
-            y[j] = self.sim[0,j]
-        return y
+        return self.xmin
 
 
 cdef combsort(float[:] inp, int N, int[:] ind):
@@ -237,17 +243,7 @@ cdef combsort(float[:] inp, int N, int[:] ind):
 
                 swapped = 1
 
-            # if inp[i] == inp[i+gap]:
-                # swapped = 1
-
             i += 1
-
-    # verification
-    # for i in range(N-1):
-        # if inp[i+1] < inp[i]:
-            # print 'ERROR'
-
-
 
 def test_combsort():
     N = 10
@@ -274,6 +270,7 @@ cdef test_minimize():
             # np.array([10, 0], dtype='float32'),
             # np.array([0, 10], dtype='float32'),
             ]:
+
         X = np.array(r.minimize(X0, DX, 0.001))
         assert r.niter > 10
         assert (np.abs(X - 1) < 0.01).all(), (X0, X)
