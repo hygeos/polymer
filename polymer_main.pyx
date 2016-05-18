@@ -161,44 +161,70 @@ def pseudoinverse(A):
     return pA
 
 
+cdef int in_bounds(float[:] x, float[:,:] bounds):
+    '''
+    returns whether vector x (N dimensions) is in bounds (Nx2 dimensions)
+    '''
+    cdef int r = 1
+    cdef int i
+    for i in range(x.size):
+        if (x[i] < bounds[i,0]) or (x[i] > bounds[i,1]):
+            r = 0
+    return r
+
+
 cdef class PolymerMinimizer:
 
     cdef F f
     cdef int Nparams
     cdef int BITMASK_INVALID
     cdef float NaN
+    cdef float[:,:] bounds
+    cdef float[:] initial_point
+    cdef float[:] initial_step
+    cdef float size_end_iter
 
-    def __init__(self, watermodel):
+    def __init__(self, watermodel, params):
 
         self.Nparams = 2
         Ncoef = 3   # number of atmospheric coefficients
         self.f = F(Ncoef, watermodel, self.Nparams)
         self.BITMASK_INVALID = BITMASK_INVALID
         self.NaN = np.NaN
+        self.bounds = np.array(params.bounds, dtype='float32')
+        self.initial_point = np.array(params.initial_point, dtype='float32')
+        self.initial_step = np.array(params.initial_step, dtype='float32')
+        self.size_end_iter = params.size_end_iter
 
-    cdef loop(self, float [:,:,:] Rprime,
-              float [:,:] logchl,
+    cdef loop(self, block,
               float [:,:,:,:] A,
-              float [:,:,:,:] pA,
-              float [:,:,:] Tmol,
-              float [:,:,:] wav,
-              float [:,:] sza,
-              float [:,:] vza,
-              float [:,:] raa,
-              unsigned short [:,:] bitmask
+              float [:,:,:,:] pA
               ):
         '''
         cython method which does the main pixel loop
         '''
 
-        cdef int Nb = Rprime.shape[0]
+        cdef float[:,:,:] Rprime = block.Rprime
+        cdef float[:,:,:] Tmol = block.Tmol
+        cdef float[:,:,:] wav = block.wavelen
+        cdef float[:,:] sza = block.sza
+        cdef float[:,:] vza = block.vza
+        cdef float[:,:] raa = block.raa
+
+        cdef unsigned short[:,:] bitmask = block.bitmask
+        # cdef int Nb = Rprime.shape[0]
         cdef int Nx = Rprime.shape[1]
         cdef int Ny = Rprime.shape[2]
         cdef float [:] x
 
-        print 'processing a block of {}x{}x{}'.format(Nx, Ny, Nb)
-
         cdef float [:] x0 = np.zeros(self.Nparams, dtype='float32')
+        x0[:] = self.initial_point[:]
+
+        # create the output datasets
+        block.logchl = np.zeros(block.size, dtype='float32')
+        cdef float [:,:] logchl = block.logchl
+        block.niter = np.zeros(block.size, dtype='uint32')
+        cdef unsigned int[:,:] niter = block.niter
 
         #
         # pixel loop
@@ -216,8 +242,19 @@ cdef class PolymerMinimizer:
                         Tmol[:,i,j],
                         wav[:,i,j],
                         sza[i,j], vza[i,j], raa[i,j])
-                x = self.f.minimize(x0, maxiter=50)
+
+                x = self.f.minimize(x0,
+                                    self.initial_step,
+                                    self.size_end_iter,
+                                    maxiter=150)
+
+                if in_bounds(x, self.bounds):
+                    x0[:] = x[:]
+                else:
+                    x0[:] = self.initial_point[:]
+
                 logchl[i,j] = x[0]
+                niter[i,j] = self.f.niter
 
 
     def minimize(self, block, params):
@@ -225,14 +262,14 @@ cdef class PolymerMinimizer:
         Call minimization code for a block
         (def method visible from python code)
         '''
+        # FIXME
+        # avoid passing params several times
+
         # calculate the atmospheric inversion coefficients
         A = atm_func(block, params)
         pA = pseudoinverse(A)
 
-        block.logchl = np.zeros(block.size, dtype='float32')
 
-        self.loop(block.Rprime, block.logchl, A, pA, block.Tmol,
-                block.wavelen, block.sza, block.vza, block.raa,
-                block.bitmask)
+        self.loop(block, A, pA)
 
 

@@ -8,9 +8,11 @@ cdef class NelderMeadMinimizer:
     cdef float[:] y, xcc, xc, xr, xe
     cdef float eval(self, float[:] x) except? -999
     cdef int[:] ind
+    cdef float[:] center
+    cdef float size(self)
     cdef float [:] minimize(self,
                 float [:] x0,
-                int maxiter=*,
-                float xtol=*,
-                float ftol=*)
+                float [:] dx,
+                float size_end_iter,
+                int maxiter=*)
 

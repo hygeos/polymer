@@ -61,7 +61,7 @@ class Level2_Memory(object):
     '''
 
     def init(self, level1, list_datasets=[
-            'Rtoa', 'Rprime', 'Rnir', 'bitmask', 'logchl']):
+            'Rtoa', 'Rprime', 'Rnir', 'bitmask', 'logchl', 'niter']):
         self.shape = level1.shape
         self.list_datasets = list_datasets
 

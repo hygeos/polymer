@@ -178,7 +178,7 @@ class Level1_MERIS(object):
         return block
 
 
-    def blocks(self, bands_read, blocksize=10):
+    def blocks(self, bands_read, blocksize=30):
 
         nblocks = int(np.ceil(float(self.height)/blocksize))
         for iblock in xrange(nblocks):

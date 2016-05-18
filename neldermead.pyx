@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 from cython cimport floating
-from libc.math cimport abs
+from libc.math cimport abs, sqrt
 
 
 cdef class NelderMeadMinimizer:
@@ -21,26 +21,48 @@ cdef class NelderMeadMinimizer:
         self.xc = np.zeros(N, dtype='float32')
         self.xr = np.zeros(N, dtype='float32')
         self.xe = np.zeros(N, dtype='float32')
+        self.center = np.zeros(N, dtype='float32')
 
     cdef float eval(self, float[:] x) except? -999:
         raise Exception('NelderMeadMinimizer.eval() shall be implemented')
 
+    cdef float size(self):
+        '''
+        calculate the simplex size as average lengths of vectors from center to corners
+        '''
+        cdef int i, j
+        cdef float val, dx, s
+
+        # calculate center
+        for j in range(self.N):
+            val = 0.
+            for i in range(self.N+1):
+                val += self.sim[i,j]
+            self.center[j] = val/(self.N+1)
+
+        # calculate size
+        s = 0.
+        for i in range(self.N+1):
+            # for each N+1 corner
+            val = 0.
+            for j in range(self.N):
+                dx = self.ssim[i,j] - self.center[j]
+                dx *= dx
+                val += dx
+
+            s += sqrt(val)
+
+        return s/(self.N+1)
+
+
     cdef float [:] minimize(self,
                 float [:] x0,
-                int maxiter=-1,
-                float xtol=1e-4,
-                float ftol=1e-4):
+                float [:] dx,
+                float size_end_iter,
+                int maxiter=-1):
         """
         Minimization of scalar function of one or more variables using the
         Nelder-Mead algorithm.
-
-        Options for the Nelder-Mead algorithm are:
-            xtol : float
-                Relative error in solution `xopt` acceptable for convergence.
-            ftol : float
-                Relative error in ``fun(xopt)`` acceptable for convergence.
-            maxiter : int
-                Maximum number of iterations to perform.
 
         (from scipy)
         """
@@ -54,9 +76,8 @@ cdef class NelderMeadMinimizer:
         cdef float chi = 2
         cdef float psi = 0.5
         cdef float sigma = 0.5
-        cdef float nonzdelt = 0.05
         cdef float zdelt = 0.00025
-        cdef int stop, k, j
+        cdef int k, j
         cdef float[:] y = self.y
         cdef float fxr, fxe, fxc, fxcc
 
@@ -66,20 +87,11 @@ cdef class NelderMeadMinimizer:
         for k in range(N):
             for j in range(N):
                 y[j] = x0[j]
-            if y[k] != 0:
-                y[k] = (1 + nonzdelt)*y[k]
-            else:
-                y[k] = zdelt
+            y[k] += dx[k]
 
             for j in range(N):
                 self.sim[k + 1, j] = y[j]
             self.fsim[k + 1] = self.eval(y)
-
-        # FIXME
-        # ind = np.argsort(self.fsim)
-        # print 'VERIF1', ind
-        # print np.take(self.fsim, ind, 0)
-        # print np.take(self.sim, ind, 0)
 
         combsort(self.fsim, self.N+1, self.ind)
 
@@ -91,24 +103,11 @@ cdef class NelderMeadMinimizer:
             for j in range(N):
                 self.sim[k,j] = self.ssim[k,j]
 
-        # FIXME
-        # print 'VERIF2', np.array(self.ind)
-        # print np.array(self.fsim)
-        # print np.array(self.sim)
-
-
         self.niter = 1
 
         while self.niter < maxiter:
 
-            stop = 1
-            for k in range(1, N):
-                if abs(self.fsim[k] - self.fsim[0]) > ftol:
-                    stop = 0
-                for j in range(N):
-                    if abs(self.sim[k,j] - self.sim[0,j]) > xtol:
-                        stop = 0
-            if stop:
+            if self.size() < size_end_iter:
                 break
 
             for j in range(self.N):
@@ -117,7 +116,6 @@ cdef class NelderMeadMinimizer:
                     self.xbar[j] += self.sim[k,j]
                 self.xbar[j] /= N
 
-            # xbar = np.add.reduce(self.sim[:-1], 0) / N  # FIXME
             for k in range(N):
                 self.xr[k] = (1 + rho) * self.xbar[k] - rho * self.sim[-1,k]
             fxr = self.eval(self.xr)
@@ -182,11 +180,6 @@ cdef class NelderMeadMinimizer:
             for k in range(self.N+1):
                 for j in range(N):
                     self.sim[k,j] = self.ssim[k,j]
-
-            # FIXME
-            # ind = np.argsort(self.fsim)
-            # self.sim = np.take(self.sim, ind, 0)
-            # self.fsim = np.take(self.fsim, ind, 0)
 
             self.niter += 1
 
@@ -275,6 +268,7 @@ cdef class Rosenbrock(NelderMeadMinimizer):
 
 cdef test_minimize():
     r = Rosenbrock(2)
+    DX = np.array([0.1, 0.1], dtype='float32')
     for X0 in [
             np.array([0, 0], dtype='float32'),
             np.array([-1, -1], dtype='float32'),
@@ -282,7 +276,7 @@ cdef test_minimize():
             # np.array([10, 0], dtype='float32'),
             # np.array([0, 10], dtype='float32'),
             ]:
-        X = np.array(r.minimize(X0))
+        X = np.array(r.minimize(X0, DX, 0.001))
         assert r.niter > 10
         assert (np.abs(X - 1) < 0.01).all(), (X0, X)
 

@@ -22,18 +22,27 @@ quelques notes pour le développement éventuel de Polymer en python
 '''
 
 # TODO
-# renommer ths, thv => sza, sza_deg, etc
 # paramètres spécifiques aux capteurs: à passer aux objets L1
 # au moins bands_L1, etc
 
 
 class Params(object):
+    '''
+    Sensor non-specific initialization parameters
+    '''
     def __init__(self):
         '''
         define common parameters
         '''
+        # cloud masking
         self.thres_Rcloud = 0.2
         self.thres_Rcloud_std = 0.04
+
+        # optimization parameters
+        self.size_end_iter = 0.005
+        self.initial_point = [-1, 0]
+        self.initial_step = [0.2, 0.2]
+        self.bounds = [[-2, 2], [-3, 3]]
 
     def bands_read(self):
         bands_read = set(self.bands_corr)
@@ -86,7 +95,6 @@ def gas_correction(block, l1):
     block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.NaN
 
     ok = (block.bitmask & BITMASK_INVALID) == 0
-    # FIXME
 
     #
     # ozone correction
@@ -166,7 +174,7 @@ def polymer(params, level1, watermodel, level2):
     # read the look-up table
     mlut = read_mlut_hdf(params.lut_file)
 
-    opt = PolymerMinimizer(watermodel)
+    opt = PolymerMinimizer(watermodel, params)
 
     # loop over the blocks
     for b in level1.blocks(params.bands_read()):

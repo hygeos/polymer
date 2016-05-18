@@ -183,8 +183,10 @@ cdef class CLUT:
 
         # index in the lookup array
         j = <long int>((v - self.bounds[i,0])*self.scaling[i])
-        if j < 0:
+        if (j < 0) or (j > self.invax.shape[1]):
             raise Exception('Index error in lookup: index={}, value={}'.format(j, v))
+        if j == self.invax.shape[1]:
+            j -= 1
 
         # index in the array
         jj = self.invax[i,j]
@@ -208,7 +210,8 @@ cdef class CLUT:
 
         self._inf[i] = jj
         if self._inf[i] < 0:
-            raise Exception('Error negative index')
+            raise Exception('Error: negative index on axis {} (index is {}, value is {})'.format(
+                i, self._inf[i], v))
 
         lower = self.axes[i, self._inf[i]]
         upper = self.axes[i, self._inf[i]+1]
