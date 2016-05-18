@@ -34,6 +34,7 @@ cdef class NelderMeadMinimizer:
         cdef float val, dx, s
 
         # calculate center
+        # FIXME: not needed
         for j in range(self.N):
             val = 0.
             for i in range(self.N+1):
@@ -63,8 +64,6 @@ cdef class NelderMeadMinimizer:
         """
         Minimization of scalar function of one or more variables using the
         Nelder-Mead algorithm.
-
-        (from scipy)
         """
         if self.N != len(x0):
             raise Exception('')
@@ -72,11 +71,6 @@ cdef class NelderMeadMinimizer:
         if maxiter < 0:
             maxiter = N * 200
 
-        cdef float rho = 1
-        cdef float chi = 2
-        cdef float psi = 0.5
-        cdef float sigma = 0.5
-        cdef float zdelt = 0.00025
         cdef int k, j
         cdef float[:] y = self.y
         cdef float fxr, fxe, fxc, fxcc
@@ -110,20 +104,24 @@ cdef class NelderMeadMinimizer:
             if self.size() < size_end_iter:
                 break
 
+            # calculate centroid of all points but last
             for j in range(self.N):
                 self.xbar[j] = 0.
                 for k in range(self.N):
                     self.xbar[j] += self.sim[k,j]
                 self.xbar[j] /= N
 
+            # reflection
             for k in range(N):
-                self.xr[k] = (1 + rho) * self.xbar[k] - rho * self.sim[-1,k]
+                self.xr[k] = 2*self.xbar[k] - self.sim[-1,k]
             fxr = self.eval(self.xr)
             doshrink = 0
 
             if fxr < self.fsim[0]:
+                # the reflected point is the best so far:
+                # expand
                 for k in range(N):
-                    self.xe[k] = (1 + rho * chi) * self.xbar[k] - rho * chi * self.sim[-1,k]
+                    self.xe[k] = 3*self.xbar[k] - 2*self.sim[-1,k]
                 fxe = self.eval(self.xe)
 
                 if fxe < fxr:
@@ -143,7 +141,7 @@ cdef class NelderMeadMinimizer:
                     # Perform contraction
                     if fxr < self.fsim[N]:
                         for k in range(N):
-                            self.xc[k] = (1 + psi * rho) * self.xbar[k] - psi * rho * self.sim[-1,k]
+                            self.xc[k] = 1.5 * self.xbar[k] - 0.5 * self.sim[-1,k]
                         fxc = self.eval(self.xc)
 
                         if fxc <= fxr:
@@ -155,7 +153,7 @@ cdef class NelderMeadMinimizer:
                     else:
                         # Perform an inside contraction
                         for k in range(N):
-                            self.xcc[k] = (1 - psi) * self.xbar[k] + psi * self.sim[-1,k]
+                            self.xcc[k] = 0.5*(self.xbar[k] + self.sim[-1,k])
                         fxcc = self.eval(self.xcc)
 
                         if fxcc < self.fsim[N]:
@@ -168,7 +166,7 @@ cdef class NelderMeadMinimizer:
                     if doshrink:
                         for j in range(1, N+1):
                             for k in range(N):
-                                self.sim[j,k] = self.sim[0,k] + sigma * (self.sim[j,k] - self.sim[0,k])
+                                self.sim[j,k] = self.sim[0,k] + 0.5 * (self.sim[j,k] - self.sim[0,k])
                                 y[k] = self.sim[j,k]
                             self.fsim[j] = self.eval(y)
 
