@@ -197,8 +197,8 @@ cdef class PolymerMinimizer:
         self.size_end_iter = params.size_end_iter
 
     cdef loop(self, block,
-              float [:,:,:,:] A,
-              float [:,:,:,:] pA
+              float[:,:,:,:] A,
+              float[:,:,:,:] pA
               ):
         '''
         cython method which does the main pixel loop
@@ -215,14 +215,14 @@ cdef class PolymerMinimizer:
         # cdef int Nb = Rprime.shape[0]
         cdef int Nx = Rprime.shape[1]
         cdef int Ny = Rprime.shape[2]
-        cdef float [:] x
+        cdef float[:] x
 
-        cdef float [:] x0 = np.zeros(self.Nparams, dtype='float32')
+        cdef float[:] x0 = np.zeros(self.Nparams, dtype='float32')
         x0[:] = self.initial_point[:]
 
         # create the output datasets
         block.logchl = np.zeros(block.size, dtype='float32')
-        cdef float [:,:] logchl = block.logchl
+        cdef float[:,:] logchl = block.logchl
         block.niter = np.zeros(block.size, dtype='uint32')
         cdef unsigned int[:,:] niter = block.niter
 
