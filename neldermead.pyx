@@ -55,9 +55,9 @@ cdef class NelderMeadMinimizer:
         return s/(self.N+1)
 
 
-    cdef float [:] minimize(self,
-                float [:] x0,
-                float [:] dx,
+    cdef float[:] minimize(self,
+                float[:] x0,
+                float[:] dx,
                 float size_end_iter,
                 int maxiter=-1):
         """
