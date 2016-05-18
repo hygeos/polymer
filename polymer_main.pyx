@@ -19,18 +19,18 @@ cdef class F(NelderMeadMinimizer):
     '''
 
     cdef float[:] Rprime
-    cdef float [:] Tmol,
+    cdef float[:] Tmol,
     cdef float[:] wav
     cdef WaterModel w
 
     # [Ratm] = [A] . [C]
     # where A is the matrix of the polynomial exponents for each wavelength (nlam x ncoef)
     # [C] = [pA] . [Ratm]    where [pA] is the pseudoinverse of matrix [A]  (ncoef x nlam)
-    cdef float [:,:] A
-    cdef float [:,:] pA
+    cdef float[:,:] A
+    cdef float[:,:] pA
     cdef int Ncoef
 
-    cdef float [:] C  # ci coefficients (ncoef)
+    cdef float[:] C  # ci coefficients (ncoef)
 
     def __init__(self, Ncoef, watermodel, *args, **kwargs):
 
@@ -40,8 +40,8 @@ cdef class F(NelderMeadMinimizer):
         self.C = np.zeros(Ncoef, dtype='float32')
         self.Ncoef = Ncoef
 
-    cdef init(self, float[:] Rprime, float [:,:] A, float [:,:] pA,
-            float [:] Tmol,
+    cdef init(self, float[:] Rprime, float[:,:] A, float[:,:] pA,
+            float[:] Tmol,
             float[:] wav, float sza, float vza, float raa):
         '''
         set the input parameters for the current pixel
