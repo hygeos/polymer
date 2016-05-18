@@ -12,7 +12,7 @@ cdef class WaterModel:
     '''
     Base class for water reflectance models
     '''
-    cdef init(self, float [:] wav, float sza, float vza, float raa):
+    cdef init(self, float[:] wav, float sza, float vza, float raa):
         raise Exception('WaterModel.init(...) shall be implemented')
 
     cdef float[:] calc_rho(self, float[:] x):
@@ -135,7 +135,7 @@ cdef class ParkRuddick(WaterModel):
         self.GII_PR = CLUT(np.zeros((ngb, 4)), axes=[gb, None])
 
 
-    cdef init(self, float [:] wav, float sza, float vza, float raa):
+    cdef init(self, float[:] wav, float sza, float vza, float raa):
         '''
         initialize the model parameters for current pixel
         '''
