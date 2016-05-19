@@ -2,7 +2,7 @@ import numpy as np
 cimport numpy as np
 from numpy.linalg import inv
 from common import BITMASK_INVALID
-from libc.math cimport nan
+from libc.math cimport nan, exp, log
 
 from neldermead cimport NelderMeadMinimizer
 from water cimport WaterModel
@@ -29,16 +29,21 @@ cdef class F(NelderMeadMinimizer):
     cdef float[:,:] A
     cdef float[:,:] pA
     cdef int Ncoef
+    cdef float thres_chi2
+    cdef float constraint_amplitude, sigma1, sigma2
 
     cdef float[:] C  # ci coefficients (ncoef)
 
-    def __init__(self, Ncoef, watermodel, *args, **kwargs):
+    def __init__(self, Ncoef, watermodel, params, *args, **kwargs):
 
         super(self.__class__, self).__init__(*args, **kwargs)
 
         self.w = watermodel
         self.C = np.zeros(Ncoef, dtype='float32')
         self.Ncoef = Ncoef
+
+        self.thres_chi2 = params.thres_chi2
+        self.constraint_amplitude, self.sigma1, self.sigma2 = params.constraint_bbs
 
     cdef init_pixel(self, float[:] Rprime, float[:,:] A, float[:,:] pA,
             float[:] Tmol,
@@ -61,7 +66,9 @@ cdef class F(NelderMeadMinimizer):
         '''
         cdef float[:] Rw
         cdef float C
-        cdef float sumsq, dR
+        cdef float sumsq, dR, norm
+        cdef int il, ic
+        cdef float sigma
 
         #
         # calculate the. water reflectance for the current parameters
@@ -74,8 +81,7 @@ cdef class F(NelderMeadMinimizer):
         for ic in range(self.Ncoef):
             C = 0.
             for il in range(len(Rw)):
-                # TODO: transmission
-                C += self.pA[ic,il] * (self.Rprime[il] - Rw[il])
+                C += self.pA[ic,il] * (self.Rprime[il] - self.Tmol[il]*Rw[il])
             self.C[ic] = C
 
         #
@@ -90,13 +96,24 @@ cdef class F(NelderMeadMinimizer):
             for ic in range(self.Ncoef):
                 dR -= self.C[ic] * self.A[il,ic]
 
-            # TODO: divide by transmission
+            # divide by transmission
+            dR /= self.Tmol[il]
 
             dR -= Rw[il]
 
-            # TODO:
-            # Add residual to sumsq
-            sumsq += dR*dR
+            norm = Rw[il]
+            if norm < self.thres_chi2:
+                norm = self.thres_chi2
+
+            sumsq += dR*dR/norm
+
+
+        if self.constraint_amplitude != 0:
+            # sigma equals sigma1 when chl = 0.01
+            # sigma equals sigma2 when chl = 0.1
+            sigma = self.sigma1*self.sigma1/self.sigma2*exp(log(self.sigma1/self.sigma2)*x[0])
+
+            sumsq += self.constraint_amplitude * (1. - exp(-x[1]*x[1]/(2*sigma*sigma)))
 
         return sumsq
 
@@ -105,8 +122,8 @@ def atm_func(block, params):
     Returns the matrix of atmospheric components
     A [im0, im1, nlam, ncoef]
 
-    Note: pseudo inverse de A
-    A* = ((A'.A)^(-1)).A'     où B' est la transposée et B^-1 est l'inverse de B
+    Note: pseudo-inverse of A
+    A* = ((A'.A)^(-1)).A'     where B' is the transpose of B and B^-1 is the inverse of B
 
     Ratm = A.C
     Ratm: (shp0, shp1, nlam)
@@ -115,7 +132,6 @@ def atm_func(block, params):
 
     B = (A'.A) = tensordot(A, A, axes=[[0], [0]])
         (shp0, shp1, ncoef, ncoef)
-
     '''
     # bands for atmospheric fit
     Nlam = len(params.bands_corr)
@@ -188,7 +204,7 @@ cdef class PolymerMinimizer:
 
         self.Nparams = 2
         Ncoef = 3   # number of atmospheric coefficients
-        self.f = F(Ncoef, watermodel, self.Nparams)
+        self.f = F(Ncoef, watermodel, params, self.Nparams)
         self.BITMASK_INVALID = BITMASK_INVALID
         self.NaN = np.NaN
         self.bounds = np.array(params.bounds, dtype='float32')

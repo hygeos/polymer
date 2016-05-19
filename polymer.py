@@ -46,6 +46,12 @@ class Params(object):
         self.initial_step = [0.2, 0.2]
         self.bounds = [[-2, 2], [-3, 3]]
 
+        self.thres_chi2 = 0.005
+
+        # Constraint on bbs: amplitude, sigma(chl=0.01), sigma(chl=0.1)
+        # (disactivate with amplitude == 0)
+        self.constraint_bbs = [1e-3, 0.2258, 0.9233]
+
         self.partial = 0    # whether to perform partial processing
                             #       0: standard processing
                             #       1: stop at minimize
