@@ -41,6 +41,7 @@ class Params(object):
         self.thres_Rcloud_std = 0.04
 
         # optimization parameters
+        self.max_iter = 100
         self.size_end_iter = 0.005
         self.initial_point = [-1, 0]
         self.initial_step = [0.2, 0.2]

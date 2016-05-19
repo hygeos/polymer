@@ -199,6 +199,7 @@ cdef class PolymerMinimizer:
     cdef float[:] initial_point
     cdef float[:] initial_step
     cdef float size_end_iter
+    cdef int max_iter
 
     def __init__(self, watermodel, params):
 
@@ -207,10 +208,12 @@ cdef class PolymerMinimizer:
         self.f = F(Ncoef, watermodel, params, self.Nparams)
         self.BITMASK_INVALID = BITMASK_INVALID
         self.NaN = np.NaN
+
         self.bounds = np.array(params.bounds, dtype='float32')
         self.initial_point = np.array(params.initial_point, dtype='float32')
         self.initial_step = np.array(params.initial_step, dtype='float32')
         self.size_end_iter = params.size_end_iter
+        self.max_iter = params.max_iter
 
     cdef loop(self, block,
               float[:,:,:,:] A,
@@ -261,7 +264,7 @@ cdef class PolymerMinimizer:
 
                 self.f.init(x0, self.initial_step)
 
-                while self.f.niter < 150:
+                while self.f.niter < self.max_iter:
 
                     self.f.iterate()
 
