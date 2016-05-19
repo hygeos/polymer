@@ -44,6 +44,21 @@ class Level2_HDF(Level2):
                     np.dtype('uint32'): SDC.UINT32,
                     }
 
+    def write_block(self, name, data, S):
+        '''
+        write data into sds name with slice S
+        '''
+        # create dataset
+        if name not in self.sdslist:
+            dtype = self.typeconv[data.dtype]
+            print 'creating dataset {} of shape {} and type {}'.format(
+                    name, self.shape, dtype)
+            self.sdslist[name] = self.hdf.create(name, dtype, self.shape)
+
+        # write
+        self.sdslist[name][S] = data[:,:]
+
+
     def write(self, block):
 
         (yoff, xoff) = block.offset
@@ -56,17 +71,13 @@ class Level2_HDF(Level2):
             if d not in block.datasets():
                 continue
 
-            # create dataset
-            if d not in self.sdslist:
-                dtype = self.typeconv[block[d].dtype]
-                print 'creating dataset {} of shape {} and type {}'.format(
-                        d, self.shape, dtype)
-                self.sdslist[d] = self.hdf.create(d, dtype, self.shape)
-
             if block[d].ndim == 2:
-                self.sdslist[d][S] = block[d][:,:]
+                self.write_block(d, block[d], S)
+
             elif block[d].ndim == 3:
-                warnings.warn('TODO')
+                for i, b in enumerate(block.bands):
+                    sdsname = '{}{}'.format(d, b)
+                    self.write_block(sdsname, block[d][i,:,:], S)
             else:
                 raise Exception('Error ndim')
 
@@ -101,8 +112,10 @@ class Level2_Memory(Level2):
         (hei, wid) = block.size
 
         for d in self.list_datasets:
+            if d not in block.datasets():
+                continue
 
-            data = block.__dict__[d]
+            data = block[d]
 
             if data.ndim == 2:
                 if d not in self.__dict__:
