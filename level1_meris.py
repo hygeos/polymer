@@ -12,11 +12,12 @@ from common import L2FLAGS
 
 class Level1_MERIS(object):
 
-    def __init__(self, filename, sline=0, eline=-1):
+    def __init__(self, filename, sline=0, eline=-1, blocksize=30):
 
         self.prod = epr.Product(filename)
         self.width = self.prod.get_scene_width()
         self.totalheight = self.prod.get_scene_height()
+        self.blocksize = blocksize
 
         self.sline = sline
         self.eline = eline
@@ -178,22 +179,22 @@ class Level1_MERIS(object):
         return block
 
 
-    def blocks(self, bands_read, blocksize=30):
+    def blocks(self, bands_read):
 
-        nblocks = int(np.ceil(float(self.height)/blocksize))
+        nblocks = int(np.ceil(float(self.height)/self.blocksize))
         for iblock in xrange(nblocks):
 
             # determine block size
             xsize = self.width
             if iblock == nblocks-1:
-                ysize = self.height-(nblocks-1)*blocksize
+                ysize = self.height-(nblocks-1)*self.blocksize
             else:
-                ysize = blocksize
+                ysize = self.blocksize
             size = (ysize, xsize)
 
             # determine the block offset
             xoffset = 0
-            yoffset = iblock*blocksize
+            yoffset = iblock*self.blocksize
             offset = (yoffset, xoffset)
 
             yield self.read_block(size, offset, bands_read)

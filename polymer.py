@@ -10,6 +10,7 @@ from pylab import imshow, show, colorbar
 import warnings
 from utils import stdNxN
 from common import BITMASK_INVALID, L2FLAGS
+from collections import OrderedDict
 
 # cython imports
 # import pyximport ; pyximport.install()
@@ -34,6 +35,7 @@ class Params(object):
         '''
         define common parameters
         '''
+
         # cloud masking
         self.thres_Rcloud = 0.2
         self.thres_Rcloud_std = 0.04
@@ -44,18 +46,36 @@ class Params(object):
         self.initial_step = [0.2, 0.2]
         self.bounds = [[-2, 2], [-3, 3]]
 
+        self.partial = 0    # whether to perform partial processing
+                            #       0: standard processing
+                            #       1: stop at minimize
+                            #       2: stop at rayleigh correction
+
     def bands_read(self):
         bands_read = set(self.bands_corr)
         bands_read = bands_read.union(self.bands_oc)
         bands_read = bands_read.union(self.bands_rw)
         return sorted(bands_read)
 
+    def print_info(self):
+        print self.__class__
+        for k, v in self.__dict__.iteritems():
+            print '*', k,':', v
+
+    def update(self, **kwargs):
+
+        # don't allow for 'new' attributes
+        for k in kwargs:
+            if k not in self.__dict__:
+                raise Exception('{}: attribute "{}" is unknown'.format(self.__class__, k))
+
+        self.__dict__.update(kwargs)
 
 class Params_MERIS(Params):
     '''
     MERIS-specific parameters
     '''
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(self.__class__, self).__init__()
 
         self.bands_corr = [412,443,490,510,560,620,665,        754,    779,865]
@@ -66,6 +86,9 @@ class Params_MERIS(Params):
         self.lut_bands = [412,443,490,510,560,620,665,681,709,754,760,779,865,885,900]
 
         self.band_cloudmask = 865
+
+        # update 
+        self.update(**kwargs)
 
 
 def coeff_sun_earth_distance(jday):
@@ -144,6 +167,8 @@ def rayleigh_correction(block, mlut, params):
     Rayleigh correction
     + transmission interpolation
     '''
+    if params.partial >= 2:
+        return
 
     block.Rprime = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
     block.Tmol = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
@@ -194,7 +219,7 @@ def polymer(params, level1, watermodel, level2):
 
         level2.write(b)
 
-    level2.finish()
+    level2.finish(params)
 
     return level2
 

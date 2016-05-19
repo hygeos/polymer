@@ -276,6 +276,9 @@ cdef class PolymerMinimizer:
         # FIXME
         # avoid passing params several times
 
+        if params.partial >= 1:
+            return
+
         # calculate the atmospheric inversion coefficients
         A = atm_func(block, params)
         pA = pseudoinverse(A)

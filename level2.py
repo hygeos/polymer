@@ -2,21 +2,25 @@
 # encoding: utf-8
 
 import numpy as np
-from pylab import imshow, show, colorbar, figure
+from pylab import imshow, colorbar, figure
 from pyhdf.SD import SD, SDC
 from luts import Idx
 from os import remove
 from os.path import exists
+import warnings
 
 
 class Level2(object):
     def __init__(self, list_datasets=[
-            'Rtoa', 'Rprime', 'Rnir', 'bitmask', 'logchl', 'niter']):
+                'Rtoa', 'Rprime', 'Rnir', 'bitmask', 'logchl', 'niter']):
         self.list_datasets = list_datasets
         self.shape = None
 
     def init(self, level1):
         self.shape = level1.shape
+
+    def finish(self, parameters):
+        pass
 
 class Level2_HDF(Level2):
     def __init__(self, filename, overwrite=False, *args, **kwargs):
@@ -44,20 +48,36 @@ class Level2_HDF(Level2):
 
         (yoff, xoff) = block.offset
         (hei, wid) = block.size
+        S = (slice(yoff,yoff+hei), slice(xoff,xoff+wid))
 
         for d in self.list_datasets:
+
+            # don't write dataset if not in block
+            if d not in block.datasets():
+                continue
+
+            # create dataset
             if d not in self.sdslist:
                 dtype = self.typeconv[block[d].dtype]
                 print 'creating dataset {} of shape {} and type {}'.format(
                         d, self.shape, dtype)
                 self.sdslist[d] = self.hdf.create(d, dtype, self.shape)
 
-        self.sdslist[d][yoff:yoff+hei,xoff:xoff+wid] = block[d][:,:]
+            if block[d].ndim == 2:
+                self.sdslist[d][S] = block[d][:,:]
+            elif block[d].ndim == 3:
+                warnings.warn('TODO')
+            else:
+                raise Exception('Error ndim')
 
-    def finish(self):
+    def finish(self, params):
         for name, sds in self.sdslist.items():
             print 'closing dataset', name
             sds.endaccess()
+
+        # write parameters
+        warnings.warn('TODO')
+
         self.hdf.end()
 
 
@@ -97,8 +117,6 @@ class Level2_Memory(Level2):
             else:
                 raise Exception('Error')
 
-    def finish(self):
-        pass
 
 
 def contrast(x, max=1.):

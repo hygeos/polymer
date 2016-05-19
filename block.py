@@ -11,26 +11,32 @@ class Block(object):
         self.offset = offset
         self.bands = bands
 
-        self.sza = None       # sun zenith angle [degrees] (nx, ny)
-        self.vza = None       # view zenith angle [degrees] (nx, ny)
-        self.saa = None       # sun azimuth angle [degrees] (nx, ny)
-        self.vaa = None       # view azimuth angle [degrees] (nx, ny)
-        self.F0 = None        # per-pixel solar irradiance (nbands, nx, ny)
-        self.wavelen = None   # per-pixel wavelength [nm] (nbands, nx, ny)
+        # self.sza = None       # sun zenith angle [degrees] (nx, ny)
+        # self.vza = None       # view zenith angle [degrees] (nx, ny)
+        # self.saa = None       # sun azimuth angle [degrees] (nx, ny)
+        # self.vaa = None       # view azimuth angle [degrees] (nx, ny)
+        # self.F0 = None        # per-pixel solar irradiance (nbands, nx, ny)
+        # self.wavelen = None   # per-pixel wavelength [nm] (nbands, nx, ny)
 
 
-        self.Ltoa = None  # TOA radiance (nbands, nx, ny)
-        self.Rtoa = None  # TOA reflectance
-        self.Rtoa_gc = None  # TOA reflectance, corrected for gas absorption
-        self.Rprime = None  # TOA reflectance, corrected for gas absorption, Rayleigh scattering and wind speed
+        # self.Ltoa = None  # TOA radiance (nbands, nx, ny)
+        # self.Rtoa = None  # TOA reflectance
+        # self.Rtoa_gc = None  # TOA reflectance, corrected for gas absorption
+        # self.Rprime = None  # TOA reflectance, corrected for gas absorption, Rayleigh scattering and wind speed
 
-        self.wind_speed = None # wind speed module (m/s)
+        # self.wind_speed = None # wind speed module (m/s)
 
         # properties
-        self._raa = None
-        self._mus = None
-        self._muv = None
-        self._air_mass = None
+        # self._raa = None
+        # self._mus = None
+        # self._muv = None
+        # self._air_mass = None
+
+    def datasets(self):
+        '''
+        returns a list of the datasets of the block
+        '''
+        return self.__dict__.keys()
 
     def __getitem__(self, name):
         return self.__dict__[name]
@@ -41,7 +47,7 @@ class Block(object):
     @property
     def raa(self):
         ''' relative azimuth angle, in degrees '''
-        if self._raa is None:
+        if '_raa' not in self.datasets():
             raa = self.saa - self.vaa
             raa[raa<0.] += 360;
             raa[raa>360.] -= 360;
@@ -51,19 +57,19 @@ class Block(object):
 
     @property
     def mus(self):
-        if self._mus is None:
+        if '_mus' not in self.datasets():
             self._mus = np.cos(self.sza*np.pi/180.)
         return self._mus
 
     @property
     def air_mass(self):
-        if self._air_mass is None:
+        if '_air_mass' not in self.datasets():
             self._air_mass = 1/self.muv + 1/self.mus
         return self._air_mass
 
     @property
     def muv(self):
-        if self._muv is None:
+        if '_muv' not in self.datasets():
             self._muv = np.cos(self.vza*np.pi/180.)
         return self._muv
 
