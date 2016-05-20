@@ -12,7 +12,7 @@ from common import L2FLAGS
 
 class Level1_MERIS(object):
 
-    def __init__(self, filename, sline=0, eline=-1, blocksize=30):
+    def __init__(self, filename, sline=0, eline=-1, blocksize=50):
 
         self.prod = epr.Product(filename)
         self.width = self.prod.get_scene_width()
@@ -61,17 +61,6 @@ class Level1_MERIS(object):
                     760: 'lam_band10', 779: 'lam_band11',
                     865: 'lam_band12', 885: 'lam_band13',
                     900: 'lam_band14',
-                }
-
-        self.K_OZ = {
-                    412: 0.000301800 , 443: 0.00327200 ,
-                    490: 0.0211900   , 510: 0.0419600  ,
-                    560: 0.104100    , 620: 0.109100   ,
-                    665: 0.0511500   , 681: 0.0359600  ,
-                    709: 0.0196800   , 754: 0.00955800 ,
-                    760: 0.00730400  , 779: 0.00769300 ,
-                    865: 0.00219300  , 885: 0.00121100 ,
-                    900: 0.00151600 ,
                 }
 
         # initialize detector wavelength

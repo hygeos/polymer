@@ -18,15 +18,6 @@ from polymer_main import PolymerMinimizer
 from water import ParkRuddick
 
 
-'''
-quelques notes pour le développement éventuel de Polymer en python
-'''
-
-# TODO
-# paramètres spécifiques aux capteurs: à passer aux objets L1
-# au moins bands_L1, etc
-
-
 class Params(object):
     '''
     Sensor non-specific parameters
@@ -41,6 +32,7 @@ class Params(object):
         self.thres_Rcloud_std = 0.04
 
         # optimization parameters
+        self.force_initialization = False
         self.max_iter = 100
         self.size_end_iter = 0.005
         self.initial_point = [-1, 0]
@@ -94,6 +86,17 @@ class Params_MERIS(Params):
 
         self.band_cloudmask = 865
 
+        self.K_OZ = {
+                    412: 0.000301800 , 443: 0.00327200 ,
+                    490: 0.0211900   , 510: 0.0419600  ,
+                    560: 0.104100    , 620: 0.109100   ,
+                    665: 0.0511500   , 681: 0.0359600  ,
+                    709: 0.0196800   , 754: 0.00955800 ,
+                    760: 0.00730400  , 779: 0.00769300 ,
+                    865: 0.00219300  , 885: 0.00121100 ,
+                    900: 0.00151600 ,
+                }
+
         # update 
         self.update(**kwargs)
 
@@ -123,7 +126,7 @@ def convert_reflectance(block, params):
         block.Rtoa[i,ok] = block.Ltoa[i,ok]*np.pi/(block.mus[ok]*block.F0[i,ok]*coef)
 
 
-def gas_correction(block, l1):
+def gas_correction(block, params):
 
     block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.NaN
 
@@ -139,7 +142,7 @@ def gas_correction(block, l1):
     # bands loop
     for i, b in enumerate(block.bands):
 
-        tauO3 = l1.K_OZ[b] * block.ozone[ok] * 1e-3  # convert from DU to cm*atm
+        tauO3 = params.K_OZ[b] * block.ozone[ok] * 1e-3  # convert from DU to cm*atm
 
         # ozone transmittance
         trans_O3 = np.exp(-tauO3 * block.air_mass[ok])
@@ -216,7 +219,7 @@ def polymer(params, level1, watermodel, level2):
 
         convert_reflectance(b, params)
 
-        gas_correction(b, level1)
+        gas_correction(b, params)
 
         cloudmask(b, params, mlut)
 

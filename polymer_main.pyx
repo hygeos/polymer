@@ -19,7 +19,7 @@ cdef class F(NelderMeadMinimizer):
     '''
 
     cdef float[:] Rprime
-    cdef float[:] Tmol,
+    cdef float[:] Tmol
     cdef float[:] wav
     cdef WaterModel w
 
@@ -33,6 +33,8 @@ cdef class F(NelderMeadMinimizer):
     cdef float constraint_amplitude, sigma1, sigma2
 
     cdef float[:] C  # ci coefficients (ncoef)
+    cdef float[:] Rwmod
+    cdef float[:] Ratm
 
     def __init__(self, Ncoef, watermodel, params, *args, **kwargs):
 
@@ -40,6 +42,7 @@ cdef class F(NelderMeadMinimizer):
 
         self.w = watermodel
         self.C = np.zeros(Ncoef, dtype='float32')
+        self.Ratm = np.zeros(len(params.bands_read()), dtype='float32')
         self.Ncoef = Ncoef
 
         self.thres_chi2 = params.thres_chi2
@@ -64,7 +67,9 @@ cdef class F(NelderMeadMinimizer):
         '''
         Evaluate cost function for vector parameters x
         '''
-        cdef float[:] Rw
+        # TODO
+        # take into account bands_corr, bands_oc, etc.
+
         cdef float C
         cdef float sumsq, dR, norm
         cdef int il, ic
@@ -73,35 +78,38 @@ cdef class F(NelderMeadMinimizer):
         #
         # calculate the. water reflectance for the current parameters
         #
-        Rw = self.w.calc_rho(x)
+        self.Rwmod = self.w.calc_rho(x)
+        cdef float[:] Rwmod = self.Rwmod
 
         #
         # atmospheric fit
         #
         for ic in range(self.Ncoef):
             C = 0.
-            for il in range(len(Rw)):
-                C += self.pA[ic,il] * (self.Rprime[il] - self.Tmol[il]*Rw[il])
+            for il in range(len(Rwmod)):
+                C += self.pA[ic,il] * (self.Rprime[il] - self.Tmol[il]*Rwmod[il])
             self.C[ic] = C
 
         #
         # calculate the residual
         #
         sumsq = 0.
-        for il in range(len(Rw)):
+        for il in range(len(Rwmod)):
 
             dR = self.Rprime[il]
 
             # subtract atmospheric signal
+            self.Ratm[il] = 0
             for ic in range(self.Ncoef):
-                dR -= self.C[ic] * self.A[il,ic]
+                self.Ratm[il] += self.C[ic] * self.A[il,ic]
+            dR -= self.Ratm[il]
 
             # divide by transmission
             dR /= self.Tmol[il]
 
-            dR -= Rw[il]
+            dR -= Rwmod[il]
 
-            norm = Rw[il]
+            norm = Rwmod[il]
             if norm < self.thres_chi2:
                 norm = self.thres_chi2
 
@@ -244,6 +252,9 @@ cdef class PolymerMinimizer:
         cdef float[:,:] logchl = block.logchl
         block.niter = np.zeros(block.size, dtype='uint32')
         cdef unsigned int[:,:] niter = block.niter
+        block.Rw = np.zeros((block.nbands,)+block.size, dtype='float32')
+        cdef float[:,:,:] Rw = block.Rw
+        cdef int i, j, ib
 
         #
         # pixel loop
@@ -273,6 +284,9 @@ cdef class PolymerMinimizer:
                     if not in_bounds(self.f.xmin, self.bounds):
                         break
 
+                # case2 optimization if first fails
+                # TODO
+
                 logchl[i,j] = self.f.xmin[0]
                 niter[i,j] = self.f.niter
 
@@ -281,6 +295,18 @@ cdef class PolymerMinimizer:
                     x0[:] = self.f.xmin[:]
                 else:
                     x0[:] = self.initial_point[:]
+
+
+                # option to evaluate f a last time (?)
+                # TODO
+
+                # calculate water reflectance
+                for ib in range(len(self.f.Rwmod)):
+                    Rw[ib,i,j] = Rprime[ib,i,j] - self.f.Ratm[ib]
+                    Rw[ib,i,j] /= Tmol[ib,i,j]
+
+                # water reflectance normalization
+                # TODO
 
 
             # reinitialize
