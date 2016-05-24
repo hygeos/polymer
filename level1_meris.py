@@ -130,20 +130,20 @@ class Level1_MERIS(object):
         di = self.read_band('detector_index', size, offset)
 
         # calculate F0 for each band
-        block.F0 = np.zeros((nbands, ysize, xsize)) + np.NaN
+        block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
         for iband, band in enumerate(bands):
-            block.F0[iband,:,:] = self.F0[self.F0_band_names[band]][di]
+            block.F0[:,:,iband] = self.F0[self.F0_band_names[band]][di]
 
         # calculate detector wavelength for each band
-        block.wavelen = np.zeros((nbands, ysize, xsize), dtype='float32') + np.NaN
+        block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
-            block.wavelen[iband,:,:] = self.detector_wavelength[self.wav_band_names[band]][di]
+            block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][di]
 
         # read TOA
-        Ltoa = np.zeros((nbands, ysize, xsize)) + np.NaN
+        Ltoa = np.zeros((ysize,xsize,nbands)) + np.NaN
         for iband, band in enumerate(bands):
             Ltoa_ = self.read_band(self.band_names[band], size, offset)
-            Ltoa[iband,:,:] = Ltoa_[:,:]
+            Ltoa[:,:,iband] = Ltoa_[:,:]
         block.Ltoa = Ltoa
 
         # wind speed (zonal and merdional)

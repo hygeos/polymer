@@ -136,7 +136,7 @@ def convert_reflectance(block, params):
 
     for i in xrange(block.nbands):
 
-        block.Rtoa[i,ok] = block.Ltoa[i,ok]*np.pi/(block.mus[ok]*block.F0[i,ok]*coef)
+        block.Rtoa[ok,i] = block.Ltoa[ok,i]*np.pi/(block.mus[ok]*block.F0[ok,i]*coef)
 
 
 def gas_correction(block, params):
@@ -160,7 +160,7 @@ def gas_correction(block, params):
         # ozone transmittance
         trans_O3 = np.exp(-tauO3 * block.air_mass[ok])
 
-        block.Rtoa_gc[i,ok] = block.Rtoa[i,ok]/trans_O3
+        block.Rtoa_gc[ok,i] = block.Rtoa[ok,i]/trans_O3
 
     #
     # NO2 correction
@@ -177,7 +177,7 @@ def cloudmask(block, params, mlut):
 
     inir_block = block.bands.index(params.band_cloudmask)
     inir_lut = params.lut_bands.index(params.band_cloudmask)
-    block.Rnir = block.Rtoa_gc[inir_block,:,:] - mlut['Rmol'][
+    block.Rnir = block.Rtoa_gc[:,:,inir_block] - mlut['Rmol'][
             Idx(block.muv),
             Idx(block.raa),
             Idx(block.mus),
@@ -204,16 +204,16 @@ def rayleigh_correction(block, mlut, params):
     for i in xrange(block.nbands):
         ilut = params.lut_bands.index(block.bands[i])
 
-        block.Rprime[i,ok] = block.Rtoa_gc[i,ok] - mlut['Rmolgli'][
+        block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - mlut['Rmolgli'][
                 Idx(block.muv[ok]),
                 Idx(block.raa[ok]),
                 Idx(block.mus[ok]),
                 ilut, Idx(block.wind_speed[ok])]
 
         # TODO: share axes indices
-        block.Tmol[i,ok]  = mlut['Tmolgli'][Idx(block.mus[ok]),
+        block.Tmol[ok,i]  = mlut['Tmolgli'][Idx(block.mus[ok]),
                 ilut, Idx(block.wind_speed[ok])]
-        block.Tmol[i,ok] *= mlut['Tmolgli'][Idx(block.muv[ok]),
+        block.Tmol[ok,i] *= mlut['Tmolgli'][Idx(block.muv[ok]),
                 ilut, Idx(block.wind_speed[ok])]
 
 

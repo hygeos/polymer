@@ -149,7 +149,7 @@ def atm_func(block, params):
     # correction bands wavelengths
     i_corr = np.searchsorted(params.bands_read(), params.bands_corr)
     # transpose: move the wavelength dimension to the end
-    lam = np.transpose(block.wavelen[i_corr,:,:], axes=[1, 2, 0])
+    lam = block.wavelen[:,:,i_corr]
 
     # initialize the matrix for inversion
     Ncoef = 3   # number of polynomial coefficients
@@ -159,13 +159,11 @@ def atm_func(block, params):
 
     taum = 0.00877*((block.wavelen/1000.)**(-4.05))
     Rgli0 = 0.02
-    # print block.Rtoa.shape
-    # print block.wavelen.shape
-    # T0 = np.exp(-(1-0.5*np.exp(-block.Rgli/Rgli0)*taum)*(1/block.mus + 1/block.muv))
+    T0 = np.exp(-(1-0.5*np.exp(-block.Rgli[...,None]/Rgli0)*taum)*(1/block.mus[...,None] + 1/block.muv[...,None]))
 
-    A[:,:,:,0] = (lam/1000.)**0   # FIXME
-    A[:,:,:,1] = (lam/1000.)**-1
-    A[:,:,:,2] = (lam/1000.)**-4
+    A[:,:,:,0] = T0*(lam/1000.)**0.
+    A[:,:,:,1] = (lam/1000.)**-1.
+    A[:,:,:,2] = (lam/1000.)**-4.
 
     return A
 
@@ -182,16 +180,16 @@ def pseudoinverse(A):
 
     # check
     if B.ndim == 4:
-        assert np.allclose(B[0,0,:,:], A[0,0,:,:].transpose().dot(A[0,0,:,:]))
-        assert np.allclose(B[-1,0,:,:], A[-1,0,:,:].transpose().dot(A[-1,0,:,:]))
+        assert np.allclose(B[0,0,:,:], A[0,0,:,:].transpose().dot(A[0,0,:,:]), equal_nan=True)
+        assert np.allclose(B[-1,0,:,:], A[-1,0,:,:].transpose().dot(A[-1,0,:,:]), equal_nan=True)
 
     # (A^-1).A' (with broadcasting)
     pA = np.einsum('...ij,...kj->...ik', inv(B), A)
 
     # check
     if B.ndim == 4:
-        assert np.allclose(pA[0,0], inv(B[0,0,:,:]).dot(A[0,0,:,:].transpose()))
-        assert np.allclose(pA[-1,0], inv(B[-1,0,:,:]).dot(A[-1,0,:,:].transpose()))
+        assert np.allclose(pA[0,0], inv(B[0,0,:,:]).dot(A[0,0,:,:].transpose()), equal_nan=True)
+        assert np.allclose(pA[-1,0], inv(B[-1,0,:,:]).dot(A[-1,0,:,:].transpose()), equal_nan=True)
 
     return pA
 
@@ -251,8 +249,8 @@ cdef class PolymerMinimizer:
 
         cdef unsigned short[:,:] bitmask = block.bitmask
         # cdef int Nb = Rprime.shape[0]
-        cdef int Nx = Rprime.shape[1]
-        cdef int Ny = Rprime.shape[2]
+        cdef int Nx = Rprime.shape[0]
+        cdef int Ny = Rprime.shape[1]
         cdef float[:] x
 
         cdef float[:] x0 = np.zeros(self.Nparams, dtype='float32')
@@ -263,7 +261,7 @@ cdef class PolymerMinimizer:
         cdef float[:,:] logchl = block.logchl
         block.niter = np.zeros(block.size, dtype='uint32')
         cdef unsigned int[:,:] niter = block.niter
-        block.Rw = np.zeros((block.nbands,)+block.size, dtype='float32')
+        block.Rw = np.zeros(block.size+(block.nbands,), dtype='float32')
         cdef float[:,:,:] Rw = block.Rw
         cdef int i, j, ib
 
@@ -278,10 +276,10 @@ cdef class PolymerMinimizer:
                     continue
 
                 self.f.init_pixel(
-                        Rprime[:,i,j],
+                        Rprime[i,j,:],
                         A[i,j,:,:], pA[i,j,:,:],
-                        Tmol[:,i,j],
-                        wav[:,i,j],
+                        Tmol[i,j,:],
+                        wav[i,j,:],
                         sza[i,j], vza[i,j], raa[i,j])
 
                 self.f.init(x0, self.initial_step)
@@ -313,8 +311,8 @@ cdef class PolymerMinimizer:
 
                 # calculate water reflectance
                 for ib in range(len(self.f.Rwmod)):
-                    Rw[ib,i,j] = Rprime[ib,i,j] - self.f.Ratm[ib]
-                    Rw[ib,i,j] /= Tmol[ib,i,j]
+                    Rw[i,j,ib] = Rprime[i,j,ib] - self.f.Ratm[ib]
+                    Rw[i,j,ib] /= Tmol[i,j,ib]
 
                 # water reflectance normalization
                 # TODO

@@ -77,7 +77,7 @@ class Level2_HDF(Level2):
             elif block[d].ndim == 3:
                 for i, b in enumerate(block.bands):
                     sdsname = '{}{}'.format(d, b)
-                    self.write_block(sdsname, block[d][i,:,:], S)
+                    self.write_block(sdsname, block[d][:,:,i], S)
             else:
                 raise Exception('Error ndim')
 
@@ -124,8 +124,8 @@ class Level2_Memory(Level2):
 
             elif data.ndim == 3:
                 if d not in self.__dict__:
-                    self.__dict__[d] = np.zeros(((len(block.bands),)+self.shape), dtype=data.dtype)
-                self.__dict__[d][:,yoff:yoff+hei,xoff:xoff+wid] = data[:,:,:]
+                    self.__dict__[d] = np.zeros((self.shape+(len(block.bands),)), dtype=data.dtype)
+                self.__dict__[d][yoff:yoff+hei,xoff:xoff+wid,:] = data[:,:,:]
 
             else:
                 raise Exception('Error')
