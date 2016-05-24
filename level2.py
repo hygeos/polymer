@@ -12,7 +12,7 @@ import warnings
 
 class Level2(object):
     def __init__(self, list_datasets=[
-                'Rtoa', 'Rprime', 'Rw', 'Rnir', 'bitmask', 'logchl', 'niter']):
+                'Rtoa', 'Rprime', 'Rw', 'Rnir', 'bitmask', 'logchl', 'niter', 'Rgli']):
         self.list_datasets = list_datasets
         self.shape = None
 

@@ -6,6 +6,7 @@ from libc.math cimport nan, exp, log
 
 from neldermead cimport NelderMeadMinimizer
 from water cimport WaterModel
+from glint import glitter
 
 
 # TODO: deal with selection of bands in the inversion
@@ -154,6 +155,14 @@ def atm_func(block, params):
     Ncoef = 3   # number of polynomial coefficients
     A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
 
+
+
+    taum = 0.00877*((block.wavelen/1000.)**(-4.05))
+    Rgli0 = 0.02
+    # print block.Rtoa.shape
+    # print block.wavelen.shape
+    # T0 = np.exp(-(1-0.5*np.exp(-block.Rgli/Rgli0)*taum)*(1/block.mus + 1/block.muv))
+
     A[:,:,:,0] = (lam/1000.)**0   # FIXME
     A[:,:,:,1] = (lam/1000.)**-1
     A[:,:,:,2] = (lam/1000.)**-4
@@ -174,6 +183,7 @@ def pseudoinverse(A):
     # check
     if B.ndim == 4:
         assert np.allclose(B[0,0,:,:], A[0,0,:,:].transpose().dot(A[0,0,:,:]))
+        assert np.allclose(B[-1,0,:,:], A[-1,0,:,:].transpose().dot(A[-1,0,:,:]))
 
     # (A^-1).A' (with broadcasting)
     pA = np.einsum('...ij,...kj->...ik', inv(B), A)
@@ -181,6 +191,7 @@ def pseudoinverse(A):
     # check
     if B.ndim == 4:
         assert np.allclose(pA[0,0], inv(B[0,0,:,:]).dot(A[0,0,:,:].transpose()))
+        assert np.allclose(pA[-1,0], inv(B[-1,0,:,:]).dot(A[-1,0,:,:].transpose()))
 
     return pA
 
@@ -323,6 +334,13 @@ cdef class PolymerMinimizer:
 
         if params.partial >= 1:
             return
+
+        # calculate glint reflectance from wind speed
+        ok = (block.bitmask & BITMASK_INVALID) == 0
+        block.Rgli = np.zeros_like(block.wind_speed) + np.NaN
+        block.Rgli[ok] = glitter(block.wind_speed[ok],
+                                 block.mus[ok], block.muv[ok],
+                                 block.scattering_angle[ok], phi=None, phi_vent=None)
 
         # calculate the atmospheric inversion coefficients
         A = atm_func(block, params)

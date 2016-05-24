@@ -94,8 +94,21 @@ class Params_MERIS(Params):
                     709: 0.0196800   , 754: 0.00955800 ,
                     760: 0.00730400  , 779: 0.00769300 ,
                     865: 0.00219300  , 885: 0.00121100 ,
-                    900: 0.00151600 ,
+                    900: 0.00151600  ,
                 }
+
+        self.K_NO2 = {
+                412: 6.074E-19 , 443: 4.907E-19,
+                490: 2.916E-19 , 510: 2.218E-19,
+                560: 7.338E-20 , 620: 2.823E-20,
+                665: 6.626E-21 , 681: 6.285E-21,
+                709: 4.950E-21 , 754: 1.384E-21,
+                760: 4.717E-22 , 779: 3.692E-22,
+                865: 2.885E-23 , 885: 4.551E-23,
+                900: 5.522E-23 ,
+                }
+        self.NO2_CLIMATOLOGY = '/home/francois/MERIS/POLYMER/auxdata/common/no2_climatology.hdf'
+        self.NO2_FRAC200M = '/home/francois/MERIS/POLYMER/auxdata/common/trop_f_no2_200m.hdf'
 
         # update 
         self.update(**kwargs)
@@ -156,6 +169,9 @@ def gas_correction(block, params):
 
 
 def cloudmask(block, params, mlut):
+    '''
+    Polymer basic cloud mask
+    '''
 
     ok = (block.bitmask & BITMASK_INVALID) == 0
 
@@ -201,7 +217,12 @@ def rayleigh_correction(block, mlut, params):
                 ilut, Idx(block.wind_speed[ok])]
 
 
-def polymer(params, level1, watermodel, level2):
+def init_water_model(params):
+
+    return ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/')
+
+
+def polymer(level1, params, level2):
     '''
     Polymer atmospheric correction
     '''
@@ -211,6 +232,8 @@ def polymer(params, level1, watermodel, level2):
 
     # read the look-up table
     mlut = read_mlut_hdf(params.lut_file)
+
+    watermodel = init_water_model(params)
 
     opt = PolymerMinimizer(watermodel, params)
 

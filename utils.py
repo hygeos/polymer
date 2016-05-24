@@ -21,7 +21,7 @@ def stdNxN(X, N, mask=None):
     Standard deviation over NxN blocks over array X
     '''
 
-    if mask == None:
+    if mask is None:
         M = 1.
     else:
         M = mask

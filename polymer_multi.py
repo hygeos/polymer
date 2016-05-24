@@ -6,16 +6,15 @@ polymer multiprocessing version
 '''
 
 from multiprocessing import Pool
-from polymer import convert_reflectance, Params_MERIS, Level1_MERIS, Level2_HDF
+from polymer import convert_reflectance
 from polymer import gas_correction, cloudmask, rayleigh_correction
-from polymer import PolymerMinimizer
-from polymer import ParkRuddick as PR
+from polymer import PolymerMinimizer, init_water_model
 from luts import read_mlut_hdf
 
 
 def process_block(args):
 
-    b, params, mlut, watermodel = args
+    b, params, mlut = args
     print 'process block', b
 
     convert_reflectance(b, params)
@@ -26,18 +25,20 @@ def process_block(args):
 
     rayleigh_correction(b, mlut, params)
 
-    opt = PolymerMinimizer(watermodel.instantiate(), params)
+    watermodel = init_water_model(params)
+
+    opt = PolymerMinimizer(watermodel, params)
 
     opt.minimize(b, params)
 
     return b
 
-def blockiterator(params, blocks, mlut, watermodel):
+def blockiterator(params, blocks, mlut):
     for b in blocks:
-        yield (b, params, mlut, watermodel)
+        yield (b, params, mlut)
 
 
-def polymer(params, level1, watermodel, level2):
+def polymer(level1, params, level2):
 
     # initialize output file
     level2.init(level1)
@@ -46,7 +47,7 @@ def polymer(params, level1, watermodel, level2):
     mlut = read_mlut_hdf(params.lut_file)
 
     b_iter = level1.blocks(params.bands_read())
-    blockiter = blockiterator(params, b_iter, mlut, watermodel)
+    blockiter = blockiterator(params, b_iter, mlut)
 
     # process the blocks in parallel
     for b in Pool().imap_unordered(process_block, blockiter):
@@ -55,17 +56,4 @@ def polymer(params, level1, watermodel, level2):
         level2.write(b)
 
     level2.finish(params)
-
-class ParkRuddick(object):
-    '''
-    A wrapper for ParkRuddick class
-    (for compatibility with multiprocessing)
-
-    Instantiates a Parkruddick class upon instantiate()
-    '''
-    def __init__(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
-    def instantiate(self):
-        return PR(*self.args, **self.kwargs)
 

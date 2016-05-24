@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import numpy as np
+from numpy import cos, sqrt, pi, arccos
 
 class Block(object):
 
@@ -58,7 +58,7 @@ class Block(object):
     @property
     def mus(self):
         if '_mus' not in self.datasets():
-            self._mus = np.cos(self.sza*np.pi/180.)
+            self._mus = cos(self.sza*pi/180.)
         return self._mus
 
     @property
@@ -70,8 +70,18 @@ class Block(object):
     @property
     def muv(self):
         if '_muv' not in self.datasets():
-            self._muv = np.cos(self.vza*np.pi/180.)
+            self._muv = cos(self.vza*pi/180.)
         return self._muv
+
+    @property
+    def scattering_angle(self):
+        if '_scat_angle' not in self.datasets():
+            mu_s = self.mus
+            mu_v = self.muv
+            phi = self.raa
+            sa = -mu_s*mu_v - sqrt( (1.-mu_s*mu_s)*(1.-mu_v*mu_v) ) * cos(phi*pi/180.);
+            self._scat_angle = arccos(sa)*180./pi
+        return self._scat_angle
 
     @property
     def nbands(self):
