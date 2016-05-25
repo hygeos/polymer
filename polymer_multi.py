@@ -6,36 +6,31 @@ polymer multiprocessing version
 '''
 
 from multiprocessing import Pool
-from polymer import convert_reflectance
-from polymer import gas_correction, cloudmask, rayleigh_correction
-from polymer import PolymerMinimizer, init_water_model
-from luts import read_mlut_hdf
+from polymer import InitCorr
 
 
 def process_block(args):
 
-    b, params, mlut = args
+    b, c = args
     print 'process block', b
 
-    convert_reflectance(b, params)
+    c.convert_reflectance(b)
 
-    gas_correction(b, params)
+    c.gas_correction(b)
 
-    cloudmask(b, params, mlut)
+    c.cloudmask(b)
 
-    rayleigh_correction(b, mlut, params)
+    c.rayleigh_correction(b)
 
-    watermodel = init_water_model(params)
+    opt = c.init_minimizer()
 
-    opt = PolymerMinimizer(watermodel, params)
-
-    opt.minimize(b, params)
+    opt.minimize(b, c.params)
 
     return b
 
-def blockiterator(params, blocks, mlut):
+def blockiterator(blocks, initcorr):
     for b in blocks:
-        yield (b, params, mlut)
+        yield (b, initcorr)
 
 
 def polymer(level1, params, level2):
@@ -43,11 +38,10 @@ def polymer(level1, params, level2):
     # initialize output file
     level2.init(level1)
 
-    # read the look-up table
-    mlut = read_mlut_hdf(params.lut_file)
+    c = InitCorr(params)
 
     b_iter = level1.blocks(params.bands_read())
-    blockiter = blockiterator(params, b_iter, mlut)
+    blockiter = blockiterator(b_iter, c)
 
     # process the blocks in parallel
     for b in Pool().imap_unordered(process_block, blockiter):

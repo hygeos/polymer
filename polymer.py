@@ -114,6 +114,7 @@ class Params_MERIS(Params):
         self.update(**kwargs)
 
 
+
 def coeff_sun_earth_distance(jday):
     A=1.00014
     B=0.01671
@@ -126,100 +127,139 @@ def coeff_sun_earth_distance(jday):
 
     return coef
 
-def convert_reflectance(block, params):
 
-    block.Rtoa = np.zeros(block.Ltoa.shape)+np.NaN
-
-    coef = coeff_sun_earth_distance(block.jday)
-
-    ok = (block.bitmask & BITMASK_INVALID) == 0
-
-    for i in xrange(block.nbands):
-
-        block.Rtoa[ok,i] = block.Ltoa[ok,i]*np.pi/(block.mus[ok]*block.F0[ok,i]*coef)
-
-
-def gas_correction(block, params):
-
-    block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.NaN
-
-    ok = (block.bitmask & BITMASK_INVALID) == 0
-
-    #
-    # ozone correction
-    #
-    # make sure that ozone is in DU
-    if (block.ozone < 50).any() or (block.ozone > 1000).any():
-        raise Exception('Error, ozone is assumed in DU')
-
-    # bands loop
-    for i, b in enumerate(block.bands):
-
-        tauO3 = params.K_OZ[b] * block.ozone[ok] * 1e-3  # convert from DU to cm*atm
-
-        # ozone transmittance
-        trans_O3 = np.exp(-tauO3 * block.air_mass[ok])
-
-        block.Rtoa_gc[ok,i] = block.Rtoa[ok,i]/trans_O3
-
-    #
-    # NO2 correction
-    #
-    warnings.warn('TODO: implement NO2 correction')
-
-
-def cloudmask(block, params, mlut):
+class InitCorr(object):
     '''
-    Polymer basic cloud mask
+    Implementation of the initial corrections
+    (convert to reflectance, gaseous correction, cloud mask,
+    Rayleigh correction)
     '''
+    def __init__(self, params):
+        self.params = params
 
-    ok = (block.bitmask & BITMASK_INVALID) == 0
-
-    inir_block = block.bands.index(params.band_cloudmask)
-    inir_lut = params.lut_bands.index(params.band_cloudmask)
-    block.Rnir = block.Rtoa_gc[:,:,inir_block] - mlut['Rmol'][
-            Idx(block.muv),
-            Idx(block.raa),
-            Idx(block.mus),
-            inir_lut]
-    cloudmask = block.Rnir > params.thres_Rcloud
-    cloudmask |= stdNxN(block.Rnir, 3, ok) > params.thres_Rcloud_std
-
-    block.bitmask += L2FLAGS['CLOUD_BASE'] * cloudmask.astype('uint8')
+        # read the look-up table
+        self.mlut = read_mlut_hdf(params.lut_file)
 
 
-def rayleigh_correction(block, mlut, params):
-    '''
-    Rayleigh correction
-    + transmission interpolation
-    '''
-    if params.partial >= 2:
-        return
+    def init_minimizer(self):
+        '''
+        Initialization of the minimizer class
+        '''
+        watermodel = ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/')
 
-    block.Rprime = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
-    block.Tmol = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
-
-    ok = (block.bitmask & BITMASK_INVALID) == 0
-
-    for i in xrange(block.nbands):
-        ilut = params.lut_bands.index(block.bands[i])
-
-        block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - mlut['Rmolgli'][
-                Idx(block.muv[ok]),
-                Idx(block.raa[ok]),
-                Idx(block.mus[ok]),
-                ilut, Idx(block.wind_speed[ok])]
-
-        # TODO: share axes indices
-        block.Tmol[ok,i]  = mlut['Tmolgli'][Idx(block.mus[ok]),
-                ilut, Idx(block.wind_speed[ok])]
-        block.Tmol[ok,i] *= mlut['Tmolgli'][Idx(block.muv[ok]),
-                ilut, Idx(block.wind_speed[ok])]
+        return PolymerMinimizer(watermodel, self.params)
 
 
-def init_water_model(params):
+    def convert_reflectance(self, block):
 
-    return ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/')
+        block.Rtoa = np.zeros(block.Ltoa.shape)+np.NaN
+
+        coef = coeff_sun_earth_distance(block.jday)
+
+        ok = (block.bitmask & BITMASK_INVALID) == 0
+
+        for i in xrange(block.nbands):
+
+            block.Rtoa[ok,i] = block.Ltoa[ok,i]*np.pi/(block.mus[ok]*block.F0[ok,i]*coef)
+
+
+    def gas_correction(self, block):
+
+        params = self.params
+
+        block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.NaN
+
+        ok = (block.bitmask & BITMASK_INVALID) == 0
+
+        #
+        # ozone correction
+        #
+        # make sure that ozone is in DU
+        if (block.ozone < 50).any() or (block.ozone > 1000).any():
+            raise Exception('Error, ozone is assumed in DU')
+
+        # bands loop
+        for i, b in enumerate(block.bands):
+
+            tauO3 = params.K_OZ[b] * block.ozone[ok] * 1e-3  # convert from DU to cm*atm
+
+            # ozone transmittance
+            trans_O3 = np.exp(-tauO3 * block.air_mass[ok])
+
+            block.Rtoa_gc[ok,i] = block.Rtoa[ok,i]/trans_O3
+
+        #
+        # NO2 correction
+        #
+        no2_frac = 0   # FIXME
+        no2_tropo = 0   # FIXME
+        no2_strat = 0  # FIXME
+
+        no2_tr200 = no2_frac * no2_tropo
+
+        for i, b in enumerate(block.bands):
+
+            k_no2 = params.K_NO2[b]
+
+            a_285 = k_no2 * (1.0 - 0.003*(285.0-294.0))
+            a_225 = k_no2 * (1.0 - 0.003*(225.0-294.0))
+
+            tau_to200 = a_285*no2_tr200 + a_225*no2_strat
+
+            t_no2  = np.exp(-(tau_to200/block.mus[ok]))
+            t_no2 *= np.exp(-(tau_to200/block.muv[ok]))
+
+            block.Rtoa_gc[ok,i] /= t_no2
+
+    def cloudmask(self, block):
+        '''
+        Polymer basic cloud mask
+        '''
+        params = self.params
+        ok = (block.bitmask & BITMASK_INVALID) == 0
+
+        inir_block = block.bands.index(params.band_cloudmask)
+        inir_lut = params.lut_bands.index(params.band_cloudmask)
+        block.Rnir = block.Rtoa_gc[:,:,inir_block] - self.mlut['Rmol'][
+                Idx(block.muv),
+                Idx(block.raa),
+                Idx(block.mus),
+                inir_lut]
+        cloudmask = block.Rnir > params.thres_Rcloud
+        cloudmask |= stdNxN(block.Rnir, 3, ok) > params.thres_Rcloud_std
+
+        block.bitmask += L2FLAGS['CLOUD_BASE'] * cloudmask.astype('uint8')
+
+
+    def rayleigh_correction(self, block):
+        '''
+        Rayleigh correction
+        + transmission interpolation
+        '''
+        params = self.params
+        mlut = self.mlut
+        if params.partial >= 2:
+            return
+
+        block.Rprime = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
+        block.Tmol = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
+
+        ok = (block.bitmask & BITMASK_INVALID) == 0
+
+        for i in xrange(block.nbands):
+            ilut = params.lut_bands.index(block.bands[i])
+
+            block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - mlut['Rmolgli'][
+                    Idx(block.muv[ok]),
+                    Idx(block.raa[ok]),
+                    Idx(block.mus[ok]),
+                    ilut, Idx(block.wind_speed[ok])]
+
+            # TODO: share axes indices
+            block.Tmol[ok,i]  = mlut['Tmolgli'][Idx(block.mus[ok]),
+                    ilut, Idx(block.wind_speed[ok])]
+            block.Tmol[ok,i] *= mlut['Tmolgli'][Idx(block.muv[ok]),
+                    ilut, Idx(block.wind_speed[ok])]
 
 
 def polymer(level1, params, level2):
@@ -230,27 +270,24 @@ def polymer(level1, params, level2):
     # initialize output file
     level2.init(level1)
 
-    # read the look-up table
-    mlut = read_mlut_hdf(params.lut_file)
+    c = InitCorr(params)
 
-    watermodel = init_water_model(params)
-
-    opt = PolymerMinimizer(watermodel, params)
+    opt = c.init_minimizer()
 
     # loop over the blocks
-    for b in level1.blocks(params.bands_read()):
+    for block in level1.blocks(params.bands_read()):
 
-        convert_reflectance(b, params)
+        c.convert_reflectance(block)
 
-        gas_correction(b, params)
+        c.gas_correction(block)
 
-        cloudmask(b, params, mlut)
+        c.cloudmask(block)
 
-        rayleigh_correction(b, mlut, params)
+        c.rayleigh_correction(block)
 
-        opt.minimize(b, params)
+        opt.minimize(block, params)
 
-        level2.write(b)
+        level2.write(block)
 
     level2.finish(params)
 
