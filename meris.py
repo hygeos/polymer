@@ -48,6 +48,18 @@ class Params_MERIS(Params):
                 865: 2.885E-23 , 885: 4.551E-23,
                 900: 5.522E-23 ,
                 }
+
+        self.central_wavelength = {
+                412: 412.691 , 443: 442.559,
+                490: 489.882 , 510: 509.819,
+                560: 559.694 , 620: 619.601,
+                665: 664.573 , 681: 680.821,
+                709: 708.329 , 754: 753.371,
+                760: 761.508 , 779: 778.409,
+                865: 864.876 , 885: 884.944,
+                900: 900.000 ,
+                }
+
         self.NO2_CLIMATOLOGY = '/home/francois/MERIS/POLYMER/auxdata/common/no2_climatology.hdf'
         self.NO2_FRAC200M = '/home/francois/MERIS/POLYMER/auxdata/common/trop_f_no2_200m.hdf'
 

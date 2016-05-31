@@ -163,6 +163,7 @@ class InitCorr(object):
             return
 
         block.Rprime = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
+        block.Rmol = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
         block.Tmol = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
 
         ok = (block.bitmask & BITMASK_INVALID) == 0
@@ -171,13 +172,20 @@ class InitCorr(object):
             ilut = params.bands_lut.index(block.bands[i])
 
             # TODO:
-            # adjustment in lambda^-4
             # correct for surface pressure
-            block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - mlut['Rmolgli'][
+            Rmolgli = mlut['Rmolgli'][
                     Idx(block.muv[ok]),
                     Idx(block.raa[ok]),
                     Idx(block.mus[ok]),
                     ilut, Idx(block.wind_speed[ok])]
+
+            wl = block.wavelen[ok,i]
+            wl0 = self.params.central_wavelength[block.bands[i]]
+
+            Rmolgli *= (wl/wl0)**(-4.)
+            block.Rmol[ok,i] = Rmolgli
+
+            block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - Rmolgli
 
             # TODO: share axes indices
             block.Tmol[ok,i]  = mlut['Tmolgli'][Idx(block.mus[ok]),

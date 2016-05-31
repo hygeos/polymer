@@ -33,15 +33,22 @@ class Params_OLCI(Params):
 
         # central wavelength of the detector where the Rayleigh optical thickness is calculated
         # (detector 374 of camera 3)
-        self.central_wavelengths = [
-                400.664  , 412.076 , 443.183 , 490.713 , 510.639 ,
-                560.579  , 620.632 , 665.3719, 674.105 , 681.66  ,
-                709.1799 , 754.2236, 761.8164, 764.9075, 767.9734,
-                779.2685 , 865.4625, 884.3256, 899.3162, 939.02  ,
-                1015.9766, 1375.   , 1610.   , 2250.
-                ]
+        self.central_wavelength = {
+                400 : 400.664  , 412 : 412.076 ,
+                443 : 443.183  , 490 : 490.713 ,
+                510 : 510.639  , 560 : 560.579 ,
+                620 : 620.632  , 665 : 665.3719,
+                674 : 674.105  , 681 : 681.66  ,
+                709 : 709.1799 , 754 : 754.2236,
+                760 : 761.8164 , 764 : 764.9075,
+                767 : 767.9734 , 779 : 779.2685,
+                865 : 865.4625 , 885 : 884.3256,
+                900 : 899.3162 , 940 : 939.02  ,
+                1020: 1015.9766, 1375: 1375.   ,
+                1610: 1610.    , 2250: 2250.   ,
+                }
 
-        self.K_OZ = {  # FIXME
+        self.K_OZ = {  # FIXME: taken from MERIS
                     412: 0.000301800 , 443: 0.00327200 ,
                     490: 0.0211900   , 510: 0.0419600  ,
                     560: 0.104100    , 620: 0.109100   ,
@@ -52,7 +59,7 @@ class Params_OLCI(Params):
                     900: 0.00151600  ,
                 }
 
-        self.K_NO2 = {  # FIXME
+        self.K_NO2 = {  # FIXME: taken from MERIS
                 412: 6.074E-19 , 443: 4.907E-19,
                 490: 2.916E-19 , 510: 2.218E-19,
                 560: 7.338E-20 , 620: 2.823E-20,
@@ -272,12 +279,12 @@ class Level1_OLCI(object):
                 }
 
         self.band_index = {
-                400 : 1, 412: 2,  443 : 3, 490 : 4,
-                510 : 5, 560: 6,  620 : 7, 665 : 8,
-                674 : 9, 681: 10, 709 :11, 754 : 12,
-                760 :13, 764: 14, 767 :15, 779 : 16,
-                865 :17, 885: 18, 900 :19, 940 : 20,
-                1020:21}
+                400 : 0, 412: 1, 443 : 2, 490: 3,
+                510 : 4, 560: 5, 620 : 6, 665: 7,
+                674 : 8, 681: 9, 709 :10, 754: 11,
+                760 :12, 764: 13, 767 :14, 779: 15,
+                865 :16, 885: 17, 900 :18, 940: 19,
+                1020:20}
 
         self.F0 = self.get_ncroot('instrument_data.nc').variables['solar_flux'][:]
         self.lam0 = self.get_ncroot('instrument_data.nc').variables['lambda0'][:]
@@ -322,8 +329,10 @@ class Level1_OLCI(object):
         if tiepoint:
             shp = data.shape
             coords = np.meshgrid(np.linspace(0, 76, 1217), np.arange(shp[0]))  # FIXME
-            data = np.zeros(size, dtype='float32')
-            map_coordinates(data, (coords[1], coords[0]), output=data)
+            out = np.zeros(size, dtype='float32')
+            map_coordinates(data, (coords[1], coords[0]), output=out)
+            # FIXME: don't use 3rd order for azimuth angles
+            data = out
 
         return data
 
