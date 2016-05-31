@@ -84,10 +84,9 @@ class Level1_OLCI_snappy(object):
 
         self.prod = snappy.ProductIO.readProduct(filename)
 
-        lat = self.prod.getBand('latitude')
-        self.totalwidth = int(lat.getRasterWidth())
+        self.totalwidth = int(self.prod.getSceneRasterWidth())
         self.width = self.totalwidth
-        self.totalheight = int(lat.getRasterHeight())
+        self.totalheight = int(self.prod.getSceneRasterHeight())
         self.blocksize = 400
 
         self.sline = sline
@@ -203,8 +202,21 @@ class Level1_OLCI_snappy(object):
         warnings.warn('TODO')
         block.ozone = np.zeros((ysize, xsize)) + 300.
         block.wind_speed = np.zeros((ysize, xsize)) + 5.
+        block.surf_press = np.zeros((ysize, xsize)) + 1013.
 
         block.bitmask = np.zeros(size, dtype='uint16')
+        # Color = snappy.jpy.get_type('java.awt.Color')
+        # BandMathsType = snappy.jpy.get_type('org.esa.snap.core.datamodel.Mask$BandMathsType')
+        # validPixelMask = BandMathsType.create("__temp_mask", None,
+        #                             self.width,
+        #                             self.height,
+        #                             'quality_flags.land',
+        #                             Color.GREEN, 0.0)
+        # validPixelMask.setOwner(self.prod)
+        # valid_mask = np.zeros(size, dtype='uint8')
+        # validPixelMask.readValidMask(offset[0]+self.sline, offset[1], ysize, xsize, valid_mask)
+        # print 'DEBUG', self.sline, (valid_mask == 1).all()
+        # block.bitmask += valid_mask
 
         print 'Read block', block
 
@@ -316,9 +328,12 @@ class Level1_OLCI(object):
         elif band_name in ['detector_index']:
             filename = 'instrument_data.nc'
             tiepoint = False
-        elif band_name in ['total_ozone']:
+        elif band_name in ['total_ozone', 'sea_level_pressure']:
             filename = 'tie_meteo.nc'
             tiepoint = True
+        elif band_name in ['quality_flags']:
+            filename = 'qualityFlags.nc'
+            tiepoint = False
         else:
             raise Exception('ERROR')
 
@@ -386,13 +401,23 @@ class Level1_OLCI(object):
         # julian day
         block.jday = self.get_date().timetuple().tm_yday
 
+        # read total ozone in kg/m2
         block.ozone = self.read_band('total_ozone', size, offset)
-        block.ozone /= 2.1415e-5  # convert kg/m2 to DU  # TODO: verification avec Dominique
+        block.ozone /= 2.1415e-5  # convert kg/m2 to DU
+
+        # read sea level pressure in hPa
+        block.surf_press = self.read_band('sea_level_pressure', size, offset)
 
         block.wind_speed = np.zeros((ysize, xsize)) + 5.   # FIXME
 
-        warnings.warn('TODO')
+        # TODO
+        bitmask = self.read_band('quality_flags', size, offset)
         block.bitmask = np.zeros(size, dtype='uint16')
+        block.bitmask += L2FLAGS['LAND']*(bitmask & 1)
+
+        # print self.get_ncroot('qualityFlags.nc').variables['quality_flags'].ncattrs()
+        # print self.get_ncroot('qualityFlags.nc').variables['quality_flags'].getncattr('flag_meanings')
+        # print self.get_ncroot('qualityFlags.nc').variables['quality_flags'].getncattr('flag_masks')
 
         print 'Read', block
 

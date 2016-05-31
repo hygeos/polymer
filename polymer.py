@@ -171,8 +171,6 @@ class InitCorr(object):
         for i in xrange(block.nbands):
             ilut = params.bands_lut.index(block.bands[i])
 
-            # TODO:
-            # correct for surface pressure
             Rmolgli = mlut['Rmolgli'][
                     Idx(block.muv[ok]),
                     Idx(block.raa[ok]),
@@ -182,7 +180,12 @@ class InitCorr(object):
             wl = block.wavelen[ok,i]
             wl0 = self.params.central_wavelength[block.bands[i]]
 
+            # wavelength adjustment
             Rmolgli *= (wl/wl0)**(-4.)
+
+            # adjustment for atmospheric pressure
+            Rmolgli *= block.surf_press[ok]/1013.
+
             block.Rmol[ok,i] = Rmolgli
 
             block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - Rmolgli
