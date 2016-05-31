@@ -12,7 +12,8 @@ import warnings
 
 class Level2(object):
     def __init__(self, list_datasets=[
-                'Rtoa', 'Rprime', 'Rw', 'Rnir', 'bitmask', 'logchl', 'niter', 'Rgli']):
+                'latitude', 'longitude', 'Rtoa', 'vza', 'sza', 'raa',
+                'Rprime', 'Rw', 'Rnir', 'bitmask', 'logchl', 'niter', 'Rgli']):
         self.list_datasets = list_datasets
         self.shape = None
 
@@ -83,7 +84,6 @@ class Level2_HDF(Level2):
 
     def finish(self, params):
         for name, sds in self.sdslist.items():
-            print 'closing dataset', name
             sds.endaccess()
 
         # write parameters

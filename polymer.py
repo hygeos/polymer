@@ -2,116 +2,17 @@
 # encoding: utf-8
 
 
-from level1_meris import Level1_MERIS
-from level2 import Level2_Memory, RGB, Level2_HDF
 import numpy as np
-from luts import read_mlut_hdf, LUT, Idx
-from pylab import imshow, show, colorbar
+from luts import read_mlut_hdf, Idx
 import warnings
 from utils import stdNxN
 from common import BITMASK_INVALID, L2FLAGS
-from collections import OrderedDict
 
 # cython imports
 # import pyximport ; pyximport.install()
 from polymer_main import PolymerMinimizer
 from water import ParkRuddick
 
-
-class Params(object):
-    '''
-    Sensor non-specific parameters
-    '''
-    def __init__(self):
-        '''
-        define common parameters
-        '''
-
-        # cloud masking
-        self.thres_Rcloud = 0.2
-        self.thres_Rcloud_std = 0.04
-
-        # optimization parameters
-        self.force_initialization = False
-        self.max_iter = 100
-        self.size_end_iter = 0.005
-        self.initial_point = [-1, 0]
-        self.initial_step = [0.2, 0.2]
-        self.bounds = [[-2, 2], [-3, 3]]
-
-        self.thres_chi2 = 0.005
-
-        # Constraint on bbs: amplitude, sigma(chl=0.01), sigma(chl=0.1)
-        # (disactivate with amplitude == 0)
-        self.constraint_bbs = [1e-3, 0.2258, 0.9233]
-
-        self.partial = 0    # whether to perform partial processing
-                            #       0: standard processing
-                            #       1: stop at minimize
-                            #       2: stop at rayleigh correction
-
-    def bands_read(self):
-        bands_read = set(self.bands_corr)
-        bands_read = bands_read.union(self.bands_oc)
-        bands_read = bands_read.union(self.bands_rw)
-        return sorted(bands_read)
-
-    def print_info(self):
-        print self.__class__
-        for k, v in self.__dict__.iteritems():
-            print '*', k,':', v
-
-    def update(self, **kwargs):
-
-        # don't allow for 'new' attributes
-        for k in kwargs:
-            if k not in self.__dict__:
-                raise Exception('{}: attribute "{}" is unknown'.format(self.__class__, k))
-
-        self.__dict__.update(kwargs)
-
-class Params_MERIS(Params):
-    '''
-    MERIS-specific parameters
-    '''
-    def __init__(self, **kwargs):
-        super(self.__class__, self).__init__()
-
-        self.bands_corr = [412,443,490,510,560,620,665,        754,    779,865]
-        self.bands_oc =   [412,443,490,510,560,620,665,        754,    779,865]
-        self.bands_rw =   [412,443,490,510,560,620,665,        754,    779,865]
-
-        self.lut_file = '/home/francois/MERIS/POLYMER/LUTS/MERIS/LUTB.hdf'
-        self.lut_bands = [412,443,490,510,560,620,665,681,709,754,760,779,865,885,900]
-
-        self.band_cloudmask = 865
-
-        self.K_OZ = {
-                    412: 0.000301800 , 443: 0.00327200 ,
-                    490: 0.0211900   , 510: 0.0419600  ,
-                    560: 0.104100    , 620: 0.109100   ,
-                    665: 0.0511500   , 681: 0.0359600  ,
-                    709: 0.0196800   , 754: 0.00955800 ,
-                    760: 0.00730400  , 779: 0.00769300 ,
-                    865: 0.00219300  , 885: 0.00121100 ,
-                    900: 0.00151600  ,
-                }
-
-        self.K_NO2 = {
-                412: 6.074E-19 , 443: 4.907E-19,
-                490: 2.916E-19 , 510: 2.218E-19,
-                560: 7.338E-20 , 620: 2.823E-20,
-                665: 6.626E-21 , 681: 6.285E-21,
-                709: 4.950E-21 , 754: 1.384E-21,
-                760: 4.717E-22 , 779: 3.692E-22,
-                865: 2.885E-23 , 885: 4.551E-23,
-                900: 5.522E-23 ,
-                }
-        self.NO2_CLIMATOLOGY = '/home/francois/MERIS/POLYMER/auxdata/common/no2_climatology.hdf'
-        self.NO2_FRAC200M = '/home/francois/MERIS/POLYMER/auxdata/common/trop_f_no2_200m.hdf'
-
-        # update 
-        self.update(**kwargs)
 
 
 
@@ -163,6 +64,28 @@ class InitCorr(object):
             block.Rtoa[ok,i] = block.Ltoa[ok,i]*np.pi/(block.mus[ok]*block.F0[ok,i]*coef)
 
 
+    def get_no2(self, block):
+        '''
+        returns no2_frac, no2_tropo, no2_strat
+        '''
+        try:
+            self.no2_frac_data
+        except:
+            self.no2_frac_data = {}
+            self.no2_tropo_data = {}
+            self.no2_strat_data = {}
+
+
+        # get month
+        assert not isinstance(block.jday, np.ndarray)
+        month = int((float(block.jday)/30.5))
+        if month > 11:
+            month = 11
+
+        warnings.warn('TODO')
+        return 0, 0, 0
+
+
     def gas_correction(self, block):
 
         params = self.params
@@ -191,9 +114,7 @@ class InitCorr(object):
         #
         # NO2 correction
         #
-        no2_frac = 0   # FIXME
-        no2_tropo = 0   # FIXME
-        no2_strat = 0  # FIXME
+        no2_frac, no2_tropo, no2_strat = self.get_no2(block)
 
         no2_tr200 = no2_frac * no2_tropo
 
@@ -219,7 +140,7 @@ class InitCorr(object):
         ok = (block.bitmask & BITMASK_INVALID) == 0
 
         inir_block = block.bands.index(params.band_cloudmask)
-        inir_lut = params.lut_bands.index(params.band_cloudmask)
+        inir_lut = params.bands_lut.index(params.band_cloudmask)
         block.Rnir = block.Rtoa_gc[:,:,inir_block] - self.mlut['Rmol'][
                 Idx(block.muv),
                 Idx(block.raa),
@@ -247,8 +168,11 @@ class InitCorr(object):
         ok = (block.bitmask & BITMASK_INVALID) == 0
 
         for i in xrange(block.nbands):
-            ilut = params.lut_bands.index(block.bands[i])
+            ilut = params.bands_lut.index(block.bands[i])
 
+            # TODO:
+            # adjustment in lambda^-4
+            # correct for surface pressure
             block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - mlut['Rmolgli'][
                     Idx(block.muv[ok]),
                     Idx(block.raa[ok]),

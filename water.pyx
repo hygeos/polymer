@@ -56,7 +56,7 @@ cdef class ParkRuddick(WaterModel):
         # read water scattering coefficient
         #
         data_bw = np.genfromtxt(join(directory, 'morel_buiteveld_bsw.txt'), skip_header=1)
-        self.BW = CLUT(data_bw[:,1], axes=[data_bw[:,0]], debug=True)   # FIXME (DEBUG)
+        self.BW = CLUT(data_bw[:,1], axes=[data_bw[:,0]], debug=False)   # FIXME (DEBUG)
         assert data_bw[-1,0] == 500.
         self.bw500 = data_bw[-1,1]
 
@@ -129,6 +129,10 @@ cdef class ParkRuddick(WaterModel):
         fp.close()
 
         self.GI_PR = CLUT(gi, axes=[gb, None, th0, th, dphi])
+
+        # TODO
+        # store GI coefficients at nadir
+        # (for normalization)
 
         # initialize pre-interpolated gi coefficients
         # (empty)

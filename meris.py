@@ -7,7 +7,52 @@ from block import Block
 import numpy as np
 from datetime import datetime
 import warnings
+from params import Params
 from common import L2FLAGS
+
+
+class Params_MERIS(Params):
+    '''
+    MERIS-specific parameters
+    '''
+    def __init__(self, **kwargs):
+        super(self.__class__, self).__init__()
+
+        self.bands_corr = [412,443,490,510,560,620,665,        754,    779,865]
+        self.bands_oc =   [412,443,490,510,560,620,665,        754,    779,865]
+        self.bands_rw =   [412,443,490,510,560,620,665,        754,    779,865]
+
+        self.lut_file = '/home/francois/MERIS/POLYMER/LUTS/MERIS/LUTB.hdf'
+        self.bands_lut = [412,443,490,510,560,620,665,681,709,754,760,779,865,885,900]
+
+        self.band_cloudmask = 865
+
+        self.K_OZ = {
+                    412: 0.000301800 , 443: 0.00327200 ,
+                    490: 0.0211900   , 510: 0.0419600  ,
+                    560: 0.104100    , 620: 0.109100   ,
+                    665: 0.0511500   , 681: 0.0359600  ,
+                    709: 0.0196800   , 754: 0.00955800 ,
+                    760: 0.00730400  , 779: 0.00769300 ,
+                    865: 0.00219300  , 885: 0.00121100 ,
+                    900: 0.00151600  ,
+                }
+
+        self.K_NO2 = {
+                412: 6.074E-19 , 443: 4.907E-19,
+                490: 2.916E-19 , 510: 2.218E-19,
+                560: 7.338E-20 , 620: 2.823E-20,
+                665: 6.626E-21 , 681: 6.285E-21,
+                709: 4.950E-21 , 754: 1.384E-21,
+                760: 4.717E-22 , 779: 3.692E-22,
+                865: 2.885E-23 , 885: 4.551E-23,
+                900: 5.522E-23 ,
+                }
+        self.NO2_CLIMATOLOGY = '/home/francois/MERIS/POLYMER/auxdata/common/no2_climatology.hdf'
+        self.NO2_FRAC200M = '/home/francois/MERIS/POLYMER/auxdata/common/trop_f_no2_200m.hdf'
+
+        # update 
+        self.update(**kwargs)
 
 
 class Level1_MERIS(object):
@@ -120,6 +165,9 @@ class Level1_MERIS(object):
         # initialize block
         block = Block(offset=offset, size=size, bands=bands)
 
+        block.latitude  = self.read_band('latitude',  size, offset)
+        block.longitude = self.read_band('longitude', size, offset)
+
         # read geometry
         block.sza = self.read_band('sun_zenith', size, offset)
         block.vza = self.read_band('view_zenith', size, offset)
@@ -129,7 +177,7 @@ class Level1_MERIS(object):
         # read detector index
         di = self.read_band('detector_index', size, offset)
 
-        # calculate F0 for each band
+        # get F0 for each band
         block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
         for iband, band in enumerate(bands):
             block.F0[:,:,iband] = self.F0[self.F0_band_names[band]][di]
