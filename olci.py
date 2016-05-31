@@ -235,7 +235,7 @@ class Level1_OLCI(object):
     '''
     OLCI reader using the netcdf module
     '''
-    def __init__(self, dirname, sline=0, eline=-1):
+    def __init__(self, dirname, sline=0, eline=-1, blocksize=100):
 
         if not os.path.isdir(dirname):
             dirname = os.path.dirname(dirname)
@@ -250,7 +250,7 @@ class Level1_OLCI(object):
         self.width = self.totalwidth
         self.height = self.totalheight
 
-        self.blocksize = 200
+        self.blocksize = blocksize
         self.sline = sline
         self.eline = eline
 
@@ -316,6 +316,9 @@ class Level1_OLCI(object):
         elif band_name in ['detector_index']:
             filename = 'instrument_data.nc'
             tiepoint = False
+        elif band_name in ['total_ozone']:
+            filename = 'tie_meteo.nc'
+            tiepoint = True
         else:
             raise Exception('ERROR')
 
@@ -383,9 +386,10 @@ class Level1_OLCI(object):
         # julian day
         block.jday = self.get_date().timetuple().tm_yday
 
-        warnings.warn('TODO')
-        block.ozone = np.zeros((ysize, xsize)) + 300.
-        block.wind_speed = np.zeros((ysize, xsize)) + 5.
+        block.ozone = self.read_band('total_ozone', size, offset)
+        block.ozone /= 2.1415e-5  # convert kg/m2 to DU  # TODO: verification avec Dominique
+
+        block.wind_speed = np.zeros((ysize, xsize)) + 5.   # FIXME
 
         warnings.warn('TODO')
         block.bitmask = np.zeros(size, dtype='uint16')
