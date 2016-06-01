@@ -7,6 +7,8 @@ from luts import read_mlut_hdf, Idx
 import warnings
 from utils import stdNxN
 from common import BITMASK_INVALID, L2FLAGS
+from luts import LUT
+from pyhdf.SD import SD
 
 # cython imports
 # import pyximport ; pyximport.install()
@@ -64,26 +66,54 @@ class InitCorr(object):
             block.Rtoa[ok,i] = block.Ltoa[ok,i]*np.pi/(block.mus[ok]*block.F0[ok,i]*coef)
 
 
+    def read_no2_data(self, month):
+
+        # read total and tropospheric no2 data
+        hdf = SD(self.params.no2_climatology)
+        self.no2_total_data = hdf.select('tot_no2_{:02d}'.format(month)).get()
+
+        self.no2_tropo_data = hdf.select('trop_no2_{:02d}'.format(month)).get()
+        hdf.end()
+
+        # read fraction of tropospheric NO2 above 200mn
+        hdf = SD(self.params.no2_frac200m)
+        self.no2_frac200m_data = hdf.select('f_no2_200m').get()
+        hdf.end()
+
+
     def get_no2(self, block):
         '''
         returns no2_frac, no2_tropo, no2_strat
         '''
-        try:
-            self.no2_frac_data
-        except:
-            self.no2_frac_data = {}
-            self.no2_tropo_data = {}
-            self.no2_strat_data = {}
-
 
         # get month
         assert not isinstance(block.jday, np.ndarray)
-        month = int((float(block.jday)/30.5))
-        if month > 11:
-            month = 11
+        month = int((float(block.jday)/30.5)) + 1
+        if month > 12:
+            month = 12
 
-        warnings.warn('TODO')
-        return 0, 0, 0
+        try:
+            self.no2_tropo_data
+        except:
+            self.read_no2_data(month)
+
+        # coordinates of current block in 1440x720 grid
+        assert self.no2_tropo_data.shape == (720, 1440)
+        ilat = (4*(90 - block.latitude)).astype('int')
+        ilon = (4*block.longitude).astype('int')
+        ilon[ilon<0] += 4*360
+
+        no2_tropo = self.no2_total_data[ilat,ilon]*1e15
+        no2_strat = (self.no2_total_data[ilat,ilon]
+                     - self.no2_tropo_data[ilat,ilon])*1e15
+
+        # coordinates of current block in 360x180 grid
+        ilat = (0.5*(90 - block.latitude)).astype('int')
+        ilon = (0.5*(block.longitude)).astype('int')
+        ilon[ilon<0] += 360/2
+        no2_frac = self.no2_frac200m_data[ilat,ilon]
+
+        return no2_frac, no2_tropo, no2_strat
 
 
     def gas_correction(self, block):

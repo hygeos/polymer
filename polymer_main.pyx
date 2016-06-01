@@ -344,6 +344,11 @@ cdef class PolymerMinimizer:
         A = atm_func(block, params)
         pA = pseudoinverse(A)
 
+        # TODO
+        # 'A' should be provided at the OC bands.
+        # For now, we assert bands_rw are the same as bands_corr
+        assert set(params.bands_corr) == set(params.bands_oc)
+
 
         self.loop(block, A, pA)
 

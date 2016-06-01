@@ -214,6 +214,9 @@ class Level1_MERIS(object):
         # ozone
         block.ozone = self.read_band('ozone', size, offset)
 
+        # surface pressure
+        block.surf_press = self.read_band('atm_press', size, offset)
+
         # set julian day
         block.jday = self.date.timetuple().tm_yday
 
