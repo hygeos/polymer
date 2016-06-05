@@ -19,6 +19,8 @@ from water import ParkRuddick
 
 
 def coeff_sun_earth_distance(jday):
+    jday -= 1   # TODO: verify (0-based is consistent with C-version)
+
     A=1.00014
     B=0.01671
     C=0.9856002831
@@ -103,7 +105,7 @@ class InitCorr(object):
         ilon = (4*block.longitude).astype('int')
         ilon[ilon<0] += 4*360
 
-        no2_tropo = self.no2_total_data[ilat,ilon]*1e15
+        no2_tropo = self.no2_tropo_data[ilat,ilon]*1e15
         no2_strat = (self.no2_total_data[ilat,ilon]
                      - self.no2_tropo_data[ilat,ilon])*1e15
 
@@ -157,8 +159,8 @@ class InitCorr(object):
 
             tau_to200 = a_285*no2_tr200 + a_225*no2_strat
 
-            t_no2  = np.exp(-(tau_to200/block.mus[ok]))
-            t_no2 *= np.exp(-(tau_to200/block.muv[ok]))
+            t_no2  = np.exp(-(tau_to200[ok]/block.mus[ok]))
+            t_no2 *= np.exp(-(tau_to200[ok]/block.muv[ok]))
 
             block.Rtoa_gc[ok,i] /= t_no2
 
@@ -221,10 +223,15 @@ class InitCorr(object):
             block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - Rmolgli
 
             # TODO: share axes indices
+            # and across wavelengths
             block.Tmol[ok,i]  = mlut['Tmolgli'][Idx(block.mus[ok]),
                     ilut, Idx(block.wind_speed[ok])]
             block.Tmol[ok,i] *= mlut['Tmolgli'][Idx(block.muv[ok]),
                     ilut, Idx(block.wind_speed[ok])]
+
+            # correction for atmospheric pressure
+            taumol = 0.00877*((block.wavelen[ok,i]/1000.)**-4.05)
+            block.Tmol[ok,i] *= np.exp(-taumol/2. * (block.surf_press[ok]/1013. - 1.) * block.air_mass[ok])
 
 
 def polymer(level1, params, level2):
