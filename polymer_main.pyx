@@ -155,11 +155,10 @@ def atm_func(block, params):
     Ncoef = 3   # number of polynomial coefficients
     A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
 
-
-
-    taum = 0.00877*((block.wavelen/1000.)**(-4.05))
+    # FIXME: block.bands -> block.wavelen
+    taum = 0.00877*((np.array(block.bands)/1000.)**(-4.05))
     Rgli0 = 0.02
-    T0 = np.exp(-(1-0.5*np.exp(-block.Rgli[...,None]/Rgli0)*taum)*(1/block.mus[...,None] + 1/block.muv[...,None]))
+    T0 = np.exp(-taum*((1-0.5*np.exp(-block.Rgli/Rgli0))*block.air_mass)[:,:,None])
 
     A[:,:,:,0] = T0*(lam/1000.)**0.
     A[:,:,:,1] = (lam/1000.)**-1.
@@ -319,7 +318,7 @@ cdef class PolymerMinimizer:
 
 
             # reinitialize
-            x0[:] = self.f.xmin[:]
+            x0[:] = self.initial_point[:]
 
 
     def minimize(self, block, params):

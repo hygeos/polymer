@@ -4,7 +4,7 @@ cimport numpy as np
 from os.path import join
 
 from clut cimport CLUT
-from libc.math cimport exp, M_PI, isnan
+from libc.math cimport exp, M_PI, isnan, log
 
 
 
@@ -252,7 +252,7 @@ cdef class ParkRuddick(WaterModel):
         #
 
         # phytoplankton scattering
-        gamma = -0.733 * logchl + 1.499
+        gamma = -0.733 * log(chl) + 1.499   # /!\ log is ln
         if gamma < 0: gamma = 0
 
         bp550 = 0.416 * (chl**0.766) * fb
