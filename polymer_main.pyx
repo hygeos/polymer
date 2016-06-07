@@ -47,7 +47,7 @@ cdef class F(NelderMeadMinimizer):
         self.Ncoef = Ncoef
 
         self.thres_chi2 = params.thres_chi2
-        self.constraint_amplitude, self.sigma1, self.sigma2 = params.constraint_bbs
+        self.constraint_amplitude, self.sigma2, self.sigma1 = params.constraint_bbs
 
     cdef init_pixel(self, float[:] Rprime, float[:,:] A, float[:,:] pA,
             float[:] Tmol,
