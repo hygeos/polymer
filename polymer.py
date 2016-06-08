@@ -178,8 +178,9 @@ class InitCorr(object):
                 Idx(block.raa),
                 Idx(block.mus),
                 inir_lut]
+        block.Rnir[~ok] = 0.
         cloudmask = block.Rnir > params.thres_Rcloud
-        cloudmask |= stdNxN(block.Rnir, 3, ok) > params.thres_Rcloud_std
+        cloudmask |= stdNxN(block.Rnir, 3, ok, fillv=0.) > params.thres_Rcloud_std
 
         block.bitmask += L2FLAGS['CLOUD_BASE'] * cloudmask.astype('uint8')
 

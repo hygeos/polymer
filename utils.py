@@ -2,21 +2,25 @@
 # -*- coding: utf-8 -*-
 
 from scipy.ndimage import convolve
-from numpy import ones, sqrt
+from numpy import ones, sqrt, zeros_like, NaN
 
 
-def stdev(S, S2, N):
+def stdev(S, S2, N, fillv=NaN):
     '''
     Returns standard deviation from:
         * S sum of the values
         * S2 sum of the squared values
         * N number of values
+    The values where N=0 are filled with fillv
     '''
 
-    return sqrt(S2/N - (S/N)**2)
+    R = zeros_like(S) + fillv
+    ok = N != 0
+    R[ok] = sqrt(S2[ok]/N[ok] - (S[ok]/N[ok])**2)
+    return R
 
 
-def stdNxN(X, N, mask=None):
+def stdNxN(X, N, mask=None, fillv=NaN):
     '''
     Standard deviation over NxN blocks over array X
     '''
@@ -39,5 +43,5 @@ def stdNxN(X, N, mask=None):
     C = convolve(ones(X.shape)*M, ker, mode='constant', cval=0)
 
     # result
-    return stdev(S, S2, C)
+    return stdev(S, S2, C, fillv=fillv)
 
