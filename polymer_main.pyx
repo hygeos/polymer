@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 from numpy.linalg import inv
-from common import BITMASK_INVALID
+from common import BITMASK_INVALID, L2FLAGS
 from libc.math cimport nan, exp, log
 
 from neldermead cimport NelderMeadMinimizer
@@ -88,6 +88,9 @@ cdef class F(NelderMeadMinimizer):
         for ic in range(self.Ncoef):
             C = 0.
             for il in range(len(Rwmod)):
+                # FIXME: indicage il doit etre sur bands_atm
+                # Tmol, Rwmod et Rprime -> bands_read
+                # pA -> bands_corr
                 C += self.pA[ic,il] * (self.Rprime[il] - self.Tmol[il]*Rwmod[il])
             self.C[ic] = C
 
@@ -95,7 +98,7 @@ cdef class F(NelderMeadMinimizer):
         # calculate the residual
         #
         sumsq = 0.
-        for il in range(len(Rwmod)):
+        for il in range(len(Rwmod)):  # FIXME: indicage doit etre sur bands_oc
 
             dR = self.Rprime[il]
 
@@ -126,37 +129,31 @@ cdef class F(NelderMeadMinimizer):
 
         return sumsq
 
-def atm_func(block, params):
+def atm_func(block, params, bands):
     '''
-    Returns the matrix of atmospheric components
-    A [im0, im1, nlam, ncoef]
-
-    Note: pseudo-inverse of A
-    A* = ((A'.A)^(-1)).A'     where B' is the transpose of B and B^-1 is the inverse of B
+    Returns the matrix of coefficients for the atmospheric function
+    A [im0, im1, bands, ncoef]
 
     Ratm = A.C
     Ratm: (shp0, shp1, nlam)
     A   : (shp0, shp1, nlam, ncoef)
     C   : (shp0, shp1, ncoef)
-
-    B = (A'.A) = tensordot(A, A, axes=[[0], [0]])
-        (shp0, shp1, ncoef, ncoef)
     '''
     # bands for atmospheric fit
-    Nlam = len(params.bands_corr)
+    Nlam = len(bands)
     shp = block.size
 
     # correction bands wavelengths
-    i_corr = np.searchsorted(params.bands_read(), params.bands_corr)
+    idx = np.searchsorted(params.bands_read(), bands)
     # transpose: move the wavelength dimension to the end
-    lam = block.wavelen[:,:,i_corr]
+    lam = block.wavelen[:,:,idx]
 
     # initialize the matrix for inversion
     Ncoef = 3   # number of polynomial coefficients
     A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
 
     # FIXME: block.bands -> block.wavelen
-    taum = 0.00877*((np.array(block.bands)/1000.)**(-4.05))
+    taum = 0.00877*((np.array(block.bands)[idx]/1000.)**(-4.05))
     Rgli0 = 0.02
     T0 = np.exp(-taum*((1-0.5*np.exp(-block.Rgli/Rgli0))*block.air_mass)[:,:,None])
 
@@ -172,6 +169,9 @@ def pseudoinverse(A):
     (broadcasting the first axes)
     A* = ((A'.A)^(-1)).A'
     where X' is the transpose of X and X^-1 is the inverse of X
+
+    shapes: A:  [...,i,j]
+            A*: [...,j,i]
     '''
 
     # A'.A (with broadcasting)
@@ -205,6 +205,13 @@ cdef int in_bounds(float[:] x, float[:,:] bounds):
     return r
 
 
+cdef raiseflag(unsigned short[:,:] bitmask, int i, int j, int flag):
+    if not testflag(bitmask, i, j, flag):
+        bitmask[i,j] += flag
+
+cdef int testflag(unsigned short[:,:] bitmask, int i, int j, int flag):
+    return bitmask[i,j] & flag != 0
+
 cdef class PolymerMinimizer:
 
     cdef F f
@@ -212,10 +219,12 @@ cdef class PolymerMinimizer:
     cdef int BITMASK_INVALID
     cdef float NaN
     cdef float[:,:] bounds
-    cdef float[:] initial_point
+    cdef float[:] initial_point_1
+    cdef float[:] initial_point_2
     cdef float[:] initial_step
     cdef float size_end_iter
     cdef int max_iter
+    cdef int L2_FLAG_CASE2
 
     def __init__(self, watermodel, params):
 
@@ -226,10 +235,12 @@ cdef class PolymerMinimizer:
         self.NaN = np.NaN
 
         self.bounds = np.array(params.bounds, dtype='float32')
-        self.initial_point = np.array(params.initial_point, dtype='float32')
+        self.initial_point_1 = np.array(params.initial_point_1, dtype='float32')
+        self.initial_point_2 = np.array(params.initial_point_2, dtype='float32')
         self.initial_step = np.array(params.initial_step, dtype='float32')
         self.size_end_iter = params.size_end_iter
         self.max_iter = params.max_iter
+        self.L2_FLAG_CASE2 = L2FLAGS['CASE2']
 
     cdef loop(self, block,
               float[:,:,:,:] A,
@@ -253,7 +264,7 @@ cdef class PolymerMinimizer:
         cdef float[:] x
 
         cdef float[:] x0 = np.zeros(self.Nparams, dtype='float32')
-        x0[:] = self.initial_point[:]
+        x0[:] = self.initial_point_1[:]
 
         # create the output datasets
         block.logchl = np.zeros(block.size, dtype='float32')
@@ -267,8 +278,8 @@ cdef class PolymerMinimizer:
         #
         # pixel loop
         #
-        for i in range(Nx):
-            for j in range(Ny):
+        for j in range(Ny):
+            for i in range(Nx):
 
                 if (bitmask[i,j] & self.BITMASK_INVALID) != 0:
                     logchl[i,j] = self.NaN
@@ -290,23 +301,33 @@ cdef class PolymerMinimizer:
                     if self.f.size() < self.size_end_iter:
                         break
                     if not in_bounds(self.f.xmin, self.bounds):
+                        raiseflag(bitmask, i, j, self.L2_FLAG_CASE2)
                         break
 
-                # case2 optimization if first fails
-                # TODO
+                # case2 optimization if first optimization fails
+                if testflag(bitmask, i, j,  self.L2_FLAG_CASE2):
+
+                    self.f.init(self.initial_point_2, self.initial_step)
+
+                    while self.f.niter < self.max_iter:
+
+                        self.f.iterate()
+
+                        if self.f.size() < self.size_end_iter:
+                            break
+                        if not in_bounds(self.f.xmin, self.bounds):
+                            break
+
 
                 logchl[i,j] = self.f.xmin[0]
                 niter[i,j] = self.f.niter
 
                 # initialization of next pixel
-                if in_bounds(self.f.xmin, self.bounds):
+                if not testflag(bitmask, i, j,  self.L2_FLAG_CASE2):
                     x0[:] = self.f.xmin[:]
                 else:
-                    x0[:] = self.initial_point[:]
+                    x0[:] = self.initial_point_1[:]
 
-
-                # option to evaluate f a last time (?)
-                # TODO
 
                 # calculate water reflectance
                 for ib in range(len(self.f.Rwmod)):
@@ -318,7 +339,7 @@ cdef class PolymerMinimizer:
 
 
             # reinitialize
-            x0[:] = self.initial_point[:]
+            x0[:] = self.initial_point_1[:]
 
 
     def minimize(self, block, params):
@@ -340,11 +361,13 @@ cdef class PolymerMinimizer:
                                  block.scattering_angle[ok], phi=None, phi_vent=None)
 
         # calculate the atmospheric inversion coefficients
-        A = atm_func(block, params)
+        # at bands_corr
+        A = atm_func(block, params, params.bands_corr)
         pA = pseudoinverse(A)
 
         # TODO
-        # 'A' should be provided at the OC bands.
+        # 'A' should be provided at the OC bands, not the corr bands
+        A = atm_func(block, params, params.bands_read())
         # For now, we assert bands_rw are the same as bands_corr
         assert set(params.bands_corr) == set(params.bands_oc)
 

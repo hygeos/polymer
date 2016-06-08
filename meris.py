@@ -71,6 +71,7 @@ class Level1_MERIS(object):
 
     def __init__(self, filename, sline=0, eline=-1, blocksize=50):
 
+        self.filename = filename
         self.prod = epr.Product(filename)
         self.width = self.prod.get_scene_width()
         self.totalheight = self.prod.get_scene_height()

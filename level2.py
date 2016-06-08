@@ -11,33 +11,61 @@ import warnings
 
 
 class Level2(object):
-    def __init__(self, list_datasets=[
-                'latitude', 'longitude', 'Rtoa', 'vza', 'sza', 'raa',
-                'Rprime', 'Rw', 'Rnir', 'bitmask', 'logchl', 'niter', 'Rgli']):
-        self.list_datasets = list_datasets
-        self.shape = None
-
+    '''
+    Base class level 2
+    '''
+    default_datasets = [
+                'latitude', 'longitude',
+                'Rtoa', 'vza', 'sza', 'raa',
+                'Rprime',
+                'Rw', 'Rnir', 'bitmask',
+                'logchl', 'niter', 'Rgli']
     def init(self, level1):
         self.shape = level1.shape
 
-    def finish(self, parameters):
-        pass
+class Level2_file(Level2):
+    '''
+    Base class for level 2 with file output
+    '''
+    def init(self, level1):
 
-class Level2_HDF(Level2):
-    def __init__(self, filename, overwrite=False, *args, **kwargs):
-        super(self.__class__, self).__init__(*args, **kwargs)
+        self.shape = level1.shape
 
-        if exists(filename):
-            if overwrite:
-                print 'Removing file', filename
-                remove(filename)
+        assert level1.filename
+
+        if not isinstance(self.filename, str):
+            self.filename = self.filename(level1.filename)
+
+        if exists(self.filename):
+            if self.overwrite:
+                print 'Removing file', self.filename
+                remove(self.filename)
             else:
-                raise IOError('File "{}" exists'.format(filename))
+                raise IOError('File "{}" exists'.format(self.filename))
+
+        if self.datasets is None:
+            self.datasets = self.default_datasets
+
+
+class Level2_HDF(Level2_file):
+    '''
+    Level 2 in HDF4 format
+
+    filename: string or function
+        function taking level1 filename as input, returning a string
+    overwrite: boolean
+        overwrite existing file
+    datasets: list or None
+        list of datasets to include in level 2
+        if None (default), use Level2.default_datasets
+    '''
+    def __init__(self, filename, overwrite=False, datasets=None):
 
         self.filename = filename
-        self.hdf = SD(filename, SDC.WRITE | SDC.CREATE)
-        self.sdslist = {}
+        self.overwrite = overwrite
+        self.datasets = datasets
 
+        self.sdslist = {}
         self.typeconv = {
                     np.dtype('float32'): SDC.FLOAT32,
                     np.dtype('float64'): SDC.FLOAT64,
@@ -45,15 +73,19 @@ class Level2_HDF(Level2):
                     np.dtype('uint32'): SDC.UINT32,
                     }
 
+    def init(self, level1):
+        super(self.__class__, self).init(level1)
+
+        self.hdf = SD(self.filename, SDC.WRITE | SDC.CREATE)
+
     def write_block(self, name, data, S):
         '''
         write data into sds name with slice S
         '''
+
         # create dataset
         if name not in self.sdslist:
             dtype = self.typeconv[data.dtype]
-            print 'creating dataset {} of shape {} and type {}'.format(
-                    name, self.shape, dtype)
             self.sdslist[name] = self.hdf.create(name, dtype, self.shape)
 
         # write
@@ -66,7 +98,7 @@ class Level2_HDF(Level2):
         (hei, wid) = block.size
         S = (slice(yoff,yoff+hei), slice(xoff,xoff+wid))
 
-        for d in self.list_datasets:
+        for d in self.datasets:
 
             # don't write dataset if not in block
             if d not in block.datasets():
@@ -111,7 +143,7 @@ class Level2_Memory(Level2):
         (yoff, xoff) = block.offset
         (hei, wid) = block.size
 
-        for d in self.list_datasets:
+        for d in self.datasets:
             if d not in block.datasets():
                 continue
 

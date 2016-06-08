@@ -78,7 +78,7 @@ class Level1_OLCI_snappy(object):
     snappy reader
     '''
 
-    def __init__(self, filename, sline=0, eline=-1):
+    def __init__(self, filename, sline=0, eline=-1, blocksize=400):
 
         self.filename = filename
 
@@ -87,7 +87,7 @@ class Level1_OLCI_snappy(object):
         self.totalwidth = int(self.prod.getSceneRasterWidth())
         self.width = self.totalwidth
         self.totalheight = int(self.prod.getSceneRasterHeight())
-        self.blocksize = 400
+        self.blocksize = blocksize
 
         self.sline = sline
         self.eline = eline
@@ -253,6 +253,7 @@ class Level1_OLCI(object):
             dirname = os.path.dirname(dirname)
 
         self.dirname = dirname
+        self.filename = dirname
         self.nc_datasets = {}
 
         # get product shape
