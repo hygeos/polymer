@@ -12,7 +12,6 @@ from polymer import InitCorr
 def process_block(args):
 
     b, c = args
-    print 'process block', b
 
     c.convert_reflectance(b)
 
@@ -45,7 +44,6 @@ def polymer(level1, params, level2):
 
     # process the blocks in parallel
     for b in Pool().imap_unordered(process_block, blockiter):
-        assert 'Rtoa' in b.datasets()
 
         level2.write(b)
 

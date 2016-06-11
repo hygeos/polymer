@@ -187,7 +187,11 @@ cdef class ParkRuddick(WaterModel):
                 self.aw[i] = self.AW_POPEFRY.interp()
 
             ret = self.AB_BRIC.lookup(0, w)
+            if (ret < 0) and (w > 399.) and (w <= 400):
+                ret = self.AB_BRIC.lookup(0, 400.)
+
             if ret == 0:
+                # success
                 self.AB_BRIC.index(1, 0)
                 self.a_bric[i] = self.AB_BRIC.interp()
                 self.AB_BRIC.index(1, 1)
@@ -196,7 +200,7 @@ cdef class ParkRuddick(WaterModel):
                 self.a_bric[i] = self.a700 * (w/700.)**(-80.)
                 self.b_bric[i] = 0
             else:
-                raise Exception('Error in AB_BRIC lookup')
+                raise Exception('Error in AB_BRIC lookup (lambda={})'.format(w))
 
         #
         # empty the pre-interpolated gi coefficients
@@ -337,8 +341,10 @@ cdef class ParkRuddick(WaterModel):
             # raman correction
             # TODO: pre-interpolate RAMAN in lam?
             ret = self.RAMAN.lookup(0, lam)
+            if (ret < 0) and (lam > 399.) and (lam <= 400):
+                ret = self.RAMAN.lookup(0, 400.)
             if ret < 0:
-                raise Exception('Error in lookup for RAMAN (lambda)')
+                raise Exception('Error in lookup for RAMAN (lambda={})'.format(lam))
             ret = self.RAMAN.lookup(1, chl)  # clip both ends
             rho *= 1. + (self.RAMAN.interp()*self.mus/0.866)
 

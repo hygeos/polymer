@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
+import numpy as np
 
 class Params(object):
     '''
@@ -41,6 +41,9 @@ class Params(object):
                             #       2: stop at rayleigh correction
 
     def bands_read(self):
+        assert (np.diff(self.bands_corr) > 0).all()
+        assert (np.diff(self.bands_oc) > 0).all()
+        assert (np.diff(self.bands_rw) > 0).all()
         bands_read = set(self.bands_corr)
         bands_read = bands_read.union(self.bands_oc)
         bands_read = bands_read.union(self.bands_rw)

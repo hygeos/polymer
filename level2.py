@@ -76,6 +76,8 @@ class Level2_file(Level2_base):
         if self.datasets is None:
             self.datasets = self.default_datasets
 
+        print 'Initializing output file "{}"'.format(self.filename)
+
 
 
 

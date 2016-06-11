@@ -19,15 +19,14 @@ class Level2_NETCDF(Level2_file):
         '''
         write data into sds name with slice S
         '''
+        assert data.ndim == 2
         if name not in self.varlist:
-            print 'creating variable', name
             self.varlist[name] = self.root.createVariable(
                     name, data.dtype,
                     ['height', 'width'],
                     zlib=self.compress)
 
-            print S, data.shape
-            self.varlist[name][S] = data[:]
+        self.varlist[name][S[0], S[1]] = data
 
 
     def write(self, block):

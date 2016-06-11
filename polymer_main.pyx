@@ -37,17 +37,32 @@ cdef class F(NelderMeadMinimizer):
     cdef float[:] Rwmod
     cdef float[:] Ratm
 
+    # bands
+    cdef int N_bands_corr
+    cdef int[:] i_corr_read  # index or the 'corr' bands within the 'read' bands
+    cdef int N_bands_oc
+    cdef int[:] i_oc_read  # index or the 'oc' bands within the 'read' bands
+
     def __init__(self, Ncoef, watermodel, params, *args, **kwargs):
 
         super(self.__class__, self).__init__(*args, **kwargs)
 
         self.w = watermodel
         self.C = np.zeros(Ncoef, dtype='float32')
-        self.Ratm = np.zeros(len(params.bands_read()), dtype='float32')
+        self.Ratm = np.zeros(len(params.bands_read()), dtype='float32') + np.NaN
         self.Ncoef = Ncoef
 
         self.thres_chi2 = params.thres_chi2
         self.constraint_amplitude, self.sigma2, self.sigma1 = params.constraint_bbs
+
+        self.N_bands_corr = len(params.bands_corr)
+        self.i_corr_read = np.searchsorted(
+                params.bands_read(),
+                params.bands_corr).astype('int32')
+        self.N_bands_oc = len(params.bands_oc)
+        self.i_oc_read = np.searchsorted(
+                params.bands_read(),
+                params.bands_oc).astype('int32')
 
     cdef init_pixel(self, float[:] Rprime, float[:,:] A, float[:,:] pA,
             float[:] Tmol,
@@ -56,7 +71,7 @@ cdef class F(NelderMeadMinimizer):
         set the input parameters for the current pixel
         '''
         self.Rprime = Rprime
-        self.wav = wav
+        self.wav = wav  # bands_read
         self.pA = pA
         self.A = A
         self.Tmol = Tmol
@@ -68,16 +83,16 @@ cdef class F(NelderMeadMinimizer):
         '''
         Evaluate cost function for vector parameters x
         '''
-        # TODO
-        # take into account bands_corr, bands_oc, etc.
 
         cdef float C
         cdef float sumsq, dR, norm
-        cdef int il, ic
+        cdef int icorr, icorr_read
+        cdef int ioc, ioc_read
         cdef float sigma
 
         #
         # calculate the. water reflectance for the current parameters
+        # (at bands_read)
         #
         self.Rwmod = self.w.calc_rho(x)
         cdef float[:] Rwmod = self.Rwmod
@@ -87,33 +102,33 @@ cdef class F(NelderMeadMinimizer):
         #
         for ic in range(self.Ncoef):
             C = 0.
-            for il in range(len(Rwmod)):
-                # FIXME: indicage il doit etre sur bands_atm
-                # Tmol, Rwmod et Rprime -> bands_read
-                # pA -> bands_corr
-                C += self.pA[ic,il] * (self.Rprime[il] - self.Tmol[il]*Rwmod[il])
+            for icorr in range(self.N_bands_corr):
+                icorr_read = self.i_corr_read[icorr]
+                C += self.pA[ic,icorr] * (self.Rprime[icorr_read]
+                                          - self.Tmol[icorr_read]*Rwmod[icorr_read])
             self.C[ic] = C
 
         #
         # calculate the residual
         #
         sumsq = 0.
-        for il in range(len(Rwmod)):  # FIXME: indicage doit etre sur bands_oc
+        for ioc in range(self.N_bands_oc):
+            ioc_read = self.i_oc_read[ioc]
 
-            dR = self.Rprime[il]
+            dR = self.Rprime[ioc_read]
 
             # subtract atmospheric signal
-            self.Ratm[il] = 0
+            self.Ratm[ioc_read] = 0
             for ic in range(self.Ncoef):
-                self.Ratm[il] += self.C[ic] * self.A[il,ic]
-            dR -= self.Ratm[il]
+                self.Ratm[ioc_read] += self.C[ic] * self.A[ioc_read,ic]
+            dR -= self.Ratm[ioc_read]
 
             # divide by transmission
-            dR /= self.Tmol[il]
+            dR /= self.Tmol[ioc_read]
 
-            dR -= Rwmod[il]
+            dR -= Rwmod[ioc_read]
 
-            norm = Rwmod[il]
+            norm = Rwmod[ioc_read]
             if norm < self.thres_chi2:
                 norm = self.thres_chi2
 
@@ -365,12 +380,8 @@ cdef class PolymerMinimizer:
         A = atm_func(block, params, params.bands_corr)
         pA = pseudoinverse(A)
 
-        # TODO
-        # 'A' should be provided at the OC bands, not the corr bands
+        # the model coefficients, at bands_read
         A = atm_func(block, params, params.bands_read())
-        # For now, we assert bands_rw are the same as bands_corr
-        assert set(params.bands_corr) == set(params.bands_oc)
-
 
         self.loop(block, A, pA)
 

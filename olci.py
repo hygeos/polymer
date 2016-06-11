@@ -4,8 +4,6 @@
 from params import Params
 import numpy as np
 from block import Block
-import snappy
-import warnings
 from common import L2FLAGS
 from netCDF4 import Dataset
 from scipy.ndimage import map_coordinates
@@ -19,9 +17,9 @@ class Params_OLCI(Params):
         super(self.__class__, self).__init__()
 
         # FIXME
-        self.bands_corr = [412,443,490,510,560,620,665,754,779,865]
-        self.bands_oc   = [412,443,490,510,560,620,665,754,779,865]
-        self.bands_rw   = [412,443,490,510,560,620,665,754,779,865]
+        self.bands_corr = [    412,443,490,510,560,620,665,754,779,865]
+        self.bands_oc   = [    412,443,490,510,560,620,665,754,779,865]
+        self.bands_rw   = [400,412,443,490,510,560,620,665,754,779,865]
 
         self.bands_lut = [400,412,443,490,510,560,620,665,674,681,
                           709,754,760,764,767,779,865,885,900,940,
@@ -48,199 +46,38 @@ class Params_OLCI(Params):
                 1610: 1610.    , 2250: 2250.   ,
                 }
 
-        self.K_OZ = {  # FIXME: taken from MERIS
-                    412: 0.000301800 , 443: 0.00327200 ,
-                    490: 0.0211900   , 510: 0.0419600  ,
-                    560: 0.104100    , 620: 0.109100   ,
-                    665: 0.0511500   , 681: 0.0359600  ,
-                    709: 0.0196800   , 754: 0.00955800 ,
-                    760: 0.00730400  , 779: 0.00769300 ,
-                    865: 0.00219300  , 885: 0.00121100 ,
-                    900: 0.00151600  ,
+        # from SeaDAS v7.3.2
+        self.K_OZ = {
+                400 : 2.985E-06, 412 : 2.341E-04,
+                443 : 2.897E-03, 490 : 2.066E-02,
+                510 : 4.129E-02, 560 : 1.058E-01,
+                620 : 1.085E-01, 665 : 5.005E-02,
+                674 : 4.095E-02, 681 : 3.507E-02,
+                709 : 1.887E-02, 754 : 8.743E-03,
+                760 : 6.713E-03, 764 : 6.916E-03,
+                768 : 6.754E-03, 779 : 7.700E-03,
+                865 : 2.156E-03, 885 : 1.226E-03,
+                900 : 1.513E-03, 940 : 7.120E-04,
+                1020: 8.448E-05,
                 }
 
-        self.K_NO2 = {  # FIXME: taken from MERIS
-                412: 6.074E-19 , 443: 4.907E-19,
-                490: 2.916E-19 , 510: 2.218E-19,
-                560: 7.338E-20 , 620: 2.823E-20,
-                665: 6.626E-21 , 681: 6.285E-21,
-                709: 4.950E-21 , 754: 1.384E-21,
-                760: 4.717E-22 , 779: 3.692E-22,
-                865: 2.885E-23 , 885: 4.551E-23,
-                900: 5.522E-23 ,
+        # from SeaDAS v7.3.2
+        self.K_NO2 = {
+                400 : 6.175E-19, 412 : 6.083E-19,
+                443 : 4.907E-19, 490 : 2.933E-19,
+                510 : 2.187E-19, 560 : 7.363E-20,
+                620 : 2.818E-20, 665 : 6.645E-21,
+                674 : 1.014E-20, 681 : 6.313E-21,
+                709 : 4.938E-21, 754 : 1.379E-21,
+                761 : 4.472E-22, 764 : 6.270E-22,
+                768 : 5.325E-22, 779 : 3.691E-22,
+                865 : 2.868E-23, 885 : 4.617E-23,
+                900 : 5.512E-23, 940 : 3.167E-24,
+                1020: 0.000E+00,
                 }
 
         self.update(**kwargs)
 
-
-class Level1_OLCI_snappy(object):
-    '''
-    snappy reader
-    '''
-
-    def __init__(self, filename, sline=0, eline=-1, blocksize=400):
-
-        self.filename = filename
-
-        self.prod = snappy.ProductIO.readProduct(filename)
-
-        self.totalwidth = int(self.prod.getSceneRasterWidth())
-        self.width = self.totalwidth
-        self.totalheight = int(self.prod.getSceneRasterHeight())
-        self.blocksize = blocksize
-
-        self.sline = sline
-        self.eline = eline
-        if eline < 0:
-            self.height = self.totalheight
-            self.height -= sline
-            self.height += eline + 1
-        else:
-            self.height = eline-sline
-
-        self.shape = (self.height, self.width)
-
-
-        self.band_names = {
-                400 : 'Oa01_radiance', 412 : 'Oa02_radiance',
-                443 : 'Oa03_radiance', 490 : 'Oa04_radiance',
-                510 : 'Oa05_radiance', 560 : 'Oa06_radiance',
-                620 : 'Oa07_radiance', 665 : 'Oa08_radiance',
-                674 : 'Oa09_radiance', 681 : 'Oa10_radiance',
-                709 : 'Oa11_radiance', 754 : 'Oa12_radiance',
-                760 : 'Oa13_radiance', 764 : 'Oa14_radiance',
-                767 : 'Oa15_radiance', 779 : 'Oa16_radiance',
-                865 : 'Oa17_radiance', 885 : 'Oa18_radiance',
-                900 : 'Oa19_radiance', 940 : 'Oa20_radiance',
-                1020: 'Oa21_radiance',
-                }
-
-        self.F0_band_names = {
-                400 : 'solar_flux_band_1' , 412 : 'solar_flux_band_2' ,
-                443 : 'solar_flux_band_3' , 490 : 'solar_flux_band_4' ,
-                510 : 'solar_flux_band_5' , 560 : 'solar_flux_band_6' ,
-                620 : 'solar_flux_band_7' , 665 : 'solar_flux_band_8' ,
-                674 : 'solar_flux_band_9' , 681 : 'solar_flux_band_10',
-                709 : 'solar_flux_band_11', 754 : 'solar_flux_band_12',
-                760 : 'solar_flux_band_13', 764 : 'solar_flux_band_14',
-                767 : 'solar_flux_band_15', 779 : 'solar_flux_band_16',
-                865 : 'solar_flux_band_17', 885 : 'solar_flux_band_18',
-                900 : 'solar_flux_band_19', 940 : 'solar_flux_band_20',
-                1020: 'solar_flux_band_21',
-                }
-
-        self.lambda0_band_names = {
-                400 : 'lambda0_band_1' , 412 : 'lambda0_band_2' ,
-                443 : 'lambda0_band_3' , 490 : 'lambda0_band_4' ,
-                510 : 'lambda0_band_5' , 560 : 'lambda0_band_6' ,
-                620 : 'lambda0_band_7' , 665 : 'lambda0_band_8' ,
-                674 : 'lambda0_band_9' , 681 : 'lambda0_band_10',
-                709 : 'lambda0_band_11', 754 : 'lambda0_band_12',
-                760 : 'lambda0_band_13', 764 : 'lambda0_band_14',
-                767 : 'lambda0_band_15', 779 : 'lambda0_band_16',
-                865 : 'lambda0_band_17', 885 : 'lambda0_band_18',
-                900 : 'lambda0_band_19', 940 : 'lambda0_band_20',
-                1020: 'lambda0_band_21',
-                }
-
-
-    def read_band(self, band_name, size, offset, tiepoint=False):
-
-        (ysize, xsize) = size
-        (yoffset, xoffset) = offset
-
-        if tiepoint:
-            rad = self.prod.getTiePointGrid(band_name)
-        else:
-            rad = self.prod.getBand(band_name)
-
-        Ltoa_data = np.zeros((ysize,xsize), dtype='float32') + np.NaN
-        rad.readPixels(xoffset, yoffset+self.sline, xsize, ysize, Ltoa_data)
-
-        return Ltoa_data
-
-
-    def read_block(self, size, offset, bands):
-
-        (ysize, xsize) = size
-        nbands = len(bands)
-
-        # initialize block
-        block = Block(offset=offset, size=size, bands=bands)
-
-        block.latitude  = self.read_band('latitude',  size, offset)
-        block.longitude = self.read_band('longitude', size, offset)
-
-        # read geometry
-        block.sza = self.read_band('SZA', size, offset, tiepoint=True)
-        block.vza = self.read_band('OZA', size, offset, tiepoint=True)
-        block.saa = self.read_band('SAA', size, offset, tiepoint=True)
-        block.vaa = self.read_band('OAA', size, offset, tiepoint=True)
-
-        # read TOA
-        block.Ltoa = np.zeros((ysize,xsize,nbands)) + np.NaN
-        for iband, band in enumerate(bands):
-            Ltoa_data = self.read_band(self.band_names[band], size, offset)
-            block.Ltoa[:,:,iband] = Ltoa_data[:,:]
-
-        # read F0 for each band
-        block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
-        for iband, band in enumerate(bands):
-            F0_data = self.read_band(self.F0_band_names[band], size, offset)
-            block.F0[:,:,iband] = F0_data[:,:]
-
-        # read wavelen
-        block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
-        for iband, band in enumerate(bands):
-            lam0 = self.read_band(self.lambda0_band_names[band], size, offset)
-            block.wavelen[:,:,iband] = lam0[:,:]
-
-        warnings.warn('TODO')
-        block.jday = 200
-
-        # aux data
-        warnings.warn('TODO')
-        block.ozone = np.zeros((ysize, xsize)) + 300.
-        block.wind_speed = np.zeros((ysize, xsize)) + 5.
-        block.surf_press = np.zeros((ysize, xsize)) + 1013.
-
-        block.bitmask = np.zeros(size, dtype='uint16')
-        # Color = snappy.jpy.get_type('java.awt.Color')
-        # BandMathsType = snappy.jpy.get_type('org.esa.snap.core.datamodel.Mask$BandMathsType')
-        # validPixelMask = BandMathsType.create("__temp_mask", None,
-        #                             self.width,
-        #                             self.height,
-        #                             'quality_flags.land',
-        #                             Color.GREEN, 0.0)
-        # validPixelMask.setOwner(self.prod)
-        # valid_mask = np.zeros(size, dtype='uint8')
-        # validPixelMask.readValidMask(offset[0]+self.sline, offset[1], ysize, xsize, valid_mask)
-        # print 'DEBUG', self.sline, (valid_mask == 1).all()
-        # block.bitmask += valid_mask
-
-        print 'Read block', block
-
-        return block
-
-    def blocks(self, bands_read):
-
-        nblocks = int(np.ceil(float(self.height)/self.blocksize))
-        for iblock in xrange(nblocks):
-
-            # determine block size
-            xsize = self.width
-            if iblock == nblocks-1:
-                ysize = self.height-(nblocks-1)*self.blocksize
-            else:
-                ysize = self.blocksize
-            size = (ysize, xsize)
-
-            # determine the block offset
-            xoffset = 0
-            yoffset = iblock*self.blocksize
-            offset = (yoffset, xoffset)
-
-            yield self.read_block(size, offset, bands_read)
 
 
 class Level1_OLCI(object):
@@ -302,6 +139,15 @@ class Level1_OLCI(object):
         self.F0 = self.get_ncroot('instrument_data.nc').variables['solar_flux'][:]
         self.lam0 = self.get_ncroot('instrument_data.nc').variables['lambda0'][:]
 
+        # read quality flag meanings
+        qf = self.get_ncroot('qualityFlags.nc').variables['quality_flags']
+        fmask = qf.getncattr('flag_masks')
+        fmeaning = str(qf.getncattr('flag_meanings')).split()
+        self.quality_flags = {}
+        for i in xrange(len(fmeaning)):
+            self.quality_flags[fmeaning[i]] = fmask[i]
+
+
     def get_ncroot(self, filename):
         if filename in self.nc_datasets:
             return self.nc_datasets[filename]
@@ -347,7 +193,7 @@ class Level1_OLCI(object):
 
         if tiepoint:
             shp = data.shape
-            coords = np.meshgrid(np.linspace(0, 76, 1217), np.arange(shp[0]))  # FIXME
+            coords = np.meshgrid(np.linspace(0, shp[1]-1, self.totalwidth), np.arange(shp[0]))
             out = np.zeros(size, dtype='float32')
             map_coordinates(data, (coords[1], coords[0]), output=out)
             # FIXME: don't use 3rd order for azimuth angles
@@ -411,14 +257,11 @@ class Level1_OLCI(object):
 
         block.wind_speed = np.zeros((ysize, xsize)) + 5.   # FIXME
 
-        # TODO
+        # quality flags
         bitmask = self.read_band('quality_flags', size, offset)
         block.bitmask = np.zeros(size, dtype='uint16')
-        block.bitmask += L2FLAGS['LAND']*(bitmask & 1)
+        block.bitmask += L2FLAGS['LAND']*(bitmask & self.quality_flags['land'] != 0).astype('uint16')
 
-        # print self.get_ncroot('qualityFlags.nc').variables['quality_flags'].ncattrs()
-        # print self.get_ncroot('qualityFlags.nc').variables['quality_flags'].getncattr('flag_meanings')
-        # print self.get_ncroot('qualityFlags.nc').variables['quality_flags'].getncattr('flag_masks')
 
         print 'Read', block
 
