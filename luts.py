@@ -14,13 +14,18 @@ Provides:
     - merge: MLUT merging
 '''
 
-from __future__ import print_function
+from __future__ import print_function, division
+from past.builtins import xrange
 import numpy as np
 from scipy.interpolate import interp1d
 from os.path import exists
 from os import remove
 from collections import OrderedDict
 import warnings
+try: # python2/3 compatibility
+    unicode
+except:
+    unicode = str
 
 
 def interleave_seq(p, q):
@@ -334,8 +339,8 @@ class LUT(object):
         Returns: a scalar or ndarray
         '''
 
-        if self.data.dtype.char == 'S':
-            # string arrays: bypass this method and directly apply
+        if self.data.dtype.char in ['S', 'U']:
+            # string or unicode arrays: bypass this method and directly apply
             # ndarray.__getitem__
             return self.data[keys]
 
@@ -544,10 +549,10 @@ class LUT(object):
     def __rmul__(self, other):
         return self.__binary_operation__(other, lambda x, y: x*y)
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         return self.__binary_operation__(other, lambda x, y: x/y)
 
-    def __rdiv__(self, other):
+    def __rtruediv__(self, other):
         return self.__binary_operation__(other, lambda x, y: y/x)
 
     def __eq__(self, other):
@@ -1371,7 +1376,7 @@ class MLUT(object):
 
     def datasets(self):
         ''' returns a list of the datasets names '''
-        return map(lambda x: x[0], self.data)
+        return list(map(lambda x: x[0], self.data))
 
     def add_axis(self, name, axis):
         ''' Add an axis to the MLUT '''
@@ -1949,7 +1954,7 @@ def read_mlut_netcdf4(filename):
         for a in var.ncattrs():
             attrs[a] = var.getncattr(a)
 
-        m.add_dataset(varname, var[:], map(str, var.dimensions), attrs=attrs)
+        m.add_dataset(varname, var[:], list(map(str, var.dimensions)), attrs=attrs)
 
     # read global attributes
     for a in root.ncattrs():
@@ -2069,10 +2074,10 @@ def read_mlut_hdf(filename, datasets=None):
 
         if (axes is None) and ('dimensions' in sds.attributes()):
             axes = sds.attributes()['dimensions'].split(',')
-            axes = map(lambda x: x.strip(), axes)
+            axes = list(map(lambda x: x.strip(), axes))
 
             # replace 'None's by None
-            axes = map(lambda x: {True: None, False: x}[x == 'None'], axes)
+            axes = list(map(lambda x: {True: None, False: x}[x == 'None'], axes))
 
         if axes is not None:
             ls_axes.extend(axes)
@@ -2092,7 +2097,7 @@ def read_mlut_hdf(filename, datasets=None):
             sds = hdf.select(ax)
             m.add_axis(ax, sds.get())
         else:
-            i = map(lambda x: x[0], ls_datasets).index(ax)
+            i = list(map(lambda x: x[0], ls_datasets)).index(ax)
             (name, data, _, _) = ls_datasets.pop(i)
             m.add_axis(name, data)
 
