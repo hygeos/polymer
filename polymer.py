@@ -2,6 +2,8 @@
 # encoding: utf-8
 
 
+from __future__ import print_function
+
 import numpy as np
 from luts import read_mlut_hdf, Idx
 import warnings
@@ -9,6 +11,12 @@ from utils import stdNxN
 from common import BITMASK_INVALID, L2FLAGS
 from luts import LUT
 from pyhdf.SD import SD
+from multiprocessing import Pool
+from datetime import datetime
+try:
+    from itertools import imap
+except ImportError:
+    imap = map
 
 # cython imports
 # import pyximport ; pyximport.install()
@@ -19,7 +27,7 @@ from water import ParkRuddick
 
 
 def coeff_sun_earth_distance(jday):
-    jday -= 1   # TODO: verify (0-based is consistent with C-version)
+    jday -= 1
 
     A=1.00014
     B=0.01671
@@ -235,7 +243,57 @@ class InitCorr(object):
             block.Tmol[ok,i] *= np.exp(-taumol/2. * (block.surf_press[ok]/1013. - 1.) * block.air_mass[ok])
 
 
-def polymer(level1, params, level2):
+def process_block(args):
+
+    (block, c, params, opt) = args
+
+    if opt is None:
+        opt = c.init_minimizer()
+
+    c.convert_reflectance(block)
+
+    c.gas_correction(block)
+
+    c.cloudmask(block)
+
+    c.rayleigh_correction(block)
+
+    opt.minimize(block, params)
+
+    return block
+
+
+def multi_iter(level1, params):
+
+    t0 = datetime.now()
+    print('Starting processing at {} (multiprocessing)'.format(t0))
+
+    c = InitCorr(params)
+
+    for block in level1.blocks(params.bands_read()):
+
+        yield (block, c, params, None)
+
+    print('Done in {}'.format(datetime.now()-t0))
+
+
+def single_iter(level1, params):
+
+    t0 = datetime.now()
+    print('Starting processing at {} (single thread)'.format(t0))
+
+    c = InitCorr(params)
+
+    opt = c.init_minimizer()
+
+    for block in level1.blocks(params.bands_read()):
+
+        yield (block, c, params, opt)
+
+    print('Done in {}'.format(datetime.now()-t0))
+
+
+def polymer(level1, params, level2, multiprocessing=False):
     '''
     Polymer atmospheric correction
     '''
@@ -243,23 +301,15 @@ def polymer(level1, params, level2):
     # initialize output file
     level2.init(level1)
 
-    c = InitCorr(params)
-
-    opt = c.init_minimizer()
+    if multiprocessing:
+        block_iter = Pool().imap_unordered(process_block,
+                multi_iter(level1, params))
+    else:
+        block_iter = imap(process_block,
+                single_iter(level1, params))
 
     # loop over the blocks
-    for block in level1.blocks(params.bands_read()):
-
-        c.convert_reflectance(block)
-
-        c.gas_correction(block)
-
-        c.cloudmask(block)
-
-        c.rayleigh_correction(block)
-
-        opt.minimize(block, params)
-
+    for block in block_iter:
         level2.write(block)
 
     level2.finish(params)
