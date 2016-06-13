@@ -9,6 +9,9 @@ import numpy as np
 from datetime import datetime
 from params import Params
 from common import L2FLAGS
+import sys
+if sys.version_info[:2] >= (3, 0):
+    xrange = range
 
 
 class Params_MERIS(Params):
@@ -127,6 +130,7 @@ class Level1_MERIS(object):
         # read the file date
         mph = self.prod.get_mph()
         dat = mph.get_field('SENSING_START').get_elem(0)
+        dat = dat.decode('utf-8')
         dat = dat.replace('-JAN-', '-01-')  # NOTE:
         dat = dat.replace('-FEB-', '-02-')  # parsing with '%d-%b-%Y...' may be
         dat = dat.replace('-MAR-', '-03-')  # locale-dependent
