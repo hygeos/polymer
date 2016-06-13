@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+from __future__ import print_function
 
 import epr
 from block import Block
 import numpy as np
 from datetime import datetime
-import warnings
 from params import Params
 from common import L2FLAGS
 
@@ -142,7 +142,7 @@ class Level1_MERIS(object):
         self.date = datetime.strptime(dat, '%d-%m-%Y %H:%M:%S.%f')
 
 
-        print 'Opened "{}", ({}x{})'.format(filename, self.width, self.height)
+        print('Opened "{}", ({}x{})'.format(filename, self.width, self.height))
 
     def read_band(self, band_name, size, offset):
         '''
@@ -227,7 +227,7 @@ class Level1_MERIS(object):
         block.bitmask += L2FLAGS['L1_INVALID']*self.read_bitmask(size, offset,
                 '(l1_flags.INVALID) OR (l1_flags.SUSPECT) OR (l1_flags.COSMETIC)')
 
-        print 'Read', block
+        print('Read', block)
 
         return block
 

@@ -6,22 +6,22 @@ from __future__ import print_function
 
 import numpy as np
 from luts import read_mlut_hdf, Idx
-import warnings
 from utils import stdNxN
 from common import BITMASK_INVALID, L2FLAGS
-from luts import LUT
 from pyhdf.SD import SD
 from multiprocessing import Pool
 from datetime import datetime
-try:
-    from itertools import imap
-except ImportError:
-    imap = map
 
-# cython imports
-# import pyximport ; pyximport.install()
 from polymer_main import PolymerMinimizer
 from water import ParkRuddick
+
+import sys
+if sys.version_info[:2] >= (3, 0):
+    xrange = range
+    imap = map
+else:  # python 2
+    from itertools import imap
+
 
 
 
@@ -120,13 +120,16 @@ class InitCorr(object):
         # coordinates of current block in 360x180 grid
         ilat = (0.5*(90 - block.latitude)).astype('int')
         ilon = (0.5*(block.longitude)).astype('int')
-        ilon[ilon<0] += 360/2
+        ilon[ilon<0] += 180
         no2_frac = self.no2_frac200m_data[ilat,ilon]
 
         return no2_frac, no2_tropo, no2_strat
 
 
     def gas_correction(self, block):
+        '''
+        Correction for gaseous absorption (ozone and NO2)
+        '''
 
         params = self.params
 
@@ -244,6 +247,9 @@ class InitCorr(object):
 
 
 def process_block(args):
+    '''
+    Process one block of data
+    '''
 
     (block, c, params, opt) = args
 
@@ -264,6 +270,12 @@ def process_block(args):
 
 
 def multi_iter(level1, params):
+    '''
+    Block iterator (multiprocessing mode)
+
+    The minimizer is created in the processing function instead of here,
+    because as a cython class it is not picklable.
+    '''
 
     t0 = datetime.now()
     print('Starting processing at {} (multiprocessing)'.format(t0))
@@ -278,6 +290,11 @@ def multi_iter(level1, params):
 
 
 def single_iter(level1, params):
+    '''
+    Block iterator (single processing mode)
+
+    The minimizer is created once and passed to the processing function
+    '''
 
     t0 = datetime.now()
     print('Starting processing at {} (single thread)'.format(t0))
@@ -301,6 +318,7 @@ def polymer(level1, params, level2, multiprocessing=False):
     # initialize output file
     level2.init(level1)
 
+    # initialize the block iterator
     if multiprocessing:
         block_iter = Pool().imap_unordered(process_block,
                 multi_iter(level1, params))

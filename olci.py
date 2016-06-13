@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
 from params import Params
 import numpy as np
 from block import Block
@@ -95,7 +96,7 @@ class Level1_OLCI(object):
 
         # get product shape
         (self.totalheight, self.totalwidth) = self.get_ncroot('Oa01_radiance.nc').variables['Oa01_radiance'].shape
-        print 'height={}, width={}'.format(self.totalheight, self.totalwidth)
+        print('height={}, width={}'.format(self.totalheight, self.totalwidth))
 
         self.width = self.totalwidth
         self.height = self.totalheight
@@ -144,7 +145,7 @@ class Level1_OLCI(object):
         fmask = qf.getncattr('flag_masks')
         fmeaning = str(qf.getncattr('flag_meanings')).split()
         self.quality_flags = {}
-        for i in xrange(len(fmeaning)):
+        for i in range(len(fmeaning)):
             self.quality_flags[fmeaning[i]] = fmask[i]
 
 
@@ -263,14 +264,14 @@ class Level1_OLCI(object):
         block.bitmask += L2FLAGS['LAND']*(bitmask & self.quality_flags['land'] != 0).astype('uint16')
 
 
-        print 'Read', block
+        print('Read', block)
 
         return block
 
     def blocks(self, bands_read):
 
         nblocks = int(np.ceil(float(self.height)/self.blocksize))
-        for iblock in xrange(nblocks):
+        for iblock in range(nblocks):
 
             # determine block size
             xsize = self.width

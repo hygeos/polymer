@@ -15,17 +15,16 @@ Provides:
 '''
 
 from __future__ import print_function, division
-from past.builtins import xrange
+import sys
 import numpy as np
 from scipy.interpolate import interp1d
 from os.path import exists
 from os import remove
 from collections import OrderedDict
 import warnings
-try: # python2/3 compatibility
-    unicode
-except:
+if sys.version_info[:2] >= (3, 0): # python2/3 compatibility
     unicode = str
+    xrange = range
 
 
 def interleave_seq(p, q):

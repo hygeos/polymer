@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+from __future__ import print_function
+
 import numpy as np
 from os import remove
 from os.path import exists
@@ -68,7 +70,7 @@ class Level2_file(Level2_base):
 
         if exists(self.filename):
             if self.overwrite:
-                print 'Removing file', self.filename
+                print('Removing file', self.filename)
                 remove(self.filename)
             else:
                 raise IOError('File "{}" exists'.format(self.filename))
@@ -76,7 +78,7 @@ class Level2_file(Level2_base):
         if self.datasets is None:
             self.datasets = self.default_datasets
 
-        print 'Initializing output file "{}"'.format(self.filename)
+        print('Initializing output file "{}"'.format(self.filename))
 
 
 

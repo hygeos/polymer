@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
 import numpy as np
 
 class Params(object):
@@ -50,9 +51,9 @@ class Params(object):
         return sorted(bands_read)
 
     def print_info(self):
-        print self.__class__
+        print(self.__class__)
         for k, v in self.__dict__.iteritems():
-            print '*', k,':', v
+            print('*', k,':', v)
 
     def update(self, **kwargs):
 

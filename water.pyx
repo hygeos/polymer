@@ -99,13 +99,13 @@ cdef class ParkRuddick(WaterModel):
         # read first lines
         fp.readline() # first line useless
         line = fp.readline()
-        gb = map(float, line[:line.find('=')].split())
+        gb = list(map(float, line[:line.find('=')].split()))
         line = fp.readline()
-        th0 = map(float, line[:line.find('=')].split())
+        th0 = list(map(float, line[:line.find('=')].split()))
         line = fp.readline()
-        th = map(float, line[:line.find('=')].split())
+        th = list(map(float, line[:line.find('=')].split()))
         line = fp.readline()
-        dphi = map(float, line[:line.find('=')].split())
+        dphi = list(map(float, line[:line.find('=')].split()))
 
         # initialize output array
         ngb = len(gb)
@@ -123,7 +123,7 @@ cdef class ParkRuddick(WaterModel):
             for i in xrange(8): block += fp.readline()
 
             # format block and fill array slice
-            block = np.array(map(float, block.split())).reshape((ngb, 4))
+            block = np.array(list(map(float, block.split()))).reshape((ngb, 4))
             gi[:,:,ith0, ith, idphi] = block[:,:]
 
         fp.close()
