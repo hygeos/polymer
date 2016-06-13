@@ -269,45 +269,25 @@ def process_block(args):
     return block
 
 
-def multi_iter(level1, params):
+def blockiterator(level1, params, multi=False):
     '''
-    Block iterator (multiprocessing mode)
-
-    The minimizer is created in the processing function instead of here,
-    because as a cython class it is not picklable.
+    Block iterator
+    if multi (boolean), iterate in multiprocessing mode:
+        The minimizer is created in the processing function instead of here,
+        because as a cython class it is not picklable.
+    Otherwise, the minimizer is created once.
     '''
-
-    t0 = datetime.now()
-    print('Starting processing at {} (multiprocessing)'.format(t0))
 
     c = InitCorr(params)
 
-    for block in level1.blocks(params.bands_read()):
-
-        yield (block, c, params, None)
-
-    print('Done in {}'.format(datetime.now()-t0))
-
-
-def single_iter(level1, params):
-    '''
-    Block iterator (single processing mode)
-
-    The minimizer is created once and passed to the processing function
-    '''
-
-    t0 = datetime.now()
-    print('Starting processing at {} (single thread)'.format(t0))
-
-    c = InitCorr(params)
-
-    opt = c.init_minimizer()
+    if multi:
+        opt = None
+    else:
+        opt = c.init_minimizer()
 
     for block in level1.blocks(params.bands_read()):
 
         yield (block, c, params, opt)
-
-    print('Done in {}'.format(datetime.now()-t0))
 
 
 def polymer(level1, params, level2, multiprocessing=False):
@@ -315,22 +295,27 @@ def polymer(level1, params, level2, multiprocessing=False):
     Polymer atmospheric correction
     '''
 
+    t0 = datetime.now()
+    print('Starting processing at {}'.format(t0))
+
     # initialize output file
     level2.init(level1)
 
     # initialize the block iterator
     if multiprocessing:
         block_iter = Pool().imap_unordered(process_block,
-                multi_iter(level1, params))
+                blockiterator(level1, params, True))
     else:
         block_iter = imap(process_block,
-                single_iter(level1, params))
+                blockiterator(level1, params, False))
 
     # loop over the blocks
     for block in block_iter:
         level2.write(block)
 
     level2.finish(params)
+
+    print('Done in {}'.format(datetime.now()-t0))
 
     return level2
 
