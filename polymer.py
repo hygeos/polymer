@@ -11,6 +11,7 @@ from common import BITMASK_INVALID, L2FLAGS
 from pyhdf.SD import SD
 from multiprocessing import Pool
 from datetime import datetime
+from utils import coeff_sun_earth_distance
 
 from polymer_main import PolymerMinimizer
 from water import ParkRuddick
@@ -24,28 +25,13 @@ else:  # python 2
 
 
 
-
-
-def coeff_sun_earth_distance(jday):
-    jday -= 1
-
-    A=1.00014
-    B=0.01671
-    C=0.9856002831
-    D=3.4532858
-    E=360.
-    F=0.00014
-
-    coef  = 1./((A - B*np.cos(2*np.pi*(C*jday - D)/E) - F*np.cos(4*np.pi*(C*jday - D)/E))**2)
-
-    return coef
-
-
 class InitCorr(object):
     '''
-    Implementation of the initial corrections
-    (convert to reflectance, gaseous correction, cloud mask,
-    Rayleigh correction)
+    Implementation of the initial corrections:
+        * convert to reflectance
+        * gaseous correction
+        * cloud mask
+        * Rayleigh correction
     '''
     def __init__(self, params):
         self.params = params
@@ -58,7 +44,7 @@ class InitCorr(object):
         '''
         Initialization of the minimizer class
         '''
-        watermodel = ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/')
+        watermodel = ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/')    # FIXME
 
         return PolymerMinimizer(watermodel, self.params)
 

@@ -1,8 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import numpy as np
 from scipy.ndimage import convolve
 from numpy import ones, sqrt, zeros_like, NaN
+
+def coeff_sun_earth_distance(jday):
+    jday -= 1
+
+    A=1.00014
+    B=0.01671
+    C=0.9856002831
+    D=3.4532858
+    E=360.
+    F=0.00014
+
+    coef  = 1./((A - B*np.cos(2*np.pi*(C*jday - D)/E) - F*np.cos(4*np.pi*(C*jday - D)/E))**2)
+
+    return coef
+
 
 
 def stdev(S, S2, N, fillv=NaN):
