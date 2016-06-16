@@ -4,6 +4,7 @@
 import numpy as np
 from scipy.ndimage import convolve
 from numpy import ones, sqrt, zeros_like, NaN
+from os import system
 
 def coeff_sun_earth_distance(jday):
     jday -= 1
@@ -19,6 +20,25 @@ def coeff_sun_earth_distance(jday):
 
     return coef
 
+
+def safemove(A, B):
+    '''
+    safely move a file A to B
+    by moving to a temporary file B.tmp first
+    '''
+    if B+'.tmp' == A:
+        # no need for intermediary copy
+        cmd = 'mv {} {}'.format(A, B)
+        if system(cmd):
+            raise IOError('Error executing "{}"'.format(cmd))
+    else:
+        cmd = 'mv {} {}'.format(A, B+'.tmp')
+        if system(cmd):
+            raise IOError('Error executing "{}"'.format(cmd))
+
+        cmd = 'mv {} {}'.format(B+'.tmp', B)
+        if system(cmd):
+            raise IOError('Error executing "{}"'.format(cmd))
 
 
 def stdev(S, S2, N, fillv=NaN):

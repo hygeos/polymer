@@ -6,27 +6,39 @@ from level2 import Level2_file
 from pyhdf.SD import SD, SDC
 import numpy as np
 from os import remove
-from os.path import exists
+from os.path import exists, dirname, join, basename
+import tempfile
+from utils import safemove
+from shutil import rmtree
 
 
 class Level2_HDF(Level2_file):
     '''
     Level 2 in HDF4 format
 
-    filename: string or function
-        function taking level1 filename as input, returning a string
+    filename: string
+        if None, determine filename from level1 by using output directory
+        out_dir and extension ext
     overwrite: boolean
         overwrite existing file
     datasets: list or None
         list of datasets to include in level 2
         if None (default), use Level2.default_datasets
+    compress: activate compression
+    tmpdir: path of temporary directory
     '''
-    def __init__(self, filename, overwrite=False, datasets=None, compress=True):
+    def __init__(self,
+            filename=None, ext='.hdf', outdir=None,
+            tmpdir=None, overwrite=False, datasets=None,
+            compress=True):
 
         self.filename = filename
         self.overwrite = overwrite
         self.datasets = datasets
-        self.compress = True
+        self.compress = compress
+        self.outdir = outdir
+        self.ext = ext
+        self.tmpdir = tmpdir
 
         self.sdslist = {}
         self.typeconv = {
@@ -39,16 +51,19 @@ class Level2_HDF(Level2_file):
     def init(self, level1):
         super(self.__class__, self).init(level1)
 
-        if not self.compress:
-            self.__hdf = SD(self.filename, SDC.WRITE | SDC.CREATE)
+        if self.tmpdir is None:
+            tmpdir = dirname(self.filename)
         else:
-            # one hdf object per dataset
-            # which are merged upon finish()
+            tmpdir = tempfile.mkdtemp(dir=self.tmpdir, prefix='level2_hdf_tmp_')
+            self.tmpdir = tmpdir
+
+        self.tmpfilename = join(tmpdir, basename(self.filename) + '.tmp')
+
+        if not self.compress:
+            self.__hdf = SD(self.tmpfilename, SDC.WRITE | SDC.CREATE)
+        else:
+            # dict of temporary hdf objects
             self.__hdf = {}
-
-        yield
-
-        # TODO: cleanup here
 
     def hdf(self, name):
         '''
@@ -58,7 +73,7 @@ class Level2_HDF(Level2_file):
             return self.__hdf
         else:
             if not name in self.__hdf:
-                filename = '{}_{}.tmp'.format(self.filename, name)
+                filename = '{}_{}.tmp'.format(self.tmpfilename, name)
                 if exists(filename):
                     print('Removing file', filename)
                     remove(filename)
@@ -105,7 +120,7 @@ class Level2_HDF(Level2_file):
 
     def finish(self, params):
         if self.compress:
-            hdf = SD(self.filename, SDC.WRITE | SDC.CREATE)
+            hdf = SD(self.tmpfilename, SDC.WRITE | SDC.CREATE)
 
             for name in sorted(self.sdslist):
                 print('Write compressed dataset {}'.format(name))
@@ -130,10 +145,17 @@ class Level2_HDF(Level2_file):
         if self.compress:
             # cleanup
             for name in self.__hdf:
-                filename = '{}_{}.tmp'.format(self.filename, name)
+                filename = '{}_{}.tmp'.format(self.tmpfilename, name)
                 self.__hdf[name].end()
                 remove(filename)
         else:
             hdf.end()
+
+        # move to destination
+        safemove(self.tmpfilename, self.filename)
+
+    def cleanup(self):
+        if self.tmpdir is not None:
+            rmtree(self.tmpdir)
 
 

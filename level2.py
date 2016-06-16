@@ -5,7 +5,31 @@ from __future__ import print_function
 
 import numpy as np
 from os import remove
-from os.path import exists
+from os.path import exists, join, basename
+
+class Level2(object):
+    '''
+    Context manager for level2 initialization
+
+    Arguments:
+        fmt: format of level2
+
+        other kwargs are passed to the level2 object constructor
+    '''
+    def __init__(self, fmt='hdf4', **kwargs):
+        if fmt == 'hdf4':
+            from level2_hdf import Level2_HDF
+            self.l2 = Level2_HDF(**kwargs)
+        elif fmt == 'netcdf4':
+            raise NotImplementedError
+        else:
+            raise Exception('Invalid format "{}"'.format(fmt))
+
+    def __enter__(self):
+        return self.l2
+
+    def __exit__(self, type, value, traceback):
+        self.l2.cleanup()
 
 
 class Level2_base(object):
@@ -18,6 +42,7 @@ class Level2_base(object):
                 'Rprime',
                 'Rw', 'Rnir', 'bitmask',
                 'logchl', 'niter', 'Rgli']
+
     def __init__(self, datasets=None):
         self.datasets = datasets
 
@@ -65,8 +90,10 @@ class Level2_file(Level2_base):
 
         assert level1.filename
 
-        if not isinstance(self.filename, str):
-            self.filename = self.filename(level1.filename)
+        if self.filename is None:
+            self.filename = level1.filename + self.ext
+            if self.outdir is not None:
+                self.filename = join(self.outdir, basename(self.filename))
 
         if exists(self.filename):
             if self.overwrite:

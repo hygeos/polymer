@@ -12,6 +12,7 @@ from pyhdf.SD import SD
 from multiprocessing import Pool
 from datetime import datetime
 from utils import coeff_sun_earth_distance
+from level2 import Level2
 
 from polymer_main import PolymerMinimizer
 from water import ParkRuddick
@@ -276,32 +277,40 @@ def blockiterator(level1, params, multi=False):
         yield (block, c, params, opt)
 
 
-def polymer(level1, params, level2, multiprocessing=False):
+
+
+def polymer(level1, params, level2=Level2(), multiprocessing=False):
     '''
     Polymer atmospheric correction
+
+    level1: level1 instance
+
+    level2: context manager for level2 initialization
     '''
 
     t0 = datetime.now()
     print('Starting processing at {}'.format(t0))
 
     # initialize output file
-    level2.init(level1)
+    with level2 as l2:
 
-    # initialize the block iterator
-    if multiprocessing:
-        block_iter = Pool().imap_unordered(process_block,
-                blockiterator(level1, params, True))
-    else:
-        block_iter = imap(process_block,
-                blockiterator(level1, params, False))
+        l2.init(level1)
 
-    # loop over the blocks
-    for block in block_iter:
-        level2.write(block)
+        # initialize the block iterator
+        if multiprocessing:
+            block_iter = Pool().imap_unordered(process_block,
+                    blockiterator(level1, params, True))
+        else:
+            block_iter = imap(process_block,
+                    blockiterator(level1, params, False))
 
-    level2.finish(params)
+        # loop over the blocks
+        for block in block_iter:
+            l2.write(block)
 
-    print('Done in {}'.format(datetime.now()-t0))
+        l2.finish(params)
 
-    return level2
+        print('Done in {}'.format(datetime.now()-t0))
+
+        return l2
 
