@@ -148,8 +148,8 @@ class Level2_HDF(Level2_file):
                 filename = '{}_{}.tmp'.format(self.tmpfilename, name)
                 self.__hdf[name].end()
                 remove(filename)
-        else:
-            hdf.end()
+
+        hdf.end()
 
         # move to destination
         safemove(self.tmpfilename, self.filename)

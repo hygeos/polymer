@@ -5,6 +5,7 @@ import numpy as np
 from scipy.ndimage import convolve
 from numpy import ones, sqrt, zeros_like, NaN
 from os import system
+from mpl_toolkits.basemap import maskoceans
 
 def coeff_sun_earth_distance(jday):
     jday -= 1
@@ -39,6 +40,18 @@ def safemove(A, B):
         cmd = 'mv {} {}'.format(B+'.tmp', B)
         if system(cmd):
             raise IOError('Error executing "{}"'.format(cmd))
+
+
+def landmask(lat, lon, resolution='l'):
+    '''
+    returns a land mask for coordinates (lat, lon)
+
+    resolution :     gshhs coastline resolution used to define land/sea
+                     mask (default 'l', available 'c','l','i','h' or 'f')
+
+    (uses basemap)
+    '''
+    return maskoceans(lon, lat, zeros_like(lat), resolution=resolution).mask
 
 
 def stdev(S, S2, N, fillv=NaN):

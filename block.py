@@ -11,27 +11,6 @@ class Block(object):
         self.offset = offset
         self.bands = bands
 
-        # self.sza = None       # sun zenith angle [degrees] (nx, ny)
-        # self.vza = None       # view zenith angle [degrees] (nx, ny)
-        # self.saa = None       # sun azimuth angle [degrees] (nx, ny)
-        # self.vaa = None       # view azimuth angle [degrees] (nx, ny)
-        # self.F0 = None        # per-pixel solar irradiance (nbands, nx, ny)
-        # self.wavelen = None   # per-pixel wavelength [nm] (nbands, nx, ny)
-
-
-        # self.Ltoa = None  # TOA radiance (nbands, nx, ny)
-        # self.Rtoa = None  # TOA reflectance
-        # self.Rtoa_gc = None  # TOA reflectance, corrected for gas absorption
-        # self.Rprime = None  # TOA reflectance, corrected for gas absorption, Rayleigh scattering and wind speed
-
-        # self.wind_speed = None # wind speed module (m/s)
-
-        # properties
-        # self._raa = None
-        # self._mus = None
-        # self._muv = None
-        # self._air_mass = None
-
     def datasets(self):
         '''
         returns a list of the datasets of the block

@@ -52,6 +52,12 @@ class InitCorr(object):
 
     def convert_reflectance(self, block):
 
+        if self.params.partial >= 4:
+            return
+
+        if hasattr(block, 'Rtoa'):
+            return
+
         block.Rtoa = np.zeros(block.Ltoa.shape)+np.NaN
 
         coef = coeff_sun_earth_distance(block.jday)
@@ -117,8 +123,9 @@ class InitCorr(object):
         '''
         Correction for gaseous absorption (ozone and NO2)
         '''
-
         params = self.params
+        if self.params.partial >= 4:
+            return
 
         block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.NaN
 
@@ -166,6 +173,9 @@ class InitCorr(object):
         '''
         Polymer basic cloud mask
         '''
+        if self.params.partial >= 3:
+            return
+
         params = self.params
         ok = (block.bitmask & BITMASK_INVALID) == 0
 
@@ -284,8 +294,17 @@ def polymer(level1, params, level2=Level2(), multiprocessing=False):
     Polymer atmospheric correction
 
     level1: level1 instance
-
     level2: context manager for level2 initialization
+
+    Additional keyword arguments:
+    * multiprocessing: if True, activate multiprocessing mode
+    * partial: 0 -> full processing (default)
+               1 -> stop before minimization
+               2 -> stop before Rayleigh correction
+               3 -> stop before cloud mask
+               4 -> stop before gaseous absorption correction
+               5 -> stop before conversion to reflectance
+
     '''
 
     t0 = datetime.now()
