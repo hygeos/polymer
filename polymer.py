@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 
-from __future__ import print_function
+from __future__ import print_function, division
 
 import numpy as np
 from luts import read_mlut_hdf, Idx
@@ -52,7 +52,7 @@ class InitCorr(object):
 
     def convert_reflectance(self, block):
 
-        if self.params.partial >= 4:
+        if self.params.partial >= 5:
             return
 
         if hasattr(block, 'Rtoa'):
@@ -64,6 +64,7 @@ class InitCorr(object):
 
         ok = (block.bitmask & BITMASK_INVALID) == 0
 
+        print(block.nbands)
         for i in xrange(block.nbands):
 
             block.Rtoa[ok,i] = block.Ltoa[ok,i]*np.pi/(block.mus[ok]*block.F0[ok,i]*coef)
@@ -203,9 +204,9 @@ class InitCorr(object):
         if params.partial >= 2:
             return
 
-        block.Rprime = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
-        block.Rmol = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
-        block.Tmol = np.zeros(block.Ltoa.shape, dtype='float32')+np.NaN
+        block.Rprime = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
+        block.Rmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
+        block.Tmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
 
         ok = (block.bitmask & BITMASK_INVALID) == 0
 

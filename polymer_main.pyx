@@ -193,17 +193,17 @@ def pseudoinverse(A):
     B = np.einsum('...ji,...jk->...ik', A, A)
 
     # check
-    if B.ndim == 4:
-        assert np.allclose(B[0,0,:,:], A[0,0,:,:].transpose().dot(A[0,0,:,:]), equal_nan=True)
-        assert np.allclose(B[-1,0,:,:], A[-1,0,:,:].transpose().dot(A[-1,0,:,:]), equal_nan=True)
+    # if B.ndim == 4:
+        # assert np.allclose(B[0,0,:,:], A[0,0,:,:].transpose().dot(A[0,0,:,:]), equal_nan=True)
+        # assert np.allclose(B[-1,0,:,:], A[-1,0,:,:].transpose().dot(A[-1,0,:,:]), equal_nan=True)
 
     # (A^-1).A' (with broadcasting)
     pA = np.einsum('...ij,...kj->...ik', inv(B), A)
 
     # check
-    if B.ndim == 4:
-        assert np.allclose(pA[0,0], inv(B[0,0,:,:]).dot(A[0,0,:,:].transpose()), equal_nan=True)
-        assert np.allclose(pA[-1,0], inv(B[-1,0,:,:]).dot(A[-1,0,:,:].transpose()), equal_nan=True)
+    # if B.ndim == 4:
+        # assert np.allclose(pA[0,0], inv(B[0,0,:,:]).dot(A[0,0,:,:].transpose()), equal_nan=True)
+        # assert np.allclose(pA[-1,0], inv(B[-1,0,:,:]).dot(A[-1,0,:,:].transpose()), equal_nan=True)
 
     return pA
 
@@ -263,6 +263,7 @@ cdef class PolymerMinimizer:
               ):
         '''
         cython method which does the main pixel loop
+        (over a block)
         '''
 
         cdef float[:,:,:] Rprime = block.Rprime
@@ -288,6 +289,9 @@ cdef class PolymerMinimizer:
         cdef unsigned int[:,:] niter = block.niter
         block.Rw = np.zeros(block.size+(block.nbands,), dtype='float32')
         cdef float[:,:,:] Rw = block.Rw
+        block.Ratm = np.zeros(block.size+(block.nbands,), dtype='float32')
+        cdef float[:,:,:] Ratm = block.Ratm
+
         cdef int i, j, ib
 
         #
@@ -345,9 +349,12 @@ cdef class PolymerMinimizer:
 
 
                 # calculate water reflectance
+                # and store atmospheric reflectance
                 for ib in range(len(self.f.Rwmod)):
                     Rw[i,j,ib] = Rprime[i,j,ib] - self.f.Ratm[ib]
                     Rw[i,j,ib] /= Tmol[i,j,ib]
+
+                    Ratm[i,j,ib] = self.f.Ratm[ib]
 
                 # water reflectance normalization
                 # TODO

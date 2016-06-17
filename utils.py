@@ -6,6 +6,7 @@ from scipy.ndimage import convolve
 from numpy import ones, sqrt, zeros_like, NaN
 from os import system
 from mpl_toolkits.basemap import maskoceans
+from scipy.interpolate import RectBivariateSpline
 
 def coeff_sun_earth_distance(jday):
     jday -= 1
@@ -94,3 +95,18 @@ def stdNxN(X, N, mask=None, fillv=NaN):
     # result
     return stdev(S, S2, C, fillv=fillv)
 
+
+def rectBivariateSpline(A, shp):
+    '''
+    Bivariate spline interpolation of array A to shape shp.
+
+    '''
+    xin = np.arange(shp[0], dtype='float32') / (shp[0]-1) * A.shape[0]
+    yin = np.arange(shp[1], dtype='float32') / (shp[1]-1) * A.shape[1]
+
+    x = np.arange(A.shape[0], dtype='float32')
+    y = np.arange(A.shape[1], dtype='float32')
+
+    f = RectBivariateSpline(x, y, A)
+
+    return f(xin, yin).astype('float32')
