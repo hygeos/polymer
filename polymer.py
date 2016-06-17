@@ -13,6 +13,7 @@ from multiprocessing import Pool
 from datetime import datetime
 from utils import coeff_sun_earth_distance
 from level2 import Level2
+from params import Params
 
 from polymer_main import PolymerMinimizer
 from water import ParkRuddick
@@ -45,7 +46,7 @@ class InitCorr(object):
         '''
         Initialization of the minimizer class
         '''
-        watermodel = ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/')    # FIXME
+        watermodel = ParkRuddick(self.params.dir_common)
 
         return PolymerMinimizer(watermodel, self.params)
 
@@ -64,7 +65,6 @@ class InitCorr(object):
 
         ok = (block.bitmask & BITMASK_INVALID) == 0
 
-        print(block.nbands)
         for i in xrange(block.nbands):
 
             block.Rtoa[ok,i] = block.Ltoa[ok,i]*np.pi/(block.mus[ok]*block.F0[ok,i]*coef)
@@ -290,7 +290,7 @@ def blockiterator(level1, params, multi=False):
 
 
 
-def polymer(level1, params, level2=Level2(), multiprocessing=False):
+def polymer(level1, level2=Level2(), **kwargs):
     '''
     Polymer atmospheric correction
 
@@ -305,11 +305,14 @@ def polymer(level1, params, level2=Level2(), multiprocessing=False):
                3 -> stop before cloud mask
                4 -> stop before gaseous absorption correction
                5 -> stop before conversion to reflectance
+    * ...
 
     '''
 
     t0 = datetime.now()
     print('Starting processing at {}'.format(t0))
+
+    params = Params(level1.sensor, **kwargs)
 
     # initialize output file
     with level2 as l2:
@@ -317,7 +320,7 @@ def polymer(level1, params, level2=Level2(), multiprocessing=False):
         l2.init(level1)
 
         # initialize the block iterator
-        if multiprocessing:
+        if params.multiprocessing:
             block_iter = Pool().imap_unordered(process_block,
                     blockiterator(level1, params, True))
         else:

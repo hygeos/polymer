@@ -12,80 +12,13 @@ from datetime import datetime
 import os
 
 
-class Params_OLCI(Params):
-
-    def __init__(self, **kwargs):
-        super(self.__class__, self).__init__()
-
-        # FIXME
-        self.bands_corr = [    412,443,490,510,560,620,665,754,779,865]
-        self.bands_oc   = [    412,443,490,510,560,620,665,754,779,865]
-        self.bands_rw   = [400,412,443,490,510,560,620,665,754,779,865]
-
-        self.bands_lut = [400,412,443,490,510,560,620,665,674,681,
-                          709,754,760,764,767,779,865,885,900,940,
-                          1020,1375,1610,2250]
-
-        self.lut_file = '/home/francois/MERIS/POLYMER/LUTS/OLCI/LUT.hdf'
-
-        self.band_cloudmask = 865
-
-        # central wavelength of the detector where the Rayleigh optical thickness is calculated
-        # (detector 374 of camera 3)
-        self.central_wavelength = {
-                400 : 400.664  , 412 : 412.076 ,
-                443 : 443.183  , 490 : 490.713 ,
-                510 : 510.639  , 560 : 560.579 ,
-                620 : 620.632  , 665 : 665.3719,
-                674 : 674.105  , 681 : 681.66  ,
-                709 : 709.1799 , 754 : 754.2236,
-                760 : 761.8164 , 764 : 764.9075,
-                767 : 767.9734 , 779 : 779.2685,
-                865 : 865.4625 , 885 : 884.3256,
-                900 : 899.3162 , 940 : 939.02  ,
-                1020: 1015.9766, 1375: 1375.   ,
-                1610: 1610.    , 2250: 2250.   ,
-                }
-
-        # from SeaDAS v7.3.2
-        self.K_OZ = {
-                400 : 2.985E-06, 412 : 2.341E-04,
-                443 : 2.897E-03, 490 : 2.066E-02,
-                510 : 4.129E-02, 560 : 1.058E-01,
-                620 : 1.085E-01, 665 : 5.005E-02,
-                674 : 4.095E-02, 681 : 3.507E-02,
-                709 : 1.887E-02, 754 : 8.743E-03,
-                760 : 6.713E-03, 764 : 6.916E-03,
-                768 : 6.754E-03, 779 : 7.700E-03,
-                865 : 2.156E-03, 885 : 1.226E-03,
-                900 : 1.513E-03, 940 : 7.120E-04,
-                1020: 8.448E-05,
-                }
-
-        # from SeaDAS v7.3.2
-        self.K_NO2 = {
-                400 : 6.175E-19, 412 : 6.083E-19,
-                443 : 4.907E-19, 490 : 2.933E-19,
-                510 : 2.187E-19, 560 : 7.363E-20,
-                620 : 2.818E-20, 665 : 6.645E-21,
-                674 : 1.014E-20, 681 : 6.313E-21,
-                709 : 4.938E-21, 754 : 1.379E-21,
-                761 : 4.472E-22, 764 : 6.270E-22,
-                768 : 5.325E-22, 779 : 3.691E-22,
-                865 : 2.868E-23, 885 : 4.617E-23,
-                900 : 5.512E-23, 940 : 3.167E-24,
-                1020: 0.000E+00,
-                }
-
-        self.update(**kwargs)
-
-
-
 class Level1_OLCI(object):
     '''
     OLCI reader using the netcdf module
     '''
     def __init__(self, dirname, sline=0, eline=-1, blocksize=100):
+
+        self.sensor = 'OLCI'
 
         if not os.path.isdir(dirname):
             dirname = os.path.dirname(dirname)

@@ -14,66 +14,11 @@ if sys.version_info[:2] >= (3, 0):
     xrange = range
 
 
-class Params_MERIS(Params):
-    '''
-    MERIS-specific parameters
-    '''
-    def __init__(self, **kwargs):
-        super(self.__class__, self).__init__()
-
-        self.bands_corr = [412,443,490,510,560,620,665,        754,    779,865]
-        self.bands_oc =   [412,443,490,510,560,620,665,        754,    779,865]
-        self.bands_rw =   [412,443,490,510,560,620,665,        754,    779,865]
-
-        self.lut_file = '/home/francois/MERIS/POLYMER/LUTS/MERIS/LUTB.hdf'
-        self.bands_lut = [412,443,490,510,560,620,665,681,709,754,760,779,865,885,900]
-
-        self.band_cloudmask = 865
-
-        self.K_OZ = {
-                    412: 0.000301800 , 443: 0.00327200 ,
-                    490: 0.0211900   , 510: 0.0419600  ,
-                    560: 0.104100    , 620: 0.109100   ,
-                    665: 0.0511500   , 681: 0.0359600  ,
-                    709: 0.0196800   , 754: 0.00955800 ,
-                    760: 0.00730400  , 779: 0.00769300 ,
-                    865: 0.00219300  , 885: 0.00121100 ,
-                    900: 0.00151600  ,
-                }
-
-        self.K_NO2 = {
-                412: 6.074E-19 , 443: 4.907E-19,
-                490: 2.916E-19 , 510: 2.218E-19,
-                560: 7.338E-20 , 620: 2.823E-20,
-                665: 6.626E-21 , 681: 6.285E-21,
-                709: 4.950E-21 , 754: 1.384E-21,
-                760: 4.717E-22 , 779: 3.692E-22,
-                865: 2.885E-23 , 885: 4.551E-23,
-                900: 5.522E-23 ,
-                }
-
-        self.central_wavelength = {
-                412: 412.691 , 443: 442.559,
-                490: 489.882 , 510: 509.819,
-                560: 559.694 , 620: 619.601,
-                665: 664.573 , 681: 680.821,
-                709: 708.329 , 754: 753.371,
-                760: 761.508 , 779: 778.409,
-                865: 864.876 , 885: 884.944,
-                900: 900.000 ,
-                }
-
-        self.NO2_CLIMATOLOGY = '/home/francois/MERIS/POLYMER/auxdata/common/no2_climatology.hdf'
-        self.NO2_FRAC200M = '/home/francois/MERIS/POLYMER/auxdata/common/trop_f_no2_200m.hdf'
-
-        # update 
-        self.update(**kwargs)
-
-
 class Level1_MERIS(object):
 
     def __init__(self, filename, sline=0, eline=-1, blocksize=50):
 
+        self.sensor = 'MERIS'
         self.filename = filename
         self.prod = epr.Product(filename)
         self.width = self.prod.get_scene_width()
