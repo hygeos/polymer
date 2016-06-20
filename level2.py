@@ -12,8 +12,7 @@ class Level2(object):
     Context manager for level2 initialization
 
     Arguments:
-        fmt: format of level2
-
+        fmt: format of level2 (default hdf4)
         other kwargs are passed to the level2 object constructor
     '''
     def __init__(self, fmt='hdf4', **kwargs):
@@ -21,7 +20,8 @@ class Level2(object):
             from level2_hdf import Level2_HDF
             self.l2 = Level2_HDF(**kwargs)
         elif fmt == 'netcdf4':
-            raise NotImplementedError
+            from level2_nc import Level2_NETCDF
+            self.l2 = Level2_NETCDF(**kwargs)
         else:
             raise Exception('Invalid format "{}"'.format(fmt))
 

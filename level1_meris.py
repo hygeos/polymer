@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-from __future__ import print_function
-
+from __future__ import print_function, division
 import epr
 from block import Block
 import numpy as np
 from datetime import datetime
-from params import Params
 from common import L2FLAGS
 import sys
 if sys.version_info[:2] >= (3, 0):

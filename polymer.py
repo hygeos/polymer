@@ -213,11 +213,15 @@ class InitCorr(object):
         for i in xrange(block.nbands):
             ilut = params.bands_lut.index(block.bands[i])
 
+            wind = block.wind_speed[ok]
+            wmax = np.amax(mlut.axis('dim_wind'))
+            wind[wind > wmax] = wmax  # clip to max wind
+
             Rmolgli = mlut['Rmolgli'][
                     Idx(block.muv[ok]),
                     Idx(block.raa[ok]),
                     Idx(block.mus[ok]),
-                    ilut, Idx(block.wind_speed[ok])]
+                    ilut, Idx(wind)]
 
             wl = block.wavelen[ok,i]
             wl0 = self.params.central_wavelength[block.bands[i]]
@@ -235,9 +239,9 @@ class InitCorr(object):
             # TODO: share axes indices
             # and across wavelengths
             block.Tmol[ok,i]  = mlut['Tmolgli'][Idx(block.mus[ok]),
-                    ilut, Idx(block.wind_speed[ok])]
+                    ilut, Idx(wind)]
             block.Tmol[ok,i] *= mlut['Tmolgli'][Idx(block.muv[ok]),
-                    ilut, Idx(block.wind_speed[ok])]
+                    ilut, Idx(wind)]
 
             # correction for atmospheric pressure
             taumol = 0.00877*((block.wavelen[ok,i]/1000.)**-4.05)
@@ -294,19 +298,26 @@ def polymer(level1, level2=Level2(), **kwargs):
     '''
     Polymer atmospheric correction
 
+    ARGUMENTS
+
     level1: level1 instance
+        Example:
+        Level1_MERIS('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1', sline=1500, eline=2000)
+
     level2: context manager for level2 initialization
+        argument fmt determines the level2 class to use
+        ('hdf4, 'netcdf')
+        See appropriate Level2_* class for argument list
+        Example:
+        Level2(fmt='hdf4', ext='.polymer.hdf', outdir='/data/')
 
     Additional keyword arguments:
-    * multiprocessing: if True, activate multiprocessing mode
-    * partial: 0 -> full processing (default)
-               1 -> stop before minimization
-               2 -> stop before Rayleigh correction
-               3 -> stop before cloud mask
-               4 -> stop before gaseous absorption correction
-               5 -> stop before conversion to reflectance
-    * ...
-
+    see attributes defined in Params class
+    Examples:
+    - multiprocessing: boolean
+        whether to use all multiple threads (as many as there are
+        cpus)
+    - dir_base: location of base directory to locate auxiliary data
     '''
 
     t0 = datetime.now()
@@ -331,6 +342,7 @@ def polymer(level1, level2=Level2(), **kwargs):
         for block in block_iter:
             l2.write(block)
 
+        params.processing_duration = datetime.now()-t0
         l2.finish(params)
 
         print('Done in {}'.format(datetime.now()-t0))

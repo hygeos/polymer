@@ -57,5 +57,6 @@ class Level2_NETCDF(Level2_file):
                 raise Exception('Error ndim')
 
     def finish(self, params):
+        # TODO: write attributes
         self.root.close()
 

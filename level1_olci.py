@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-from params import Params
+from __future__ import print_function, division
 import numpy as np
 from block import Block
 from common import L2FLAGS
 from netCDF4 import Dataset
 from scipy.ndimage import map_coordinates
 from datetime import datetime
+from ancillary import Provider
 import os
 
 
@@ -16,7 +16,8 @@ class Level1_OLCI(object):
     '''
     OLCI reader using the netcdf module
     '''
-    def __init__(self, dirname, sline=0, eline=-1, blocksize=100):
+    def __init__(self, dirname, sline=0, eline=-1,
+                 blocksize=100, provider=Provider()):
 
         self.sensor = 'OLCI'
 
@@ -25,6 +26,7 @@ class Level1_OLCI(object):
 
         self.dirname = dirname
         self.filename = dirname
+        self.provider = provider
         self.nc_datasets = {}
 
         # get product shape
@@ -81,6 +83,8 @@ class Level1_OLCI(object):
         for i in range(len(fmeaning)):
             self.quality_flags[fmeaning[i]] = fmask[i]
 
+        self.wind_speed = self.provider.get('wind speed', self.date())
+
 
     def get_ncroot(self, filename):
         if filename in self.nc_datasets:
@@ -136,11 +140,17 @@ class Level1_OLCI(object):
         return data
 
 
-    def get_date(self):
-        var = self.get_ncroot('Oa01_radiance.nc')
-        dstart = datetime.strptime(var.getncattr('start_time'), '%Y-%m-%dT%H:%M:%S.%fZ')
+    def date(self):
+        try:
+            return self.__date
+        except:
+            var = self.get_ncroot('Oa01_radiance.nc')
+            dstart = datetime.strptime(var.getncattr('start_time'), '%Y-%m-%dT%H:%M:%S.%fZ')
+            dstop  = datetime.strptime(var.getncattr('stop_time'), '%Y-%m-%dT%H:%M:%S.%fZ')
 
-        return dstart
+            self.__date = dstart + (dstop - dstart)//2
+
+            return self.__date
 
     def read_block(self, size, offset, bands):
 
@@ -180,7 +190,7 @@ class Level1_OLCI(object):
             block.wavelen[:,:,iband] = self.lam0[self.band_index[band], di]
 
         # julian day
-        block.jday = self.get_date().timetuple().tm_yday
+        block.jday = self.date().timetuple().tm_yday
 
         # read total ozone in kg/m2
         block.ozone = self.read_band('total_ozone', size, offset)
@@ -189,7 +199,7 @@ class Level1_OLCI(object):
         # read sea level pressure in hPa
         block.surf_press = self.read_band('sea_level_pressure', size, offset)
 
-        block.wind_speed = np.zeros((ysize, xsize)) + 5.   # FIXME
+        block.wind_speed = self.wind_speed[block.latitude, block.longitude]
 
         # quality flags
         bitmask = self.read_band('quality_flags', size, offset)

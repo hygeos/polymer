@@ -8,10 +8,11 @@ from glob import glob
 from lxml import objectify
 from os.path import join
 import numpy as np
-from params import Params
 from block import Block
-from utils import rectBivariateSpline
+from utils import rectBivariateSpline, landmask
 import pyproj
+from ancillary import Provider
+from common import L2FLAGS
 
 '''
 List of MSI bands:
@@ -34,24 +35,17 @@ B12  SWIR 2      2190nm     20m
 '''
 
 
-class Params_MSI(Params):
-
-    def __init__(self, **kwargs):
-
-        super(self.__class__, self).__init__()
-
-
-        self.update(**kwargs)
-
 
 class Level1_MSI(object):
 
-    def __init__(self, dirname, blocksize=100, resolution='60', sline=0, eline=-1):
+    def __init__(self, dirname, blocksize=100, resolution='60',
+                 sline=0, eline=-1, provider=Provider()):
         '''
         dirname: granule dirname
 
         resolution: 60, 20 or 10m
         '''
+        self.sensor = 'MSI'
         self.dirname = dirname
         self.filename = dirname
         self.blocksize = blocksize
@@ -228,7 +222,11 @@ class Level1_MSI(object):
             QUANTIF = 10000
             block.Rtoa[:,:,iband] = self.read_TOA(band, size, offset)/QUANTIF
 
-        block.bitmask = np.zeros(size, dtype='uint16') # FIXME
+        block.bitmask = np.zeros(size, dtype='uint16')
+        block.bitmask += L2FLAGS['LAND']*landmask(
+                block.latitude, block.longitude,
+                resolution='f').astype('uint16')
+
         block.ozone = np.zeros(size, dtype='float32') + 300.  # FIXME
         block.wind_speed = np.zeros(size, dtype='float32') + 5.  # FIXME
         block.surf_press = np.zeros(size, dtype='float32') + 1013.   # FIXME

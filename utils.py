@@ -46,13 +46,15 @@ def safemove(A, B):
 def landmask(lat, lon, resolution='l'):
     '''
     returns a land mask for coordinates (lat, lon)
+    (1 <=> LAND)
 
     resolution :     gshhs coastline resolution used to define land/sea
                      mask (default 'l', available 'c','l','i','h' or 'f')
 
     (uses basemap)
     '''
-    return maskoceans(lon, lat, zeros_like(lat), resolution=resolution).mask
+    landmask = ~maskoceans(lon, lat, zeros_like(lat), resolution=resolution).mask
+    return landmask
 
 
 def stdev(S, S2, N, fillv=NaN):

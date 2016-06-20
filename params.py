@@ -53,9 +53,12 @@ class Params(object):
         self.constraint_bbs = [1e-3, 0.2258, 0.9233]
 
         self.partial = 0    # whether to perform partial processing
-                            #       0: standard processing
-                            #       1: stop at minimize
-                            #       2: stop at rayleigh correction
+                            #   0: standard processing
+                            #   1: stop before minimize
+                            #   2: stop before rayleigh correction
+                            #   3: stop before cloud mask
+                            #   4: stop before gaseous correction
+                            #   5: stop before conversion to reflectance
 
         self.multiprocessing = False
 
@@ -126,6 +129,7 @@ class Params(object):
 
         self.NO2_CLIMATOLOGY = join(self.dir_base, 'auxdata/common/no2_climatology.hdf')
         self.NO2_FRAC200M = join(self.dir_base, 'auxdata/common/trop_f_no2_200m.hdf')
+
 
     def defaults_olci(self):
         '''
