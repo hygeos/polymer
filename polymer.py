@@ -253,7 +253,7 @@ def process_block(args):
     Process one block of data
     '''
 
-    (block, c, params, opt) = args
+    (block, c, opt) = args
 
     if opt is None:
         opt = c.init_minimizer()
@@ -266,7 +266,7 @@ def process_block(args):
 
     c.rayleigh_correction(block)
 
-    opt.minimize(block, params)
+    opt.minimize(block)
 
     return block
 
@@ -289,7 +289,7 @@ def blockiterator(level1, params, multi=False):
 
     for block in level1.blocks(params.bands_read()):
 
-        yield (block, c, params, opt)
+        yield (block, c, opt)
 
 
 

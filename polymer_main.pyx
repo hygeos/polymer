@@ -241,6 +241,7 @@ cdef class PolymerMinimizer:
     cdef float size_end_iter
     cdef int max_iter
     cdef int L2_FLAG_CASE2
+    cdef object params
 
     def __init__(self, watermodel, params):
 
@@ -257,6 +258,7 @@ cdef class PolymerMinimizer:
         self.size_end_iter = params.size_end_iter
         self.max_iter = params.max_iter
         self.L2_FLAG_CASE2 = L2FLAGS['CASE2']
+        self.params = params
 
     cdef loop(self, block,
               float[:,:,:,:] A,
@@ -369,15 +371,13 @@ cdef class PolymerMinimizer:
             PyErr_CheckSignals()
 
 
-    def minimize(self, block, params):
+    def minimize(self, block):
         '''
         Call minimization code for a block
         (def method visible from python code)
         '''
-        # FIXME
-        # avoid passing params several times
 
-        if params.partial >= 1:
+        if self.params.partial >= 1:
             return
 
         # calculate glint reflectance from wind speed
@@ -389,11 +389,11 @@ cdef class PolymerMinimizer:
 
         # calculate the atmospheric inversion coefficients
         # at bands_corr
-        A = atm_func(block, params, params.bands_corr)
+        A = atm_func(block, self.params, self.params.bands_corr)
         pA = pseudoinverse(A)
 
         # the model coefficients, at bands_read
-        A = atm_func(block, params, params.bands_read())
+        A = atm_func(block, self.params, self.params.bands_read())
 
         self.loop(block, A, pA)
 
