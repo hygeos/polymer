@@ -7,6 +7,13 @@ import numpy as np
 from os import remove
 from os.path import exists, join, basename
 
+default_datasets = [
+            'latitude', 'longitude',
+            'Rw', 'Rnir', 'bitmask',
+            'logchl', 'Rgli']
+analysis_datasets = ['Rtoa', 'Rprime', 'vza', 'sza', 'raa', 'niter']
+ancillary_datasets = ['ozone', 'surf_press', 'wind_speed']
+
 class Level2(object):
     '''
     Context manager for level2 initialization
@@ -15,6 +22,7 @@ class Level2(object):
         fmt: format of level2 (default hdf4)
         other kwargs are passed to the level2 object constructor
     '''
+
     def __init__(self, fmt='hdf4', **kwargs):
         if not 'ext' in kwargs:
             kwargs['ext'] = '.polymer.hdf'
@@ -39,13 +47,6 @@ class Level2_base(object):
     '''
     Base level 2 class (just store the product in memory)
     '''
-    default_datasets = [
-                'latitude', 'longitude',
-                'Rtoa', 'vza', 'sza', 'raa',
-                'Rprime',
-                'Rw', 'Rnir', 'bitmask',
-                'logchl', 'niter', 'Rgli']
-
     def __init__(self, datasets=None):
         self.datasets = datasets
 
@@ -53,7 +54,7 @@ class Level2_base(object):
         self.shape = level1.shape
 
         if self.datasets is None:
-            self.datasets = self.default_datasets
+            self.datasets = default_datasets
 
     def write(self, block):
         assert self.shape is not None

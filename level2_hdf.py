@@ -94,6 +94,8 @@ class Level2_HDF(Level2_file):
         if name not in self.sdslist:
             dtype = self.typeconv[data.dtype]
             self.sdslist[name] = self.hdf(name).create(name, dtype, self.shape)
+            if dtype in [SDC.FLOAT32, SDC.FLOAT64]:
+                self.sdslist[name].setfillvalue(np.NaN)
 
         # write
         self.sdslist[name][S] = data[:,:]

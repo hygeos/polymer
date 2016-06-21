@@ -14,7 +14,7 @@ if sys.version_info[:2] >= (3, 0):
 
 class Level1_MERIS(object):
 
-    def __init__(self, filename, sline=0, eline=-1, blocksize=50):
+    def __init__(self, filename, sline=0, eline=-1, blocksize=100):
 
         self.sensor = 'MERIS'
         self.filename = filename

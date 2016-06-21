@@ -168,14 +168,18 @@ def atm_func(block, params, bands):
     Ncoef = 3   # number of polynomial coefficients
     A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
 
-    # FIXME: block.bands -> block.wavelen
     taum = 0.00877*((np.array(block.bands)[idx]/1000.)**(-4.05))
     Rgli0 = 0.02
     T0 = np.exp(-taum*((1-0.5*np.exp(-block.Rgli/Rgli0))*block.air_mass)[:,:,None])
 
     A[:,:,:,0] = T0*(lam/1000.)**0.
     A[:,:,:,1] = (lam/1000.)**-1.
-    A[:,:,:,2] = (lam/1000.)**-4.
+    if params.atm_model == 'T0,-1,-4':
+        A[:,:,:,2] = (lam/1000.)**-4.
+    elif params.atm_model == 'T0,-1,Rmol':
+        A[:,:,:,2] = block.Rmol[:,:,idx]
+    else:
+        raise Exception('Invalid atmospheric model "{}"'.format(params.atm_model))
 
     return A
 
@@ -307,6 +311,7 @@ cdef class PolymerMinimizer:
 
                 if (bitmask[i,j] & self.BITMASK_INVALID) != 0:
                     logchl[i,j] = self.NaN
+                    Rw[i,j,:] = self.NaN
                     continue
 
                 self.f.init_pixel(

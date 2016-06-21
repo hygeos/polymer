@@ -60,6 +60,7 @@ class Params(object):
                             #   4: stop before gaseous correction
                             #   5: stop before conversion to reflectance
 
+        self.atm_model = 'T0,-1,Rmol'
         self.normalize = True
 
         self.multiprocessing = False
