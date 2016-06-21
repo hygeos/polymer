@@ -81,8 +81,6 @@ class Provider(object):
         # TODO
         # interpolate between 2 bracketing datasets
 
-        print('Fetch parameter "{}" at date {}'.format(param, date))
-
         if param == 'wind_speed':
             if self.meteo is None:
                 self.meteo = self.find_meteo(date)
@@ -142,31 +140,37 @@ class Provider(object):
 
         url = date.strftime(self.url+pattern)
         target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
-        if not exists(target) and self.download(url, target):
-            return None
-        else:
-            return target
+        if not exists(target):
+            if self.download(url, target):
+                print('Trying to download', url)
+                return None
+        return target
 
     def find_meteo(self, date):
 
-        dm0 = datetime(date.year, date.month, date.day,
+        d0 = datetime(date.year, date.month, date.day,
                        6*int(date.hour/6.))
-        filename = self.try_resource('N%Y%j%H_MET_NCEP_6h.hdf', dm0)
-        assert filename is not None, 'Could not find any valid meteo file'
+        for pat in [
+                'N%Y%j%H_MET_NCEP_6h.hdf',
+                'S%Y%j%H_NCEP.MET',
+                ]:
+            filename = self.try_resource(pat, d0)
+            if filename is not None:
+                return filename
 
-        return filename
+        raise Exception('Could not find any valid meteo file for {}'.format(d0))
 
     def find_ozone(self, date):
 
-        dm0 = datetime(date.year, date.month, date.day)
+        d0 = datetime(date.year, date.month, date.day)
         for i in range(10):
             for pat in [
                     'N%Y%j00_O3_AURAOMI_24h.hdf',
                     'S%Y%j00%j23_TOAST.OZONE',
                     'N%Y%j00_O3_EPTOMS_24h.hdf',
                     ]:
-                filename = self.try_resource(pat, dm0 - timedelta(days=1))
-                if filename != None:
+                filename = self.try_resource(pat, d0 - timedelta(days=1))
+                if filename is not None:
                     return filename
         raise Exception('Could not find any valid ozone file')
 

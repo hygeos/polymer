@@ -3,6 +3,7 @@ cimport numpy as np
 from numpy.linalg import inv
 from common import BITMASK_INVALID, L2FLAGS
 from libc.math cimport nan, exp, log
+from cpython.exc cimport PyErr_CheckSignals
 
 from neldermead cimport NelderMeadMinimizer
 from water cimport WaterModel
@@ -362,6 +363,10 @@ cdef class PolymerMinimizer:
 
             # reinitialize
             x0[:] = self.initial_point_1[:]
+
+            # check for pending signals
+            # (allowing to interrupt execution)
+            PyErr_CheckSignals()
 
 
     def minimize(self, block, params):

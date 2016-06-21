@@ -16,6 +16,9 @@ class Level2(object):
         other kwargs are passed to the level2 object constructor
     '''
     def __init__(self, fmt='hdf4', **kwargs):
+        if not 'ext' in kwargs:
+            kwargs['ext'] = '.polymer.hdf'
+
         if fmt == 'hdf4':
             from level2_hdf import Level2_HDF
             self.l2 = Level2_HDF(**kwargs)

@@ -8,6 +8,7 @@ from itertools import product
 from block import Block
 from datetime import datetime
 from ancillary import Provider
+from common import L2FLAGS
 
 
 class Level1_NASA(object):
@@ -49,9 +50,16 @@ class Level1_NASA(object):
         else:
             self.width = erow - srow
 
+        # initializa ancillary data
         self.ozone = self.provider.get('ozone', self.date())
         self.wind_speed = self.provider.get('wind_speed', self.date())
         self.surf_press = self.provider.get('surf_press', self.date())
+
+        # read flag meanings
+        var = self.root.groups['geophysical_data'].variables['l2_flags']
+        flags = list(var.getncattr('flag_masks'))
+        meanings = str(var.getncattr('flag_meanings')).split()
+        self.flag_meanings = dict(zip(meanings, flags))
 
 
     def read_block(self, size, offset, bands):
@@ -87,7 +95,10 @@ class Level1_NASA(object):
 
             block.Rtoa[:,:,iband] = Rtoa/polcor
 
+        # bitmask
         block.bitmask = np.zeros(size, dtype='uint16')
+        flags = self.root.groups['geophysical_data'].variables['l2_flags'][SY, SX]
+        block.bitmask += L2FLAGS['LAND']*(flags & self.flag_meanings['LAND'] != 0).astype('uint16')
 
         block.ozone = self.ozone[block.latitude, block.longitude]
         block.wind_speed = self.wind_speed[block.latitude, block.longitude]
