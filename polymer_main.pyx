@@ -242,6 +242,7 @@ cdef class PolymerMinimizer:
     cdef int max_iter
     cdef int L2_FLAG_CASE2
     cdef object params
+    cdef int normalize
 
     def __init__(self, watermodel, params):
 
@@ -259,6 +260,7 @@ cdef class PolymerMinimizer:
         self.max_iter = params.max_iter
         self.L2_FLAG_CASE2 = L2FLAGS['CASE2']
         self.params = params
+        self.normalize = params.normalize
 
     cdef loop(self, block,
               float[:,:,:,:] A,
@@ -360,7 +362,23 @@ cdef class PolymerMinimizer:
                     Ratm[i,j,ib] = self.f.Ratm[ib]
 
                 # water reflectance normalization
-                # TODO
+                if self.normalize:
+                    # Rw -> Rw*Rwmod[nadir]/Rwmod
+
+                    for ib in range(len(self.f.Rwmod)):
+                        Rw[i,j,ib] /= self.f.Rwmod[ib]
+
+                    # calculate model reflectance at nadir
+                    self.f.init_pixel(
+                            Rprime[i,j,:],
+                            A[i,j,:,:], pA[i,j,:,:],
+                            Tmol[i,j,:],
+                            wav[i,j,:],
+                            0., 0., 0.)
+                    self.f.w.calc_rho(self.f.xmin)
+
+                    for ib in range(len(self.f.Rwmod)):
+                        Rw[i,j,ib] *= self.f.Rwmod[ib]
 
 
             # reinitialize

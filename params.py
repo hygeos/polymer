@@ -60,6 +60,8 @@ class Params(object):
                             #   4: stop before gaseous correction
                             #   5: stop before conversion to reflectance
 
+        self.normalize = True
+
         self.multiprocessing = False
 
         # no2 absorption data
