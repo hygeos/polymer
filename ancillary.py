@@ -4,7 +4,7 @@
 from __future__ import print_function, division
 from os.path import isdir
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from pyhdf.SD import SD
 import numpy as np
 from os import makedirs, system, remove
@@ -66,11 +66,12 @@ class Provider(object):
     directory
     '''
     def __init__(self, meteo=None, ozone=None,
-                 directory='ANCILLARY/METEO/', download=False):
+                 directory='ANCILLARY/METEO/', offline=False):
         self.meteo = meteo
         self.ozone = ozone
         self.directory = directory
-        self.__download = download
+        self.offline = offline
+        self.url = 'http://oceandata.sci.gsfc.nasa.gov/cgi/getfile/'
 
         assert isdir(directory)
 
@@ -82,7 +83,7 @@ class Provider(object):
 
         print('Fetch parameter "{}" at date {}'.format(param, date))
 
-        if param == 'wind speed':
+        if param == 'wind_speed':
             if self.meteo is None:
                 self.meteo = self.find_meteo(date)
             # read m_wind and z_wind
@@ -90,6 +91,22 @@ class Provider(object):
             mwind = SD(self.meteo).select('m_wind').get()
             wind = np.sqrt(zwind*zwind + mwind*mwind)
             return LUT_LatLon(wind)
+
+        elif param == 'surf_press':
+            if self.meteo is None:
+                self.meteo = self.find_meteo(date)
+            press = SD(self.meteo).select('press').get()
+            return LUT_LatLon(press)
+
+        elif param == 'ozone':
+            if self.ozone is None:
+                self.ozone = self.find_ozone(date)
+
+            sds = SD(self.ozone).select('ozone')
+            assert 'Dobson units' in sds.attributes()['units']
+            ozone = sds.get()
+            return LUT_LatLon(ozone)
+
         else:
             raise Exception('Invalid parameter "{}"'.format(param))
 
@@ -98,7 +115,8 @@ class Provider(object):
 
         # check that remote file exists
         r = requests.head(url)
-        assert r.status_code == requests.codes.ok
+        if r.status_code != requests.codes.ok:
+            return 1
 
         # download that file
         if not exists(dirname(target)):
@@ -117,15 +135,39 @@ class Provider(object):
             t.write(content)
             print('Done')
 
+        return 0
+
+
+    def try_resource(self, pattern, date):
+
+        url = date.strftime(self.url+pattern)
+        target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
+        if not exists(target) and self.download(url, target):
+            return None
+        else:
+            return target
 
     def find_meteo(self, date):
 
         dm0 = datetime(date.year, date.month, date.day,
                        6*int(date.hour/6.))
-        url = dm0.strftime('http://oceandata.sci.gsfc.nasa.gov/cgi/getfile/N%Y%j%H_MET_NCEP_6h.hdf')
-        target = dm0.strftime(join(self.directory, '%Y/%j/N%Y%j%H_MET_NCEP_6h.hdf'))
-        if not exists(target):
-            self.download(url, target)
+        filename = self.try_resource('N%Y%j%H_MET_NCEP_6h.hdf', dm0)
+        assert filename is not None, 'Could not find any valid meteo file'
 
-        return target
+        return filename
+
+    def find_ozone(self, date):
+
+        dm0 = datetime(date.year, date.month, date.day)
+        for i in range(10):
+            for pat in [
+                    'N%Y%j00_O3_AURAOMI_24h.hdf',
+                    'S%Y%j00%j23_TOAST.OZONE',
+                    'N%Y%j00_O3_EPTOMS_24h.hdf',
+                    ]:
+                filename = self.try_resource(pat, dm0 - timedelta(days=1))
+                if filename != None:
+                    return filename
+        raise Exception('Could not find any valid ozone file')
+
 

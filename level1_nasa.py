@@ -6,6 +6,8 @@ from netCDF4 import Dataset
 import numpy as np
 from itertools import product
 from block import Block
+from datetime import datetime
+from ancillary import Provider
 
 
 class Level1_NASA(object):
@@ -17,7 +19,7 @@ class Level1_NASA(object):
         - MODIS
     '''
     def __init__(self, filename, sensor=None, blocksize=(500, 400),
-                 sline=0, eline=-1, srow=0, erow=-1):
+                 sline=0, eline=-1, srow=0, erow=-1, provider=None):
         self.sensor = sensor
         self.filename = filename
         self.root = Dataset(filename)
@@ -27,6 +29,11 @@ class Level1_NASA(object):
         self.sline = sline
         self.srow = srow
         self.blocksize = blocksize
+        if provider is None:
+            self.provider = Provider()
+        else:
+            self.provider = provider
+
 
         if eline < 0:
             self.height = self.totalheight
@@ -41,6 +48,10 @@ class Level1_NASA(object):
             self.width += erow + 1
         else:
             self.width = erow - srow
+
+        self.ozone = self.provider.get('ozone', self.date())
+        self.wind_speed = self.provider.get('wind_speed', self.date())
+        self.surf_press = self.provider.get('surf_press', self.date())
 
 
     def read_block(self, size, offset, bands):
@@ -78,11 +89,11 @@ class Level1_NASA(object):
 
         block.bitmask = np.zeros(size, dtype='uint16')
 
-        block.ozone = np.zeros(size, dtype='float32') + 300.  # FIXME
-        block.wind_speed = np.zeros(size, dtype='float32') + 5.  # FIXME
-        block.surf_press = np.zeros(size, dtype='float32') + 1013.   # FIXME
+        block.ozone = self.ozone[block.latitude, block.longitude]
+        block.wind_speed = self.wind_speed[block.latitude, block.longitude]
+        block.surf_press = self.surf_press[block.latitude, block.longitude]
 
-        block.jday = 120  # FIXME
+        block.jday = self.date().timetuple().tm_yday
 
         block.wavelen = np.zeros(size3, dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
@@ -91,6 +102,19 @@ class Level1_NASA(object):
         print('Read', block)
 
         return block
+
+    def date(self):
+        try:
+            return self.__date
+        except:
+            dstart = datetime.strptime(self.root.getncattr('time_coverage_start'),
+                                      '%Y-%m-%dT%H:%M:%S.%fZ')
+            dstop = datetime.strptime(self.root.getncattr('time_coverage_end'),
+                                      '%Y-%m-%dT%H:%M:%S.%fZ')
+
+            self.__date = dstart + (dstop - dstart)//2
+
+            return self.__date
 
 
     def blocks(self, bands_read):

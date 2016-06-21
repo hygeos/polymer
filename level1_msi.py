@@ -35,11 +35,10 @@ B12  SWIR 2      2190nm     20m
 '''
 
 
-
 class Level1_MSI(object):
 
     def __init__(self, dirname, blocksize=100, resolution='60',
-                 sline=0, eline=-1, provider=Provider()):
+                 sline=0, eline=-1, provider=None):
         '''
         dirname: granule dirname
 
@@ -53,6 +52,11 @@ class Level1_MSI(object):
         assert isinstance(resolution, str)
         self.sline = sline
         self.eline = eline
+
+        if provider is None:
+            self.provider = Provider()
+        else:
+            self.provider = provider
 
         self.band_names = {
                 443 : 'B01', 490 : 'B02',

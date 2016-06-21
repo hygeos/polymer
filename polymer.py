@@ -136,7 +136,7 @@ class InitCorr(object):
         # ozone correction
         #
         # make sure that ozone is in DU
-        if (block.ozone < 50).any() or (block.ozone > 1000).any():
+        if (block.ozone[ok] < 50).any() or (block.ozone[ok] > 1000).any():
             raise Exception('Error, ozone is assumed in DU')
 
         # bands loop
