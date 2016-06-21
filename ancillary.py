@@ -33,6 +33,9 @@ class LUT_LatLon(object):
                 )
 
     def __getitem__(self, coords):
+        '''
+        Bi-directional linear interpolation over latitude and longitude
+        '''
 
         lat, lon = coords
 

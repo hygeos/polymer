@@ -77,6 +77,12 @@ class Params(object):
             self.defaults_msi()
         elif sensor == 'OLCI':
             self.defaults_olci()
+        elif sensor == 'VIIRS':
+            self.defaults_viirs()
+        elif sensor == 'MODIS':
+            self.defaults_olci()
+        elif sensor == 'SeaWiFS':
+            self.defaults_seawifs()
         else:
             raise Exception('Params.sensor_specific: invalid sensor "{}"'.format(sensor))
 
@@ -196,7 +202,6 @@ class Params(object):
                 }
 
     def defaults_msi(self):
-
         self.lut_file = join(self.dir_base, 'LUTS/MSI/LUT.hdf')
 
         # FIXME
@@ -205,15 +210,9 @@ class Params(object):
         self.bands_rw   = [443,490,560,665,705,740,783,    865,         1610,    ]
 
         self.bands_lut =  [443,490,560,665,705,740,783,842,865,945,1375,1610,2190]
-        self.central_wavelength = {
-                443 : 443., 490 : 490.,
-                560 : 560., 665 : 665.,
-                705 : 705., 740 : 740.,
-                783 : 783., 842 : 842.,
-                865 : 865., 945 : 945.,
-                1375: 1375., 1610: 1610.,
-                2190: 2190.,
-                }
+        self.central_wavelength = dict(map(
+            lambda x: (x, float(x)),
+            [443,490,560,665,705,740,783,842,865,945,1375,1610,2190]))
 
         self.band_cloudmask = 865
 
@@ -249,6 +248,47 @@ class Params(object):
                 2190: 0.,
                 }
 
+    def defaults_viirs(self):
+
+        self.bands_corr = [410,443,486,551,671,745,862]
+        self.bands_oc   = [410,443,486,551,671,745,862]
+        self.bands_rw   = [410,443,486,551,671,745,862]
+        self.bands_lut  = [410,443,486,551,671,745,862,1238,1601,2257]
+
+        self.band_cloudmask = 862
+
+        self.central_wavelength = dict(map(
+            lambda x: (x, float(x)),
+            [410,443,486,551,671,745,862,1238,1601,2257]))
+
+        self.K_OZ = {  # from SeaDAS
+                410: 5.827E-04,
+                443: 3.079E-03,
+                486: 1.967E-02,
+                551: 8.934E-02,
+                671: 4.427E-02,
+                745: 1.122E-02,
+                862: 2.274E-03,
+                1238:0.
+                }
+        self.K_NO2 = {  # from SeaDAS
+                410: 5.914E-19,
+                443: 5.013E-19,
+                486: 3.004E-19,
+                551: 1.050E-19,
+                671: 1.080E-20,
+                745: 2.795E-21,
+                862: 3.109E-22,
+                1238:0.000E+00,
+                }
+
+        self.lut_file = join(self.dir_base, 'LUTS/VIIRS/LUT.hdf')
+
+    def defaults_seawifs(self):
+        raise NotImplementedError
+
+    def defaults_modis(self):
+        raise NotImplementedError
 
     def bands_read(self):
         assert (np.diff(self.bands_corr) > 0).all()

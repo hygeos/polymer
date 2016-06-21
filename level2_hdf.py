@@ -38,7 +38,10 @@ class Level2_HDF(Level2_file):
         self.compress = compress
         self.outdir = outdir
         self.ext = ext
-        self.tmpdir = tmpdir
+
+        # temporary directories
+        self.__tmpdir = tmpdir  # base dir
+        self.tmpdir = None      # sub dir, should be removed
 
         self.sdslist = {}
         self.typeconv = {
@@ -51,10 +54,10 @@ class Level2_HDF(Level2_file):
     def init(self, level1):
         super(self.__class__, self).init(level1)
 
-        if self.tmpdir is None:
+        if self.__tmpdir is None:
             tmpdir = dirname(self.filename)
         else:
-            tmpdir = tempfile.mkdtemp(dir=self.tmpdir, prefix='level2_hdf_tmp_')
+            tmpdir = tempfile.mkdtemp(dir=self.__tmpdir, prefix='level2_hdf_tmp_')
             self.tmpdir = tmpdir
 
         self.tmpfilename = join(tmpdir, basename(self.filename) + '.tmp')
@@ -157,7 +160,7 @@ class Level2_HDF(Level2_file):
         safemove(self.tmpfilename, self.filename)
 
     def cleanup(self):
-        if self.tmpdir is not None:
+        if (self.__tmpdir is not None) and (self.tmpdir is not None):
             rmtree(self.tmpdir)
 
 

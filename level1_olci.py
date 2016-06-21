@@ -17,7 +17,7 @@ class Level1_OLCI(object):
     OLCI reader using the netcdf module
     '''
     def __init__(self, dirname, sline=0, eline=-1,
-                 blocksize=100, provider=Provider()):
+                 blocksize=100, provider=None):
 
         self.sensor = 'OLCI'
 
@@ -26,7 +26,10 @@ class Level1_OLCI(object):
 
         self.dirname = dirname
         self.filename = dirname
-        self.provider = provider
+        if provider is None:
+            self.provider = Provider()
+        else:
+            self.provider = provider
         self.nc_datasets = {}
 
         # get product shape

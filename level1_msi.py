@@ -223,9 +223,10 @@ class Level1_MSI(object):
             block.Rtoa[:,:,iband] = self.read_TOA(band, size, offset)/QUANTIF
 
         block.bitmask = np.zeros(size, dtype='uint16')
-        block.bitmask += L2FLAGS['LAND']*landmask(
-                block.latitude, block.longitude,
-                resolution='f').astype('uint16')
+        # FIXME: insufficient resolution
+        # block.bitmask += L2FLAGS['LAND']*landmask(
+                # block.latitude, block.longitude,
+                # resolution='f').astype('uint16')
 
         block.ozone = np.zeros(size, dtype='float32') + 300.  # FIXME
         block.wind_speed = np.zeros(size, dtype='float32') + 5.  # FIXME
