@@ -107,7 +107,7 @@ class Level2_file(Level2_base):
                 raise IOError('File "{}" exists'.format(self.filename))
 
         if self.datasets is None:
-            self.datasets = self.default_datasets
+            self.datasets = default_datasets
 
         print('Initializing output file "{}"'.format(self.filename))
 

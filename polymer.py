@@ -69,6 +69,14 @@ class InitCorr(object):
 
             block.Rtoa[ok,i] = block.Ltoa[ok,i]*np.pi/(block.mus[ok]*block.F0[ok,i]*coef)
 
+    def apply_calib(self, block):
+        '''
+        Apply calibration coefficients on Rtoa
+        '''
+        ok = (block.bitmask & BITMASK_INVALID) == 0
+        for i, b in enumerate(block.bands):
+            block.Rtoa[ok,i] *= self.params.calib[b]
+
 
     def read_no2_data(self, month):
 
@@ -259,6 +267,8 @@ def process_block(args):
         opt = c.init_minimizer()
 
     c.convert_reflectance(block)
+
+    c.apply_calib(block)
 
     c.gas_correction(block)
 

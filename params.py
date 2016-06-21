@@ -103,6 +103,17 @@ class Params(object):
 
         self.band_cloudmask = 865
 
+        self.calib = {
+                    412: 1.0, 443: 1.0,
+                    490: 1.0, 510: 1.0,
+                    560: 1.0, 620: 1.0,
+                    665: 1.0, 681: 1.0,
+                    709: 1.0, 754: 1.0,
+                    760: 1.0, 779: 1.0,
+                    865: 1.0, 885: 1.0,
+                    900: 1.0,
+                }
+
         self.K_OZ = {
                     412: 0.000301800 , 443: 0.00327200 ,
                     490: 0.0211900   , 510: 0.0419600  ,
@@ -156,6 +167,22 @@ class Params(object):
         self.lut_file = join(self.dir_base, 'LUTS/OLCI/LUT.hdf')
 
         self.band_cloudmask = 865
+
+        self.calib = {
+                400 : 1.0, 412 : 1.0,
+                443 : 1.0, 490 : 1.0,
+                510 : 1.0, 560 : 1.0,
+                620 : 1.0, 665 : 1.0,
+                674 : 1.0, 681 : 1.0,
+                709 : 1.0, 754 : 1.0,
+                760 : 1.0, 764 : 1.0,
+                767 : 1.0, 779 : 1.0,
+                865 : 1.0, 885 : 1.0,
+                900 : 1.0, 940 : 1.0,
+                1020: 1.0, 1375: 1.0,
+                1610: 1.0, 2250: 1.0,
+                }
+
 
         # central wavelength of the detector where the Rayleigh optical thickness is calculated
         # (detector 374 of camera 3)
@@ -219,6 +246,22 @@ class Params(object):
 
         self.band_cloudmask = 865
 
+        self.calib = {
+                443 : 1.0,
+                490 : 1.0,
+                560 : 1.0,
+                665 : 1.0,
+                705 : 1.0,
+                740 : 1.0,
+                783 : 1.0,
+                842 : 1.0,
+                865 : 1.0,
+                945 : 1.0,
+                1375: 1.0,
+                1610: 1.0,
+                2190: 1.0,
+                }
+
         self.K_OZ = {   # FIXME
                 443 : 0.,
                 490 : 0.,
@@ -253,6 +296,8 @@ class Params(object):
 
     def defaults_viirs(self):
 
+        self.lut_file = join(self.dir_base, 'LUTS/VIIRS/LUT.hdf')
+
         self.bands_corr = [410,443,486,551,671,745,862]
         self.bands_oc   = [410,443,486,551,671,745,862]
         self.bands_rw   = [410,443,486,551,671,745,862]
@@ -263,6 +308,17 @@ class Params(object):
         self.central_wavelength = dict(map(
             lambda x: (x, float(x)),
             [410,443,486,551,671,745,862,1238,1601,2257]))
+
+        self.calib = {  # vicarious calibration R2014.0
+                410: 0.9631,
+                443: 1.0043,
+                486: 1.0085,
+                551: 0.9765,
+                671: 1.0204,
+                745: 1.0434,
+                862: 1.0   ,
+                1238:1.0   ,
+                }
 
         self.K_OZ = {  # from SeaDAS
                 410: 5.827E-04,
@@ -285,7 +341,6 @@ class Params(object):
                 1238:0.000E+00,
                 }
 
-        self.lut_file = join(self.dir_base, 'LUTS/VIIRS/LUT.hdf')
 
     def defaults_seawifs(self):
         self.bands_corr = [412,443,490,510,555,670,    865]
@@ -300,6 +355,16 @@ class Params(object):
             lambda x: (x, float(x)),
             [412,443,490,510,555,670,765,865]))
 
+        self.calib = {
+                412: 1.0,
+                443: 1.0,
+                490: 1.0,
+                510: 1.0,
+                555: 1.0,
+                670: 1.0,
+                765: 1.0,
+                865: 1.0,
+                }
         self.K_OZ = {  # from SeaDAS
                 412: 4.114E-04,
                 443: 3.162E-03,
@@ -335,6 +400,22 @@ class Params(object):
             lambda x: (x, float(x)),
             [412,443,469,488,531,547,555,645,667,678,748,858,869,1240]))
 
+        self.calib = {  # OC_CCI VICARIOUS CALIBRATION (VIC2, ERA-INTERIM)
+                412 : 0.995,
+                443 : 1.001,
+                469 : 1.0  ,
+                488 : 1.000,
+                531 : 1.001,
+                547 : 1.000,
+                555 : 1.0  ,
+                645 : 1.0  ,
+                667 : 0.992,
+                678 : 1.0  ,
+                748 : 1.0  ,
+                858 : 1.0  ,
+                869 : 1.0  ,
+                1240: 1.0  ,
+                }
         self.K_OZ = {  # from SeaDAS
                 412 :1.987E-03,
                 443 :3.189E-03,
