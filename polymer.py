@@ -12,8 +12,9 @@ from pyhdf.SD import SD
 from multiprocessing import Pool
 from datetime import datetime
 from utils import coeff_sun_earth_distance
-from level2 import Level2
 from params import Params
+from level1 import Level1
+from level2 import Level2
 
 from polymer_main import PolymerMinimizer
 from water import ParkRuddick
@@ -304,7 +305,7 @@ def blockiterator(level1, params, multi=False):
 
 
 
-def polymer(level1, level2=Level2(), **kwargs):
+def polymer(level1, level2, **kwargs):
     '''
     Polymer atmospheric correction
 
@@ -312,41 +313,44 @@ def polymer(level1, level2=Level2(), **kwargs):
 
     level1: level1 instance
         Example:
-        Level1_MERIS('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1', sline=1500, eline=2000)
+        Level1_MERIS('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1',
+                     sline=1500, eline=2000)
 
-    level2: context manager for level2 initialization
+    level2: level2 initializer
         argument fmt determines the level2 class to use
         ('hdf4, 'netcdf')
-        See appropriate Level2_* class for argument list
+        See appropriate Level2_* class for argument list (the additional
+        arguments kwargs are passed directly to this class)
         Example:
         Level2(fmt='hdf4', ext='.polymer.hdf', outdir='/data/')
+        NOTE: a level2 initializer instance can be re-used across successive polymer run
 
     Additional keyword arguments:
     see attributes defined in Params class
     Examples:
     - multiprocessing: boolean
-        whether to use all multiple threads (as many as there are
-        cpus)
+        whether to use all multiple threads
+        (as many as there are cpus)
     - dir_base: location of base directory to locate auxiliary data
     '''
 
     t0 = datetime.now()
     print('Starting processing at {}'.format(t0))
 
-    params = Params(level1.sensor, **kwargs)
-
     # initialize output file
-    with level2 as l2:
+    with level2 as l2, level1 as l1:
 
-        l2.init(level1)
+        params = Params(l1.sensor, **kwargs)
+
+        l2.init(l1)
 
         # initialize the block iterator
         if params.multiprocessing:
             block_iter = Pool().imap_unordered(process_block,
-                    blockiterator(level1, params, True))
+                    blockiterator(l1, params, True))
         else:
             block_iter = imap(process_block,
-                    blockiterator(level1, params, False))
+                    blockiterator(l1, params, False))
 
         # loop over the blocks
         for block in block_iter:
@@ -358,4 +362,21 @@ def polymer(level1, level2=Level2(), **kwargs):
         print('Done in {}'.format(datetime.now()-t0))
 
         return l2
+
+
+if __name__ == "__main__":
+
+    from sys import argv
+
+    if len(argv) != 3:
+        print('Usage: polymer.py <level1> <level2>')
+        print('       minimal code to run polymer on the command line')
+        print('       NOTE: to pass additional parameters, it is advised')
+        print('       to run it directly as a python function')
+        exit(1)
+
+    file_in = argv[1]
+    file_out = argv[2]
+
+    polymer(Level1(file_in), Level2(filename=file_out))
 

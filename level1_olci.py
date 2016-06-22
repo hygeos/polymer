@@ -30,6 +30,7 @@ class Level1_OLCI(object):
             self.provider = Provider()
         else:
             self.provider = provider
+        self.ancillary_initialized = False
         self.nc_datasets = {}
 
         # get product shape
@@ -86,7 +87,12 @@ class Level1_OLCI(object):
         for i in range(len(fmeaning)):
             self.quality_flags[fmeaning[i]] = fmask[i]
 
-        self.wind_speed = self.provider.get('wind speed', self.date())
+
+
+    def init_ancillary(self):
+        if not self.ancillary_initialized:
+            self.wind_speed = self.provider.get('wind_speed', self.date())
+            self.ancillary_initialized = True
 
 
     def get_ncroot(self, filename):
@@ -208,7 +214,6 @@ class Level1_OLCI(object):
         bitmask = self.read_band('quality_flags', size, offset)
         block.bitmask = np.zeros(size, dtype='uint16')
         block.bitmask += L2FLAGS['LAND']*(bitmask & self.quality_flags['land'] != 0).astype('uint16')
-
 
         print('Read', block)
 

@@ -16,6 +16,7 @@ class Params(object):
             self.dir_base = kwargs['dir_base']
         else:
             self.dir_base = os.getcwd()
+        self.sensor = sensor
 
         self.dir_common = join(self.dir_base, 'auxdata/common/')
 

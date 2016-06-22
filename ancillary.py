@@ -75,8 +75,6 @@ class Provider(object):
 
         assert isdir(directory)
 
-        print('Using METEO directory "{}"'.format(directory))
-
     def get(self, param, date=None):
         # TODO
         # interpolate between 2 bracketing datasets

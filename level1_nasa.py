@@ -30,6 +30,7 @@ class Level1_NASA(object):
         self.sline = sline
         self.srow = srow
         self.blocksize = blocksize
+        self.ancillary_initialized = False
         if provider is None:
             self.provider = Provider()
         else:
@@ -50,10 +51,6 @@ class Level1_NASA(object):
         else:
             self.width = erow - srow
 
-        # initializa ancillary data
-        self.ozone = self.provider.get('ozone', self.date())
-        self.wind_speed = self.provider.get('wind_speed', self.date())
-        self.surf_press = self.provider.get('surf_press', self.date())
 
         # read flag meanings
         var = self.root.groups['geophysical_data'].variables['l2_flags']
@@ -62,7 +59,16 @@ class Level1_NASA(object):
         self.flag_meanings = dict(zip(meanings, flags))
 
 
+    def init_ancillary(self):
+        if not self.ancillary_initialized:
+            self.ozone = self.provider.get('ozone', self.date())
+            self.wind_speed = self.provider.get('wind_speed', self.date())
+            self.surf_press = self.provider.get('surf_press', self.date())
+
+            self.ancillary_initialized = True
+
     def read_block(self, size, offset, bands):
+        self.init_ancillary()
 
         nbands = len(bands)
         size3 = size + (nbands,)

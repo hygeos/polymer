@@ -23,7 +23,7 @@ class Level2_HDF(Level2_file):
         overwrite existing file
     datasets: list or None
         list of datasets to include in level 2
-        if None (default), use Level2.default_datasets
+        if None (default), use default_datasets defined in level2 module
     compress: activate compression
     tmpdir: path of temporary directory
     '''
@@ -42,6 +42,7 @@ class Level2_HDF(Level2_file):
         # temporary directories
         self.__tmpdir = tmpdir  # base dir
         self.tmpdir = None      # sub dir, should be removed
+        self.tmpfiles = []      # temporary files
 
         self.sdslist = {}
         self.typeconv = {
@@ -81,6 +82,7 @@ class Level2_HDF(Level2_file):
                     print('Removing file', filename)
                     remove(filename)
                 self.__hdf[name] = SD(filename, SDC.WRITE | SDC.CREATE)
+                self.tmpfiles.append(filename)
 
             return self.__hdf[name]
 
@@ -164,5 +166,8 @@ class Level2_HDF(Level2_file):
     def cleanup(self):
         if (self.__tmpdir is not None) and (self.tmpdir is not None):
             rmtree(self.tmpdir)
+        for f in self.tmpfiles:
+            if exists(f):
+                remove(f)
 
 

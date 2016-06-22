@@ -37,7 +37,7 @@ B12  SWIR 2      2190nm     20m
 
 class Level1_MSI(object):
 
-    def __init__(self, dirname, blocksize=100, resolution='60',
+    def __init__(self, dirname, blocksize=200, resolution='60',
                  sline=0, eline=-1, provider=None):
         '''
         dirname: granule dirname

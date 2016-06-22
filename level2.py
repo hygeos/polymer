@@ -14,33 +14,46 @@ default_datasets = [
 analysis_datasets = ['Rtoa', 'Rprime', 'vza', 'sza', 'raa', 'niter']
 ancillary_datasets = ['ozone', 'surf_press', 'wind_speed']
 
+
+class OutputExists(Exception):
+    pass
+
 class Level2(object):
     '''
-    Context manager for level2 initialization
+    Level2 initializer
+    This class is responsible for creating a new level2 class in a context
+    manager
 
     Arguments:
         fmt: format of level2 (default hdf4)
         other kwargs are passed to the level2 object constructor
     '''
-
     def __init__(self, fmt='hdf4', **kwargs):
         if not 'ext' in kwargs:
             kwargs['ext'] = '.polymer.hdf'
 
+        self.kwargs = kwargs
+        self.l2 = None
+
         if fmt == 'hdf4':
             from level2_hdf import Level2_HDF
-            self.l2 = Level2_HDF(**kwargs)
+            self.Level2 = Level2_HDF
         elif fmt == 'netcdf4':
             from level2_nc import Level2_NETCDF
-            self.l2 = Level2_NETCDF(**kwargs)
+            self.Level2 = Level2_NETCDF
         else:
             raise Exception('Invalid format "{}"'.format(fmt))
 
     def __enter__(self):
+        assert self.l2 is None
+
+        # instantiate a new level2 object
+        self.l2 = self.Level2(**self.kwargs)
         return self.l2
 
     def __exit__(self, type, value, traceback):
         self.l2.cleanup()
+        self.l2 = None
 
 
 class Level2_base(object):
@@ -104,7 +117,7 @@ class Level2_file(Level2_base):
                 print('Removing file', self.filename)
                 remove(self.filename)
             else:
-                raise IOError('File "{}" exists'.format(self.filename))
+                raise OutputExists('File "{}" exists'.format(self.filename))
 
         if self.datasets is None:
             self.datasets = default_datasets
