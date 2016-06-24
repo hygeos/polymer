@@ -43,6 +43,7 @@ cdef class F(NelderMeadMinimizer):
     cdef int[:] i_corr_read  # index or the 'corr' bands within the 'read' bands
     cdef int N_bands_oc
     cdef int[:] i_oc_read  # index or the 'oc' bands within the 'read' bands
+    cdef int N_bands_read
 
     def __init__(self, Ncoef, watermodel, params, *args, **kwargs):
 
@@ -64,6 +65,7 @@ cdef class F(NelderMeadMinimizer):
         self.i_oc_read = np.searchsorted(
                 params.bands_read(),
                 params.bands_oc).astype('int32')
+        self.N_bands_read = len(params.bands_read())
 
     cdef init_pixel(self, float[:] Rprime, float[:,:] A, float[:,:] pA,
             float[:] Tmol,
@@ -88,7 +90,7 @@ cdef class F(NelderMeadMinimizer):
         cdef float C
         cdef float sumsq, dR, norm
         cdef int icorr, icorr_read
-        cdef int ioc, ioc_read
+        cdef int ioc, ioc_read, iread
         cdef float sigma
 
         #
@@ -99,7 +101,7 @@ cdef class F(NelderMeadMinimizer):
         cdef float[:] Rwmod = self.Rwmod
 
         #
-        # atmospheric fit
+        # Atmospheric fit
         #
         for ic in range(self.Ncoef):
             C = 0.
@@ -108,6 +110,15 @@ cdef class F(NelderMeadMinimizer):
                 C += self.pA[ic,icorr] * (self.Rprime[icorr_read]
                                           - self.Tmol[icorr_read]*Rwmod[icorr_read])
             self.C[ic] = C
+
+        #
+        # Calculate Ratm
+        #
+        for iread in range(self.N_bands_read):
+            self.Ratm[iread] = 0.
+            for ic in range(self.Ncoef):
+                self.Ratm[iread] += self.C[ic] * self.A[iread,ic]
+
 
         #
         # calculate the residual
@@ -119,9 +130,6 @@ cdef class F(NelderMeadMinimizer):
             dR = self.Rprime[ioc_read]
 
             # subtract atmospheric signal
-            self.Ratm[ioc_read] = 0
-            for ic in range(self.Ncoef):
-                self.Ratm[ioc_read] += self.C[ic] * self.A[ioc_read,ic]
             dR -= self.Ratm[ioc_read]
 
             # divide by transmission

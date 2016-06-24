@@ -162,6 +162,7 @@ class Level1_OLCI(object):
             return self.__date
 
     def read_block(self, size, offset, bands):
+        self.init_ancillary()
 
         (ysize, xsize) = size
         nbands = len(bands)

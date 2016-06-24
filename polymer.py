@@ -308,13 +308,13 @@ def blockiterator(level1, params, multi=False):
 def polymer(level1, level2, **kwargs):
     '''
     Polymer atmospheric correction
+    https://www.osapublishing.org/oe/abstract.cfm?uri=oe-19-10-9783
 
-    ARGUMENTS
+    ARGUMENTS:
 
-    level1: level1 instance
+    level1: level1 initializer
         Example:
-        Level1_MERIS('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1',
-                     sline=1500, eline=2000)
+        Level1('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1', sline=1500, eline=2000)
 
     level2: level2 initializer
         argument fmt determines the level2 class to use
@@ -323,7 +323,6 @@ def polymer(level1, level2, **kwargs):
         arguments kwargs are passed directly to this class)
         Example:
         Level2(fmt='hdf4', ext='.polymer.hdf', outdir='/data/')
-        NOTE: a level2 initializer instance can be re-used across successive polymer run
 
     Additional keyword arguments:
     see attributes defined in Params class
@@ -332,6 +331,8 @@ def polymer(level1, level2, **kwargs):
         whether to use all multiple threads
         (as many as there are cpus)
     - dir_base: location of base directory to locate auxiliary data
+    - calib: a dictionary for applying calibration coefficients
+    - normalize: if True (default), apply normalization of the water reflectance at nadir-nadir
     '''
 
     t0 = datetime.now()
