@@ -40,6 +40,7 @@ class Params(object):
 
         # optimization parameters
         self.force_initialization = False
+        self.reinit_rw_neg = False
         self.max_iter = 100
         self.size_end_iter = 0.005
         self.initial_point_1 = [-1, 0]

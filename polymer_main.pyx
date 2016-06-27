@@ -256,6 +256,7 @@ cdef class PolymerMinimizer:
     cdef object params
     cdef int normalize
     cdef int force_initialization
+    cdef int reinit_rw_neg
 
     def __init__(self, watermodel, params):
 
@@ -275,6 +276,7 @@ cdef class PolymerMinimizer:
         self.params = params
         self.normalize = params.normalize
         self.force_initialization = params.force_initialization
+        self.reinit_rw_neg = params.reinit_rw_neg
 
     cdef loop(self, block,
               float[:,:,:,:] A,
@@ -297,6 +299,7 @@ cdef class PolymerMinimizer:
         cdef int Nx = Rprime.shape[0]
         cdef int Ny = Rprime.shape[1]
         cdef float[:] x
+        cdef rw_neg
 
         cdef float[:] x0 = np.zeros(self.Nparams, dtype='float32')
         x0[:] = self.initial_point_1[:]
@@ -361,18 +364,15 @@ cdef class PolymerMinimizer:
                 logchl[i,j] = self.f.xmin[0]
                 niter[i,j] = self.f.niter
 
-                # initialization of next pixel
-                if self.force_initialization or testflag(bitmask, i, j,  self.L2_FLAG_CASE2):
-                    x0[:] = self.initial_point_1[:]
-                else:
-                    x0[:] = self.f.xmin[:]
-
 
                 # calculate water reflectance
                 # and store atmospheric reflectance
+                rw_neg = 0
                 for ib in range(len(self.f.Rwmod)):
                     Rw[i,j,ib] = Rprime[i,j,ib] - self.f.Ratm[ib]
                     Rw[i,j,ib] /= Tmol[i,j,ib]
+                    if Rw[i,j,ib] < 0:
+                        rw_neg = 1
 
                     Ratm[i,j,ib] = self.f.Ratm[ib]
 
@@ -394,6 +394,14 @@ cdef class PolymerMinimizer:
 
                     for ib in range(len(self.f.Rwmod)):
                         Rw[i,j,ib] *= self.f.Rwmod[ib]
+
+                # initialization of next pixel
+                if (self.force_initialization
+                        or testflag(bitmask, i, j,  self.L2_FLAG_CASE2)
+                        or (rw_neg and self.reinit_rw_neg)):
+                    x0[:] = self.initial_point_1[:]
+                else:
+                    x0[:] = self.f.xmin[:]
 
 
             # reinitialize
