@@ -18,7 +18,9 @@ class Level2_HDF(Level2_file):
 
     filename: string
         if None, determine filename from level1 by using output directory
-        out_dir and extension ext
+        outdir and extension ext
+    outdir: output directory
+    ext: output file extension
     overwrite: boolean
         overwrite existing file
     datasets: list or None

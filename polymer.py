@@ -215,6 +215,7 @@ class InitCorr(object):
 
         block.Rprime = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
         block.Rmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
+        block.Rmolgli = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
         block.Tmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
 
         ok = (block.bitmask & BITMASK_INVALID) == 0
@@ -231,17 +232,25 @@ class InitCorr(object):
                     Idx(block.raa[ok]),
                     Idx(block.mus[ok]),
                     ilut, Idx(wind)]
+            Rmol = mlut['Rmol'][
+                    Idx(block.muv[ok]),
+                    Idx(block.raa[ok]),
+                    Idx(block.mus[ok]),
+                    ilut]
 
             wl = block.wavelen[ok,i]
             wl0 = self.params.central_wavelength[block.bands[i]]
 
             # wavelength adjustment
             Rmolgli *= (wl/wl0)**(-4.)
+            Rmol *= (wl/wl0)**(-4.)
 
             # adjustment for atmospheric pressure
             Rmolgli *= block.surf_press[ok]/1013.
+            Rmol *= block.surf_press[ok]/1013.
 
-            block.Rmol[ok,i] = Rmolgli
+            block.Rmolgli[ok,i] = Rmolgli
+            block.Rmol[ok,i] = Rmol
 
             block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - Rmolgli
 

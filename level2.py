@@ -41,6 +41,9 @@ class Level2(object):
         elif fmt == 'netcdf4':
             from level2_nc import Level2_NETCDF
             self.Level2 = Level2_NETCDF
+        elif fmt == 'memory':
+            from level2 import Level2_base
+            self.Level2 = Level2_base
         else:
             raise Exception('Invalid format "{}"'.format(fmt))
 
@@ -60,7 +63,7 @@ class Level2_base(object):
     '''
     Base level 2 class (just store the product in memory)
     '''
-    def __init__(self, datasets=None):
+    def __init__(self, datasets=None, **kwargs):
         self.datasets = datasets
 
     def init(self, level1):
@@ -95,6 +98,9 @@ class Level2_base(object):
                 raise Exception('Error')
 
     def finish(self, params):
+        pass
+
+    def cleanup(self):
         pass
 
 class Level2_file(Level2_base):

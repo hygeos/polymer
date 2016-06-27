@@ -255,6 +255,7 @@ cdef class PolymerMinimizer:
     cdef int L2_FLAG_CASE2
     cdef object params
     cdef int normalize
+    cdef int force_initialization
 
     def __init__(self, watermodel, params):
 
@@ -273,6 +274,7 @@ cdef class PolymerMinimizer:
         self.L2_FLAG_CASE2 = L2FLAGS['CASE2']
         self.params = params
         self.normalize = params.normalize
+        self.force_initialization = params.force_initialization
 
     cdef loop(self, block,
               float[:,:,:,:] A,
@@ -360,10 +362,10 @@ cdef class PolymerMinimizer:
                 niter[i,j] = self.f.niter
 
                 # initialization of next pixel
-                if not testflag(bitmask, i, j,  self.L2_FLAG_CASE2):
-                    x0[:] = self.f.xmin[:]
-                else:
+                if self.force_initialization or testflag(bitmask, i, j,  self.L2_FLAG_CASE2):
                     x0[:] = self.initial_point_1[:]
+                else:
+                    x0[:] = self.f.xmin[:]
 
 
                 # calculate water reflectance
