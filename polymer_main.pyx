@@ -253,6 +253,7 @@ cdef class PolymerMinimizer:
     cdef float size_end_iter
     cdef int max_iter
     cdef int L2_FLAG_CASE2
+    cdef int L2_FLAG_OUT_OF_BOUNDS
     cdef object params
     cdef int normalize
     cdef int force_initialization
@@ -273,6 +274,7 @@ cdef class PolymerMinimizer:
         self.size_end_iter = params.size_end_iter
         self.max_iter = params.max_iter
         self.L2_FLAG_CASE2 = L2FLAGS['CASE2']
+        self.L2_FLAG_OUT_OF_BOUNDS = L2FLAGS['OUT_OF_BOUNDS']
         self.params = params
         self.normalize = params.normalize
         self.force_initialization = params.force_initialization
@@ -358,6 +360,7 @@ cdef class PolymerMinimizer:
                         if self.f.size() < self.size_end_iter:
                             break
                         if not in_bounds(self.f.xmin, self.bounds):
+                            raiseflag(bitmask, i, j, self.L2_FLAG_OUT_OF_BOUNDS)
                             break
 
 
