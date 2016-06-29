@@ -44,6 +44,7 @@ cdef class F(NelderMeadMinimizer):
     cdef int N_bands_oc
     cdef int[:] i_oc_read  # index or the 'oc' bands within the 'read' bands
     cdef int N_bands_read
+    cdef float[:] weights_oc
 
     def __init__(self, Ncoef, watermodel, params, *args, **kwargs):
 
@@ -66,6 +67,12 @@ cdef class F(NelderMeadMinimizer):
                 params.bands_read(),
                 params.bands_oc).astype('int32')
         self.N_bands_read = len(params.bands_read())
+        if params.weights_oc is None:
+            self.weights_oc = np.ones(len(params.bands_oc), dtype='float32')
+        else:
+            assert len(params.weights_oc) == len(params.bands_oc)
+            self.weights_oc = np.array(params.weights_oc, dtype='float32')
+
 
     cdef init_pixel(self, float[:] Rprime, float[:,:] A, float[:,:] pA,
             float[:] Tmol,
@@ -202,7 +209,7 @@ def pseudoinverse(A):
             A*: [...,j,i]
     '''
 
-    # A'.A (with broadcasting)
+    # B = A'.A (with broadcasting)
     B = np.einsum('...ji,...jk->...ik', A, A)
 
     # check
@@ -210,13 +217,31 @@ def pseudoinverse(A):
         # assert np.allclose(B[0,0,:,:], A[0,0,:,:].transpose().dot(A[0,0,:,:]), equal_nan=True)
         # assert np.allclose(B[-1,0,:,:], A[-1,0,:,:].transpose().dot(A[-1,0,:,:]), equal_nan=True)
 
-    # (A^-1).A' (with broadcasting)
+    # (B^-1).A' (with broadcasting)
     pA = np.einsum('...ij,...kj->...ik', inv(B), A)
 
     # check
     # if B.ndim == 4:
         # assert np.allclose(pA[0,0], inv(B[0,0,:,:]).dot(A[0,0,:,:].transpose()), equal_nan=True)
         # assert np.allclose(pA[-1,0], inv(B[-1,0,:,:]).dot(A[-1,0,:,:].transpose()), equal_nan=True)
+
+    return pA
+
+
+def weighted_pseudoinverse(A, W):
+    '''
+    Calculate the weighted pseudoinverse of array A over the last 2 axes
+    (broadcasting the first axes)
+    W is the weight matrix (diagonal)
+    A* = ((A'.W.A)^(-1)).A'.W
+    '''
+    assert W.dtype == 'float32'
+
+    # A'.W.A
+    B = np.einsum('...ji,...jk,...kl->...il', A, W, A)
+
+    # (B^-1).A'.W
+    pA = np.einsum('...ij,...kj,...kl->...il', inv(B), A, W)
 
     return pA
 
@@ -434,7 +459,11 @@ cdef class PolymerMinimizer:
         # calculate the atmospheric inversion coefficients
         # at bands_corr
         A = atm_func(block, self.params, self.params.bands_corr)
-        pA = pseudoinverse(A)
+        if self.params.weights_corr is None:
+            pA = pseudoinverse(A)
+        else:
+            pA = weighted_pseudoinverse(
+                    A, np.diag(self.params.weights_corr).astype('float32'))
 
         # the model coefficients, at bands_read
         A = atm_func(block, self.params, self.params.bands_read())
