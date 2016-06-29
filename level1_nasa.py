@@ -162,19 +162,19 @@ class Level1_NASA(object):
 
 class Level1_VIIRS(Level1_NASA):
     ''' Interface to VIIRS Level-1C '''
-    def __init__(self, filename, blocksize=(500, 400)):
+    def __init__(self, filename, **kwargs):
         super(self.__class__, self).__init__(
-                filename, blocksize=blocksize, sensor='VIIRS')
+                filename, sensor='VIIRS', **kwargs)
 
 class Level1_SeaWiFS(Level1_NASA):
     ''' Interface to SeaWiFS Level-1C '''
-    def __init__(self, filename, blocksize=(500, 400)):
+    def __init__(self, filename, **kwargs):
         super(self.__class__, self).__init__(
-                filename, blocksize=blocksize, sensor='SeaWiFS')
+                filename, sensor='SeaWiFS', **kwargs)
 
 class Level1_MODIS(Level1_NASA):
     ''' Interface to MODIS Level-1C '''
-    def __init__(self, filename, blocksize=(500, 400)):
+    def __init__(self, filename, **kwargs):
         super(self.__class__, self).__init__(
-                filename, blocksize=blocksize, sensor='MODIS')
+                filename, sensor='MODIS', **kwargs)
 

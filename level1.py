@@ -8,7 +8,10 @@ class Level1(object):
     '''
     Level 1 initializer
     Creates a Level1_* instance
-    If sensor is not provided, auto-detects the sensor based on file name.
+    If sensor is not provided, auto-detects the sensor
+    based on file name.
+    NOTE: allows to instanciater the Level1* object in
+    the 'with' block
 
     ARGUMENTS:
     filename: path to level 1
