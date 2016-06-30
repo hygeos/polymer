@@ -340,6 +340,8 @@ cdef class PolymerMinimizer:
         cdef float[:,:,:] Rw = block.Rw
         block.Ratm = np.zeros(block.size+(block.nbands,), dtype='float32')
         cdef float[:,:,:] Ratm = block.Ratm
+        block.Rwmod = np.zeros(block.size+(block.nbands,), dtype='float32')
+        cdef float[:,:,:] Rwmod = block.Rwmod
 
         cdef int i, j, ib
 
@@ -401,6 +403,8 @@ cdef class PolymerMinimizer:
                     Rw[i,j,ib] /= Tmol[i,j,ib]
                     if Rw[i,j,ib] < 0:
                         rw_neg = 1
+
+                    Rwmod[i,j,ib] = self.f.Rwmod[ib]
 
                     Ratm[i,j,ib] = self.f.Ratm[ib]
 
