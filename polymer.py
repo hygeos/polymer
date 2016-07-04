@@ -252,7 +252,10 @@ class InitCorr(object):
             block.Rmolgli[ok,i] = Rmolgli
             block.Rmol[ok,i] = Rmol
 
-            block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - Rmolgli
+            if self.params.glint_precorrection:
+                block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - Rmolgli
+            else:
+                block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - Rmol
 
             # TODO: share axes indices
             # and across wavelengths

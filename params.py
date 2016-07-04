@@ -29,6 +29,9 @@ class Params(object):
         # setup custom parameters
         self.update(**kwargs)
 
+        # finalization
+        self.finalize()
+
     def common(self):
         '''
         define common parameters
@@ -47,6 +50,8 @@ class Params(object):
         self.initial_point_2 = [1, 1]
         self.initial_step = [0.2, 0.2]
         self.bounds = [[-2, 2], [-3, 3]]
+        self.metrics = 'W_dR2_norm'
+        self.glint_precorrection = True
 
         self.thres_chi2 = 0.005
 
@@ -478,5 +483,14 @@ class Params(object):
                 raise Exception('{}: attribute "{}" is unknown'.format(self.__class__, k))
 
         self.__dict__.update(kwargs)
+
+
+    def finalize(self):
+
+        if hasattr(self.weights_corr, '__call__'):
+            self.weights_corr = map(self.weights_corr, self.bands_corr)
+
+        if hasattr(self.weights_oc, '__call__'):
+            self.weights_oc = map(self.weights_oc, self.bands_oc)
 
 

@@ -2,7 +2,7 @@ import numpy as np
 cimport numpy as np
 from numpy.linalg import inv
 from common import BITMASK_INVALID, L2FLAGS
-from libc.math cimport nan, exp, log
+from libc.math cimport nan, exp, log, abs
 from cpython.exc cimport PyErr_CheckSignals
 
 from neldermead cimport NelderMeadMinimizer
@@ -10,9 +10,10 @@ from water cimport WaterModel
 from glint import glitter
 
 
-# TODO: deal with selection of bands in the inversion
-# TODO: formalize the expression of atmospheric component
-# as a sum of N arbitrary terms
+cdef enum METRICS:
+    W_dR2_norm = 1
+    W_absdR = 2
+    W_absdR_norm = 3
 
 cdef class F(NelderMeadMinimizer):
     '''
@@ -46,6 +47,8 @@ cdef class F(NelderMeadMinimizer):
     cdef int N_bands_read
     cdef float[:] weights_oc
 
+    cdef METRICS metrics
+
     def __init__(self, Ncoef, watermodel, params, *args, **kwargs):
 
         super(self.__class__, self).__init__(*args, **kwargs)
@@ -72,6 +75,15 @@ cdef class F(NelderMeadMinimizer):
         else:
             assert len(params.weights_oc) == len(params.bands_oc)
             self.weights_oc = np.array(params.weights_oc, dtype='float32')
+
+        if params.metrics == 'W_dR2_norm':
+            self.metrics = W_dR2_norm
+        elif params.metrics == 'W_absdR_norm':
+            self.metrics = W_absdR_norm
+        elif params.metrics == 'W_absdR':
+            self.metrics = W_absdR
+        else:
+            raise Exception('Invalid metrics "{}"'.format(params.metrics))
 
 
     cdef init_pixel(self, float[:] Rprime, float[:,:] A, float[:,:] pA,
@@ -148,7 +160,15 @@ cdef class F(NelderMeadMinimizer):
             if norm < self.thres_chi2:
                 norm = self.thres_chi2
 
-            sumsq += dR*dR/norm
+            if self.metrics == W_dR2_norm:
+
+                sumsq += self.weights_oc[ioc]*dR*dR/norm
+
+            elif self.metrics == W_absdR:
+                sumsq += self.weights_oc[ioc]*abs(dR)
+
+            elif self.metrics == W_absdR_norm:
+                sumsq += self.weights_oc[ioc]*abs(dR)/norm
 
 
         if self.constraint_amplitude != 0:
@@ -180,19 +200,28 @@ def atm_func(block, params, bands):
     lam = block.wavelen[:,:,idx]
 
     # initialize the matrix for inversion
-    Ncoef = 3   # number of polynomial coefficients
-    A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
 
     taum = 0.00877*((np.array(block.bands)[idx]/1000.)**(-4.05))
     Rgli0 = 0.02
     T0 = np.exp(-taum*((1-0.5*np.exp(-block.Rgli/Rgli0))*block.air_mass)[:,:,None])
 
-    A[:,:,:,0] = T0*(lam/1000.)**0.
-    A[:,:,:,1] = (lam/1000.)**-1.
     if params.atm_model == 'T0,-1,-4':
+        Ncoef = 3   # number of polynomial coefficients
+        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
+        A[:,:,:,0] = T0*(lam/1000.)**0.
+        A[:,:,:,1] = (lam/1000.)**-1.
         A[:,:,:,2] = (lam/1000.)**-4.
     elif params.atm_model == 'T0,-1,Rmol':
+        Ncoef = 3   # number of polynomial coefficients
+        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
+        A[:,:,:,0] = T0*(lam/1000.)**0.
+        A[:,:,:,1] = (lam/1000.)**-1.
         A[:,:,:,2] = block.Rmol[:,:,idx]
+    elif params.atm_model == 'T0,-1':
+        Ncoef = 2   # number of polynomial coefficients
+        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
+        A[:,:,:,0] = T0*(lam/1000.)**0.
+        A[:,:,:,1] = (lam/1000.)**-1.
     else:
         raise Exception('Invalid atmospheric model "{}"'.format(params.atm_model))
 
