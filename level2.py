@@ -10,7 +10,7 @@ from os.path import exists, join, basename
 default_datasets = [
             'latitude', 'longitude',
             'Rw', 'Rnir', 'bitmask',
-            'logchl', 'Rgli']
+            'logchl', 'bbs', 'Rgli']
 analysis_datasets = ['Rtoa', 'Rprime', 'Ratm', 'vza', 'sza', 'raa', 'niter']
 ancillary_datasets = ['ozone', 'surf_press', 'wind_speed']
 

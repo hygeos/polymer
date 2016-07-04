@@ -334,6 +334,8 @@ cdef class PolymerMinimizer:
         # create the output datasets
         block.logchl = np.zeros(block.size, dtype='float32')
         cdef float[:,:] logchl = block.logchl
+        block.bbs = np.zeros(block.size, dtype='float32')
+        cdef float[:,:] bbs = block.bbs
         block.niter = np.zeros(block.size, dtype='uint32')
         cdef unsigned int[:,:] niter = block.niter
         block.Rw = np.zeros(block.size+(block.nbands,), dtype='float32')
@@ -353,6 +355,7 @@ cdef class PolymerMinimizer:
 
                 if (bitmask[i,j] & self.BITMASK_INVALID) != 0:
                     logchl[i,j] = self.NaN
+                    bbs[i,j] = self.NaN
                     Rw[i,j,:] = self.NaN
                     continue
 
@@ -392,6 +395,7 @@ cdef class PolymerMinimizer:
 
 
                 logchl[i,j] = self.f.xmin[0]
+                bbs[i,j] = self.f.xmin[1]
                 niter[i,j] = self.f.niter
 
 
