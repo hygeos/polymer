@@ -26,7 +26,6 @@ class Level1_NASA(object):
         self.root = Dataset(filename)
         lat = self.root.groups['navigation_data'].variables['latitude']
         self.totalheight, self.totalwidth = lat.shape
-        self.shape = self.totalheight, self.totalwidth
         self.sline = sline
         self.srow = srow
         self.blocksize = blocksize
@@ -50,6 +49,8 @@ class Level1_NASA(object):
             self.width += erow + 1
         else:
             self.width = erow - srow
+
+        self.shape = (self.height, self.width)
 
 
         # read flag meanings
