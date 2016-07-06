@@ -11,7 +11,7 @@ default_datasets = [
             'latitude', 'longitude',
             'Rw', 'Rnir', 'bitmask',
             'logchl', 'bbs', 'Rgli']
-analysis_datasets = ['Rtoa', 'Rprime', 'Ratm', 'vza', 'sza', 'raa', 'niter']
+analysis_datasets = ['Rtoa', 'Rprime', 'Ratm', 'vza', 'sza', 'raa', 'niter', 'Rwmod', 'Tmol']
 ancillary_datasets = ['ozone', 'surf_press', 'wind_speed']
 
 

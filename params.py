@@ -72,6 +72,8 @@ class Params(object):
         self.atm_model = 'T0,-1,Rmol'
         self.normalize = True
 
+        self.water_model = 'PR05'
+
         self.multiprocessing = False
 
         # no2 absorption data

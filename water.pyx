@@ -5,6 +5,7 @@ from os.path import join
 
 from clut cimport CLUT
 from libc.math cimport exp, M_PI, isnan, log
+from warnings import warn
 
 
 
@@ -363,10 +364,225 @@ cdef class ParkRuddick(WaterModel):
         return np.array(R)
 
 cdef class MorelMaritorena(WaterModel):
+
+    cdef float[:] wav  # wavelength (nm)
+    cdef int Nwav
+    cdef CLUT Kw_tab, bw_tab, Chi_tab, e_tab, simspec
+    cdef float[:] Kw_i
+    cdef float[:] Chi_i
+    cdef float[:] e_i
+    cdef float[:] bw_i
+    cdef float[:] Rw
+    cdef float[:] simspec_i
+    cdef float lam_join
+    cdef initialized
+
     def __init__(self):
-        raise NotImplementedError
+
+        warn('f/Q is not implemented')
+
+        self.Kw_tab = CLUT(np.array([
+                    0.02710, 0.02380, 0.02160, 0.01880, 0.01770, 0.01595, 0.01510, 0.01376, 0.01271, 0.01208,
+                    0.01042, 0.00890, 0.00812, 0.00765, 0.00758, 0.00768, 0.00770, 0.00792, 0.00885, 0.00990,
+                    0.01148, 0.01182, 0.01188, 0.01211, 0.01251, 0.01320, 0.01444, 0.01526, 0.01660, 0.01885,
+                    0.02188, 0.02701, 0.03385, 0.04090, 0.04214, 0.04287, 0.04454, 0.04630, 0.04846, 0.05212,
+                    0.05746, 0.06053, 0.06280, 0.06507, 0.07034, 0.07801, 0.09038, 0.11076, 0.13584, 0.16792,
+                    0.22310, 0.25838, 0.26506, 0.26843, 0.27612, 0.28400, 0.29218, 0.30176, 0.31134, 0.32553,
+                    0.34052, 0.37150, 0.41048, 0.42947, 0.43946, 0.44844, 0.46543, 0.48642, 0.51640, 0.55939,
+                    0.62438], dtype='float32'),
+                    axes=[np.arange(350, 701, 5.)]
+                )
+        self.Chi_tab = CLUT(np.array([
+                    0.15300, 0.14900, 0.14400, 0.14000, 0.13600, 0.13100, 0.12700, 0.12300, 0.11900, 0.11800,
+                    0.11748, 0.12066, 0.12259, 0.12326, 0.12269, 0.12086, 0.11779, 0.11372, 0.10963, 0.10560,
+                    0.10165, 0.09776, 0.09393, 0.09018, 0.08649, 0.08287, 0.07932, 0.07584, 0.07242, 0.06907,
+                    0.06579, 0.06257, 0.05943, 0.05635, 0.05341, 0.05072, 0.04829, 0.04611, 0.04419, 0.04253,
+                    0.04111, 0.03996, 0.03900, 0.03750, 0.03600, 0.03400, 0.03300, 0.03280, 0.03250, 0.03300,
+                    0.03400, 0.03500, 0.03600, 0.03750, 0.03850, 0.04000, 0.04200, 0.04300, 0.04400, 0.04450,
+                    0.04500, 0.04600, 0.04750, 0.04900, 0.05150, 0.05200, 0.05050, 0.04400, 0.03900, 0.03400,
+                    0.03000 ], dtype='float32'),
+                    axes=[np.arange(350, 701, 5.)]
+                )
+        self.e_tab = CLUT(np.array([
+                    0.77800, 0.76700, 0.75600, 0.73700, 0.72000, 0.70000, 0.68500, 0.67300, 0.67000, 0.66000,
+                    0.64358, 0.64776, 0.65175, 0.65555, 0.65917, 0.66259, 0.66583, 0.66889, 0.67175, 0.67443,
+                    0.67692, 0.67923, 0.68134, 0.68327, 0.68501, 0.68657, 0.68794, 0.68903, 0.68955, 0.68947,
+                    0.68880, 0.68753, 0.68567, 0.68320, 0.68015, 0.67649, 0.67224, 0.66739, 0.66195, 0.65591,
+                    0.64927, 0.64204, 0.64000, 0.63000, 0.62300, 0.61500, 0.61000, 0.61400, 0.61800, 0.62200,
+                    0.62600, 0.63000, 0.63400, 0.63800, 0.64200, 0.64700, 0.65300, 0.65800, 0.66300, 0.66700,
+                    0.67200, 0.67700, 0.68200, 0.68700, 0.69500, 0.69700, 0.69300, 0.66500, 0.64000, 0.62000,
+                    0.60000], dtype='float32'),
+                    axes=[np.arange(350, 701, 5.)]
+                )
+        self.bw_tab = CLUT(np.array([
+                    0.0121, 0.0113, 0.0107, 0.0099, 0.0095, 0.0089, 0.0085, 0.0081, 0.0077, 0.0072,
+                    0.0069, 0.0065, 0.0062, 0.0059, 0.0056, 0.0054, 0.0051, 0.0049, 0.0047, 0.0044,
+                    0.0043, 0.0040, 0.0039, 0.0037, 0.0035, 0.0034, 0.0033, 0.0031, 0.0030, 0.0029,
+                    0.0027] + map(lambda x: 0.0027*((x/500.)**-4.), np.arange(505, 701, 5.)),
+                    dtype='float32'),
+                    axes=[np.arange(350, 701, 5.)]
+                )
+        self.simspec = CLUT(np.array([
+                4.953, 4.858, 4.734, 4.586, 4.432, 4.293, 4.177, 4.082, 4.017, 3.976, 3.949,
+                3.939, 3.937, 3.974, 4.016, 4.046, 4.061, 4.015, 3.948, 3.862, 3.757, 3.621,
+                3.466, 3.297, 3.118, 2.931, 2.754, 2.560, 2.350, 2.144, 1.937, 1.736, 1.551,
+                1.393, 1.273, 1.185, 1.123, 1.080, 1.053, 1.032, 1.013, 1.001, 0.994, 1.012,
+                1.029, 1.033, 1.016, 0.985, 0.971, 0.968, 0.972, 0.985, 1.000, 1.015, 1.029,
+                1.046, 1.067, 1.087, 1.108, 1.127, 1.145, 1.159, 1.169, 1.173, 1.175, 1.171,
+                1.159, 1.138, 1.098, 1.043, 0.980, 0.912, 0.846, 0.788, 0.742, 0.707, 0.678,
+                0.658, 0.640, 0.627, 0.616, 0.603, 0.592, 0.579, 0.564, 0.553, 0.544, 0.534,
+                0.523, 0.512, 0.501, 0.488, 0.476, 0.465, 0.454, 0.440, 0.431, 0.425, 0.419,
+                0.413, 0.409], dtype='float32'),
+                axes=[np.arange(650, 901, 2.5)])
+
+        self.initialized = 0
+        self.lam_join = 690.
+
+
+    cdef init(self, float[:] wav, float sza, float vza, float raa):
+        self.Nwav = len(wav)
+        cdef int i
+        cdef float lam
+
+        if not self.initialized:
+            self.wav   = np.zeros(self.Nwav+1, dtype='float32')
+            self.Kw_i  = np.zeros(self.Nwav+1, dtype='float32')
+            self.Chi_i = np.zeros(self.Nwav+1, dtype='float32')
+            self.e_i   = np.zeros(self.Nwav+1, dtype='float32')
+            self.bw_i  = np.zeros(self.Nwav+1, dtype='float32')
+            self.simspec_i = np.zeros(self.Nwav+1, dtype='float32')
+            self.Rw = np.zeros(self.Nwav, dtype='float32')
+            self.initialized = 1
+
+        for i in range(self.Nwav):
+            self.wav[i] = wav[i]
+        self.wav[self.Nwav] = self.lam_join
+
+        for i in range(self.Nwav+1):
+            # FIXME: this loop can be made faster
+            lam = self.wav[i]
+
+            self.Kw_tab.lookup(0, lam)
+            self.Kw_i[i] = self.Kw_tab.interp()
+
+            self.Chi_tab.lookup(0, lam)
+            self.Chi_i[i] = self.Chi_tab.interp()
+
+            self.e_tab.lookup(0, lam)
+            self.e_i[i] = self.e_tab.interp()
+
+            self.bw_tab.lookup(0, lam)
+            self.bw_i[i] = self.bw_tab.interp()
+
+            if self.simspec.lookup(0, lam) == 0:
+                self.simspec_i[i] = self.simspec.interp()
+
+
     cdef float[:] calc_rho(self, float[:] x):
-        raise NotImplementedError
+        '''
+        x[0] is log10(chl)
+        x[1] is log10(bbs)
+        '''
+        cdef float rw_join
+
+        # wavelength loop: visible
+        for i in range(self.Nwav):
+            self.Rw[i] = self.calc_rho_vis(i, x)
+
+        # towards NIR
+        rw_join = self.calc_rho_vis(self.Nwav, x)
+
+        # wavelength loop: NIR
+        for i in range(self.Nwav):
+            if self.Rw[i] < 0:
+                self.Rw[i] = self.calc_rho_nir(i, rw_join)
+
+        return self.Rw
+
+    cdef float calc_rho_vis(self, int i, float[:] x):
+        '''
+        reflectance calculation for visible bands
+        return -1 if invalid wavelength
+        '''
+        # TODO: review annotated code
+
+        cdef float Kw
+        cdef float Chi, e, lam
+        cdef float Kbio
+        cdef float logchl = x[0]
+        cdef float bbs0 = x[1]
+        cdef float bbs, bp550, bbp, bb, bw
+        cdef float ays0, a_ys
+        cdef float Sys, Snap
+        cdef float v
+        cdef int j
+        cdef float bbs_spec
+        ays0 = 0.
+
+        Kw  = self.Kw_i[i]
+        Chi = self.Chi_i[i]
+        e   = self.e_i[i]
+        bw  = self.bw_i[i]
+        lam = self.wav[i]
+
+        if lam > 700:
+            return -1
+
+        Kbio = Chi * (10.**(e * logchl))
+
+        if (logchl < 0.301029995664):
+            v = 0.5 * (logchl - 0.3) # // 0.301029995664 == log10(2)
+        else:
+            v = 0;
+
+        bbs_spec = -1.
+        bbs = bbs0*((lam/550.)**bbs_spec)
+
+        bp550 = 0.416 * (10.**(0.766 * logchl))
+        bbp = (0.002 + 0.01*(0.5 - 0.25*logchl)*((lam/550.)**v)) * bp550
+        bb = 0.5 * bw + bbp + bbs
+
+        # absorption by yellow substances
+        Sys = 0.014
+        a_ys = ays0*exp(-Sys*(lam - 410.))
+
+        Kd = Kw + Kbio + bbs + a_ys
+
+        # absorption by detritus (non-algal particles)
+        Snap = 0.011
+
+        # Correction of detrital absorption for clear waters
+        # (see Morel et al, 2007, "Optical properties of the 'clearest' natural waters")
+        a_nap = - exp(-7.55*(10**(logchl*0.08)))*exp(-Snap*(lam - 420.))
+
+
+        # iterations
+        u = 0.75
+        for j in range(3):
+            a = u * Kd
+            R = 0.33 * bb / (a + a_ys + a_nap)
+
+            u = 0.90 * 1/(1 + 2.25*R) * (1 - R)
+
+        # TODO:
+        # interpolate f/Q coefficients
+
+        return R * 0.544
+
+    cdef float calc_rho_nir(self, int i, float rw_join):
+        return self.simspec_i[i]*rw_join/self.simspec_i[self.Nwav]
+
+    def calc(self, wav, logchl, bbs=0., sza=0., vza=0., raa=0.):
+        '''
+        water reflectance calculation (python interface)
+        '''
+        self.init(wav.astype('float32'), float(sza), float(vza), float(raa))
+        params = np.zeros(2, dtype='float32')
+        params[0] = logchl
+        params[1] = bbs
+        R = self.calc_rho(params)
+        return np.array(R)
+
 
 def test():
     pr = ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/')

@@ -17,7 +17,7 @@ from level1 import Level1
 from level2 import Level2
 
 from polymer_main import PolymerMinimizer
-from water import ParkRuddick
+from water import ParkRuddick, MorelMaritorena
 
 import sys
 if sys.version_info[:2] >= (3, 0):
@@ -47,7 +47,12 @@ class InitCorr(object):
         '''
         Initialization of the minimizer class
         '''
-        watermodel = ParkRuddick(self.params.dir_common)
+        if self.params.water_model == 'PR05':
+            watermodel = ParkRuddick(self.params.dir_common)
+        elif self.params.water_model == 'MM01':
+            watermodel = MorelMaritorena()
+        else:
+            raise Exception('Invalid water model "{}"'.format(self.params.water_model))
 
         return PolymerMinimizer(watermodel, self.params)
 
