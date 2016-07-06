@@ -40,13 +40,18 @@ cdef class ParkRuddick(WaterModel):
     cdef float a700
     cdef float mus
     cdef int Nwav
+    cdef int debug
+    cdef int alt_gamma_bb
+    cdef float[:] atot, bbtot
 
     cdef int[:] index  # multi-purpose vector
 
-    def __init__(self, directory):
+    def __init__(self, directory, alt_gamma_bb=False, debug=False):
 
         self.Rw = None
         self.index = np.zeros(2, dtype='int32')
+        self.debug = debug
+        self.alt_gamma_bb = alt_gamma_bb
 
         self.read_iop(directory)
         self.read_gi(directory)
@@ -57,7 +62,7 @@ cdef class ParkRuddick(WaterModel):
         # read water scattering coefficient
         #
         data_bw = np.genfromtxt(join(directory, 'morel_buiteveld_bsw.txt'), skip_header=1)
-        self.BW = CLUT(data_bw[:,1], axes=[data_bw[:,0]], debug=False)   # FIXME (DEBUG)
+        self.BW = CLUT(data_bw[:,1], axes=[data_bw[:,0]])
         assert data_bw[-1,0] == 500.
         self.bw500 = data_bw[-1,1]
 
@@ -154,11 +159,17 @@ cdef class ParkRuddick(WaterModel):
         # array initialization (unique)
         #
         if self.Rw is None:
-            self.Rw = np.zeros(len(wav), dtype='float32')
-            self.bw = np.zeros(len(wav), dtype='float32')
-            self.aw = np.zeros(len(wav), dtype='float32')
-            self.a_bric = np.zeros(len(wav), dtype='float32')
-            self.b_bric = np.zeros(len(wav), dtype='float32')
+            self.Rw = np.zeros(len(wav), dtype='float32') + np.NaN
+            self.bw = np.zeros(len(wav), dtype='float32') + np.NaN
+            self.aw = np.zeros(len(wav), dtype='float32') + np.NaN
+            self.a_bric = np.zeros(len(wav), dtype='float32') + np.NaN
+            self.b_bric = np.zeros(len(wav), dtype='float32') + np.NaN
+
+            if self.debug:
+                self.atot = np.zeros(len(wav), dtype='float32') + np.NaN
+                self.bbtot = np.zeros(len(wav), dtype='float32') + np.NaN
+        elif len(wav) != len(self.Rw):
+            raise Exception('Invalid length of wav')
 
         #
         # interpolate scattering coefficient
@@ -257,14 +268,32 @@ cdef class ParkRuddick(WaterModel):
         #
 
         # phytoplankton scattering
-        gamma = -0.733 * log(chl) + 1.499   # /!\ log is ln
-        if gamma < 0: gamma = 0
-
         bp550 = 0.416 * (chl**0.766) * fb
         if (logchl < 2):
             bbp550 = (0.002 + 0.01*(0.5 - 0.25*logchl)) * bp550
         else:
             bbp550 = (0.002 + 0.01*(0.5 - 0.25*2.    )) * bp550
+
+        # spectral dependency
+        if self.alt_gamma_bb:
+            # alternate version (H. Loisel), improved in turbid waters
+            # phytoplankton + other particles
+            # dependency function of bbp550
+            # - high values: personal comm. Loisel
+            # - low bbp values: slope from Antoine LO (2011)
+            #   offset adjusted for tangency to Loisel
+            if bbp550 < 0.00227:
+                gamma = -0.845 * log(bbp550) - 3.13
+            else:
+                gamma = 0.156 * bbp550**(-0.42)
+
+            if gamma > 4:
+                gamma = 4.
+        else:
+            # phytoplankton + other particles
+            # spectral dependency (from Antoine LO (2011))
+            gamma = -0.733 * log(chl) + 1.499   # /!\ log is ln
+            if gamma < 0: gamma = 0
 
         # CDM absorption central value
         # from Bricaud et al GBC, 2012 (data from nov 2007)
@@ -351,17 +380,36 @@ cdef class ParkRuddick(WaterModel):
 
             self.Rw[i] = rho
 
+            if self.debug:
+                self.atot[i] = a
+                self.bbtot[i] = bb
+
 
         return self.Rw
 
-    def calc(self, wav, logchl, logfb=0., sza=0., vza=0., raa=0.):
+    def calc(self, wav, logchl, logfb=0., logfa=0., sza=0., vza=0., raa=0.):
         ''' water reflectance calculation (python interface) '''
         self.init(wav.astype('float32'), float(sza), float(vza), float(raa))
-        params = np.zeros(2, dtype='float32')
+        params = np.zeros(3, dtype='float32')
         params[0] = logchl
         params[1] = logfb
+        params[2] = logfa
         R = self.calc_rho(params)
         return np.array(R)
+
+    def iops(self):
+        '''
+        returns the IOPs for the previously calculated spectrum
+        '''
+        assert self.debug
+
+        return {
+                'bw': np.array(self.bw),
+                'aw': np.array(self.aw),
+                'atot': np.array(self.atot),
+                'bbtot': np.array(self.bbtot),
+                }
+
 
 cdef class MorelMaritorena(WaterModel):
 
@@ -377,9 +425,13 @@ cdef class MorelMaritorena(WaterModel):
     cdef float lam_join
     cdef initialized
 
-    def __init__(self):
+    cdef int debug
+    cdef float[:] bw, atot, bbtot
+
+    def __init__(self, debug=False):
 
         warn('f/Q is not implemented')
+        self.debug = debug
 
         self.Kw_tab = CLUT(np.array([
                     0.02710, 0.02380, 0.02160, 0.01880, 0.01770, 0.01595, 0.01510, 0.01376, 0.01271, 0.01208,
@@ -453,6 +505,13 @@ cdef class MorelMaritorena(WaterModel):
             self.simspec_i = np.zeros(self.Nwav+1, dtype='float32')
             self.Rw = np.zeros(self.Nwav, dtype='float32')
             self.initialized = 1
+
+            if self.debug:
+                self.bw  = np.zeros(self.Nwav, dtype='float32')
+                self.atot  = np.zeros(self.Nwav, dtype='float32')
+                self.bbtot  = np.zeros(self.Nwav, dtype='float32')
+        elif len(wav) != len(self.Rw):
+            raise Exception('Invalid length of wav')
 
         for i in range(self.Nwav):
             self.wav[i] = wav[i]
@@ -567,6 +626,11 @@ cdef class MorelMaritorena(WaterModel):
         # TODO:
         # interpolate f/Q coefficients
 
+        if self.debug:
+            self.bw[i] = bw
+            self.bbtot[i] = bb
+            self.atot[i] = a + a_ys + a_nap
+
         return R * 0.544
 
     cdef float calc_rho_nir(self, int i, float rw_join):
@@ -582,6 +646,18 @@ cdef class MorelMaritorena(WaterModel):
         params[1] = bbs
         R = self.calc_rho(params)
         return np.array(R)
+
+    def iops(self):
+        '''
+        returns the IOPs for the previously calculated spectrum
+        '''
+        assert self.debug
+
+        return {
+                'bw': np.array(self.bw),
+                'atot': np.array(self.atot),
+                'bbtot': np.array(self.bbtot),
+                }
 
 
 def test():

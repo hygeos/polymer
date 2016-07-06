@@ -193,6 +193,7 @@ def atm_func(block, params, bands):
     # bands for atmospheric fit
     Nlam = len(bands)
     shp = block.size
+    Ncoef = params.Ncoef   # number of polynomial coefficients
 
     # correction bands wavelengths
     idx = np.searchsorted(params.bands_read(), bands)
@@ -206,22 +207,23 @@ def atm_func(block, params, bands):
     T0 = np.exp(-taum*((1-0.5*np.exp(-block.Rgli/Rgli0))*block.air_mass)[:,:,None])
 
     if params.atm_model == 'T0,-1,-4':
-        Ncoef = 3   # number of polynomial coefficients
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
         A[:,:,:,0] = T0*(lam/1000.)**0.
         A[:,:,:,1] = (lam/1000.)**-1.
         A[:,:,:,2] = (lam/1000.)**-4.
     elif params.atm_model == 'T0,-1,Rmol':
-        Ncoef = 3   # number of polynomial coefficients
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
         A[:,:,:,0] = T0*(lam/1000.)**0.
         A[:,:,:,1] = (lam/1000.)**-1.
         A[:,:,:,2] = block.Rmol[:,:,idx]
     elif params.atm_model == 'T0,-1':
-        Ncoef = 2   # number of polynomial coefficients
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
         A[:,:,:,0] = T0*(lam/1000.)**0.
         A[:,:,:,1] = (lam/1000.)**-1.
+    elif params.atm_model == 'T0,-2':
+        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
+        A[:,:,:,0] = T0*(lam/1000.)**0.
+        A[:,:,:,1] = (lam/1000.)**-2.
     else:
         raise Exception('Invalid atmospheric model "{}"'.format(params.atm_model))
 
@@ -316,7 +318,7 @@ cdef class PolymerMinimizer:
     def __init__(self, watermodel, params):
 
         self.Nparams = 2
-        Ncoef = 3   # number of atmospheric coefficients
+        Ncoef = params.Ncoef   # number of atmospheric coefficients
         self.f = F(Ncoef, watermodel, params, self.Nparams)
         self.BITMASK_INVALID = BITMASK_INVALID
         self.NaN = np.NaN

@@ -48,7 +48,9 @@ class InitCorr(object):
         Initialization of the minimizer class
         '''
         if self.params.water_model == 'PR05':
-            watermodel = ParkRuddick(self.params.dir_common)
+            watermodel = ParkRuddick(
+                            self.params.dir_common,
+                            alt_gamma_bb=self.params.alt_gamma_bb)
         elif self.params.water_model == 'MM01':
             watermodel = MorelMaritorena()
         else:

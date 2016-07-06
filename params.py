@@ -43,7 +43,7 @@ class Params(object):
 
         # optimization parameters
         self.force_initialization = False
-        self.reinit_rw_neg = False   # FIXME ?
+        self.reinit_rw_neg = False
         self.max_iter = 100
         self.size_end_iter = 0.005
         self.initial_point_1 = [-1, 0]
@@ -73,6 +73,8 @@ class Params(object):
         self.normalize = True
 
         self.water_model = 'PR05'
+
+        self.alt_gamma_bb = False  # PR05 model only
 
         self.multiprocessing = False
 
@@ -494,5 +496,8 @@ class Params(object):
 
         if hasattr(self.weights_oc, '__call__'):
             self.weights_oc = map(self.weights_oc, self.bands_oc)
+
+        # number of terms in the model
+        self.Ncoef = self.atm_model.count(',')+1
 
 
