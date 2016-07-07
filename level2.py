@@ -25,7 +25,10 @@ class Level2(object):
     manager
 
     Arguments:
-        fmt: format of level2 (default hdf4)
+        fmt: format of level2. Can be:
+                - hdf4 (default)
+                - netcdf4
+                - memory (returns a level2 object stored in memory)
         other kwargs are passed to the level2 object constructor
     '''
     def __init__(self, fmt='hdf4', **kwargs):
@@ -74,6 +77,7 @@ class Level2_base(object):
 
     def write(self, block):
         assert self.shape is not None
+        self.bands = block.bands
 
         (yoff, xoff) = block.offset
         (hei, wid) = block.size

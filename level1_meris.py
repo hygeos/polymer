@@ -45,7 +45,7 @@ class Level1_MERIS(object):
             }
 
         # initialize solar irradiance
-        self.F0 = np.genfromtxt('/home/francois/MERIS/POLYMER/auxdata/meris/smile/v2/sun_spectral_flux_rr.txt', names=True)
+        self.F0 = np.genfromtxt('/home/francois/MERIS/POLYMER/auxdata/meris/smile/v2/sun_spectral_flux_rr.txt', names=True)   # FIXME
         self.F0_band_names = {
                     412: 'E0_band0', 443: 'E0_band1',
                     490: 'E0_band2', 510: 'E0_band3',

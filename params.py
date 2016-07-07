@@ -37,7 +37,7 @@ class Params(object):
         define common parameters
         '''
 
-        # cloud masking
+        # cloud masking (negative values disactivate)
         self.thres_Rcloud = 0.2
         self.thres_Rcloud_std = 0.04
 
@@ -76,12 +76,12 @@ class Params(object):
 
         self.alt_gamma_bb = False  # PR05 model only
 
-        self.multiprocessing = False
-
         # no2 absorption data
         self.no2_climatology = join(self.dir_base, 'auxdata/common/no2_climatology.hdf')
         self.no2_frac200m  = join(self.dir_base, 'auxdata/common/trop_f_no2_200m.hdf')
 
+        self.multiprocessing = False
+        self.verbose = True
 
     def sensor_specific(self, sensor):
         '''

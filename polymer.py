@@ -18,6 +18,7 @@ from level2 import Level2
 
 from polymer_main import PolymerMinimizer
 from water import ParkRuddick, MorelMaritorena
+from warnings import warn
 
 import sys
 if sys.version_info[:2] >= (3, 0):
@@ -73,6 +74,9 @@ class InitCorr(object):
 
         ok = (block.bitmask & BITMASK_INVALID) == 0
 
+        if isinstance(coef, np.ndarray):
+            coef = coef[ok]
+
         for i in xrange(block.nbands):
 
             block.Rtoa[ok,i] = block.Ltoa[ok,i]*np.pi/(block.mus[ok]*block.F0[ok,i]*coef)
@@ -107,8 +111,11 @@ class InitCorr(object):
         '''
 
         # get month
-        assert not isinstance(block.jday, np.ndarray)
-        month = int((float(block.jday)/30.5)) + 1
+        if isinstance(block.jday, np.ndarray):
+            warn('no2 correction: jday is an array')
+            month = 3
+        else:
+            month = int((float(block.jday)/30.5)) + 1
         if month > 12:
             month = 12
 
@@ -204,8 +211,13 @@ class InitCorr(object):
                 Idx(block.mus),
                 inir_lut]
         block.Rnir[~ok] = 0.
-        cloudmask = block.Rnir > params.thres_Rcloud
-        cloudmask |= stdNxN(block.Rnir, 3, ok, fillv=0.) > params.thres_Rcloud_std
+
+        if params.thres_Rcloud >= 0:
+            cloudmask = block.Rnir > params.thres_Rcloud
+        else:
+            cloudmask = np.zeros_like(block.Rnir, dtype='uint8')
+        if params.thres_Rcloud_std >= 0:
+            cloudmask |= stdNxN(block.Rnir, 3, ok, fillv=0.) > params.thres_Rcloud_std
 
         block.bitmask += L2FLAGS['CLOUD_BASE'] * cloudmask.astype('uint8')
 
@@ -318,6 +330,9 @@ def blockiterator(level1, params, multi=False):
         opt = c.init_minimizer()
 
     for block in level1.blocks(params.bands_read()):
+
+        if params.verbose:
+            print('Processing block', block)
 
         yield (block, c, opt)
 
