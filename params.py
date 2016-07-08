@@ -74,7 +74,9 @@ class Params(object):
 
         self.water_model = 'PR05'
 
-        self.alt_gamma_bb = False  # PR05 model only
+        # PR05 model only
+        self.alt_gamma_bb = False  # alternate bb spec. dep.
+        self.min_abs = False    # include mineral absorption
 
         # no2 absorption data
         self.no2_climatology = join(self.dir_base, 'auxdata/common/no2_climatology.hdf')

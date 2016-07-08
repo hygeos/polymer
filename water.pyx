@@ -28,6 +28,7 @@ cdef class ParkRuddick(WaterModel):
     cdef float[:] aw   # pure water absorption coefficient
     cdef float[:] a_bric    # absorption parameters A and B (Bricaud)
     cdef float[:] b_bric    # absorption parameters A and B (Bricaud)
+    cdef float[:] a_star    # mineral absorption coefficient
 
     cdef CLUT BW
     cdef CLUT AW_POPEFRY
@@ -36,6 +37,7 @@ cdef class ParkRuddick(WaterModel):
     cdef CLUT GII_PR  # pre-interpolated gi coefficients (for one pixel)
     cdef CLUT AB_BRIC
     cdef CLUT RAMAN
+    cdef CLUT ASTAR
     cdef float bw500
     cdef float a700
     cdef float mus
@@ -43,15 +45,17 @@ cdef class ParkRuddick(WaterModel):
     cdef int debug
     cdef int alt_gamma_bb
     cdef float[:] atot, bbtot
+    cdef int min_abs
 
     cdef int[:] index  # multi-purpose vector
 
-    def __init__(self, directory, alt_gamma_bb=False, debug=False):
+    def __init__(self, directory, alt_gamma_bb=False, min_abs=False, debug=False):
 
         self.Rw = None
         self.index = np.zeros(2, dtype='int32')
         self.debug = debug
         self.alt_gamma_bb = alt_gamma_bb
+        self.min_abs = min_abs  # activate mineral absorption
 
         self.read_iop(directory)
         self.read_gi(directory)
@@ -86,6 +90,13 @@ cdef class ParkRuddick(WaterModel):
         self.AB_BRIC = CLUT(ap_bricaud[:,1:], axes=[lambda_bric95, None])
         assert lambda_bric95[-1] == 700
         self.a700 = ap_bricaud[-1,1]
+
+        #
+        # read mineral absorption
+        #
+        astar_ = np.genfromtxt(join(directory, 'astarmin_average_2015_SLSTR.txt'), comments='%')
+        self.ASTAR = CLUT(astar_[:-1,1],
+                          axes=[astar_[:-1,0]])
 
         #
         # read Raman correction
@@ -164,6 +175,7 @@ cdef class ParkRuddick(WaterModel):
             self.aw = np.zeros(len(wav), dtype='float32') + np.NaN
             self.a_bric = np.zeros(len(wav), dtype='float32') + np.NaN
             self.b_bric = np.zeros(len(wav), dtype='float32') + np.NaN
+            self.a_star = np.zeros(len(wav), dtype='float32') + np.NaN
 
             if self.debug:
                 self.atot = np.zeros(len(wav), dtype='float32') + np.NaN
@@ -214,6 +226,13 @@ cdef class ParkRuddick(WaterModel):
             else:
                 raise Exception('Error in AB_BRIC lookup (lambda={})'.format(w))
 
+            ret = self.ASTAR.lookup(0, w)
+            if ret != 0:
+                raise Exception('Error on A_STAR lookup (wavelength={})'.format(w))
+            else:
+                self.a_star[i] = self.ASTAR.interp()
+
+
         #
         # empty the pre-interpolated gi coefficients
         #
@@ -244,8 +263,9 @@ cdef class ParkRuddick(WaterModel):
         cdef float fa, fb
         cdef float logchl = x[0]
         cdef float chl = 10**logchl
-        cdef float bbw, gamma, bp550, bbp550, bb, bbp
-        cdef float aw, aphy, aCDM, a, aCDM443, S
+        cdef float bbw, gamma, bp550, bbp550, bb, bbp, bbp650
+        cdef float SPM
+        cdef float aw, aphy, aCDM, a, aCDM443, S, aNAP
         cdef float lam
         cdef float gammab, omegab, omegapow, gi
         cdef int i, j
@@ -295,6 +315,9 @@ cdef class ParkRuddick(WaterModel):
             gamma = -0.733 * log(chl) + 1.499   # /!\ log is ln
             if gamma < 0: gamma = 0
 
+        bbp650 = bbp550 * (650./550.)**(-gamma)
+        SPM = 100.*bbp650  # Neukermans, log10(bbp) = 1.03*log10(SPM)
+
         # CDM absorption central value
         # from Bricaud et al GBC, 2012 (data from nov 2007)
         aCDM443 = fa * 0.069 * (chl**1.070)   # Bricaud et al, GBC, 2012
@@ -331,7 +354,14 @@ cdef class ParkRuddick(WaterModel):
 
             aCDM = aCDM443 * exp(-S*(lam - 443))
 
-            a = aw + aphy + aCDM
+            # mineral absorption
+            if self.min_abs:
+                aNAP = self.a_star[i]*SPM
+            else:
+                aNAP = 0.
+
+            # total absorption
+            a = aw + aphy + aCDM + aNAP
 
             omegab = bb/(a + bb)
             gammab = bbp/bb
