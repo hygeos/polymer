@@ -85,6 +85,8 @@ class Params(object):
         self.multiprocessing = False
         self.verbose = True
 
+        self.dbg_pt = [-1, -1]
+
     def sensor_specific(self, sensor):
         '''
         define sensor-specific default parameters

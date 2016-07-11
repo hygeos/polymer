@@ -314,6 +314,7 @@ cdef class PolymerMinimizer:
     cdef int normalize
     cdef int force_initialization
     cdef int reinit_rw_neg
+    cdef int[:] dbg_pt
 
     def __init__(self, watermodel, params):
 
@@ -335,6 +336,7 @@ cdef class PolymerMinimizer:
         self.normalize = params.normalize
         self.force_initialization = params.force_initialization
         self.reinit_rw_neg = params.reinit_rw_neg
+        self.dbg_pt = np.array(params.dbg_pt, dtype='int32')
 
     cdef loop(self, block,
               float[:,:,:,:] A,
@@ -399,6 +401,15 @@ cdef class PolymerMinimizer:
 
                 self.f.init(x0, self.initial_step)
 
+                # visualization of the cost function
+                if self.dbg_pt[0] >= 0:
+                    if ((self.dbg_pt[0] == i) and (self.dbg_pt[1] == j)):
+                        self.visu_costfunction()
+                    else:
+                        continue
+
+
+                # optimization loop
                 while self.f.niter < self.max_iter:
 
                     self.f.iterate()
@@ -509,4 +520,38 @@ cdef class PolymerMinimizer:
 
         self.loop(block, A, pA)
 
+    def visu_costfunction(self):
+        '''
+        Visualization of the cost function for current pixel
+        '''
+        from matplotlib.pyplot import pcolor, show, colorbar, plot
+
+        NX, NY = 100, 100
+        cost = np.zeros((NX, NY), dtype='float32')
+        tab_p = np.array(np.meshgrid(
+            np.linspace(-2, 0, NX),
+            np.linspace(-0.5, 0.5, NY)), dtype='float32')
+        for i in range(NX):
+            for j in range(NY):
+                cost[i,j] = self.f.eval(tab_p[:,i,j])
+
+        pcolor(tab_p[0,:,:], tab_p[1,:,:],
+               np.log10(cost), cmap='coolwarm')
+        colorbar()
+
+        # plot iterations
+        xprev = None
+        # self.f.init(self.initial_point_1, self.initial_step)
+        xprev = self.initial_point_1
+        while self.f.niter < self.max_iter:
+
+            self.f.iterate()
+
+            plot([xprev[0], self.f.xmin[0]],
+                 [xprev[1], self.f.xmin[1]],
+                 'k-')
+            xprev = list(self.f.xmin)
+
+            if self.f.size() < self.size_end_iter:
+                break
 
