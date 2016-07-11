@@ -82,7 +82,9 @@ class Params(object):
         self.no2_climatology = join(self.dir_base, 'auxdata/common/no2_climatology.hdf')
         self.no2_frac200m  = join(self.dir_base, 'auxdata/common/trop_f_no2_200m.hdf')
 
-        self.multiprocessing = False
+        self.multiprocessing = 1 # 1: single thread
+                                 # N > 1: use N threads
+                                 # N < 1: use as many threads as there are CPUs
         self.verbose = True
 
         self.dbg_pt = [-1, -1]
@@ -251,9 +253,8 @@ class Params(object):
     def defaults_msi(self):
         self.lut_file = join(self.dir_base, 'LUTS/MSI/LUT.hdf')
 
-        # FIXME
-        self.bands_corr = [443,490,560,665,705,740,783,    865,         1610,    ]
-        self.bands_oc   = [443,490,560,665,705,740,783,    865,         1610,    ]
+        self.bands_corr = [443,490,560,665,705,740,783,    865,                  ]
+        self.bands_oc   = [443,490,560,665,705,740,783,    865,                  ]
         self.bands_rw   = [443,490,560,665,705,740,783,    865,         1610,    ]
 
         self.bands_lut =  [443,490,560,665,705,740,783,842,865,945,1375,1610,2190]
@@ -279,16 +280,16 @@ class Params(object):
                 2190: 1.0,
                 }
 
-        self.K_OZ = {   # FIXME
-                443 : 0.,
-                490 : 0.,
-                560 : 0.,
-                665 : 0.,
-                705 : 0.,
-                740 : 0.,
-                783 : 0.,
+        self.K_OZ = {   # FIXME: rough values from OLCI
+                443 : 2.897E-03,
+                490 : 2.066E-02,
+                560 : 1.058E-01,
+                665 : 5.005E-02,
+                705 : 1.887E-02,
+                740 : 8.743E-03,
+                783 : 7.700E-03,
                 842 : 0.,
-                865 : 0.,
+                865 : 2.156E-03,
                 945 : 0.,
                 1375: 0.,
                 1610: 0.,
