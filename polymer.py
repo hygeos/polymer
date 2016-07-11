@@ -356,8 +356,11 @@ def polymer(level1, level2, **kwargs):
         ('hdf4, 'netcdf')
         See appropriate Level2_* class for argument list (the additional
         arguments kwargs are passed directly to this class)
-        Example:
+
+        Examples:
         Level2(fmt='hdf4', ext='.polymer.hdf', outdir='/data/')
+        Level2(filename='/data/out.hdf', fmt='hdf4', compress=True)
+        Level2('memory')   # store output in memory
 
     Additional keyword arguments:
     see attributes defined in Params class
@@ -368,12 +371,14 @@ def polymer(level1, level2, **kwargs):
     - dir_base: location of base directory to locate auxiliary data
     - calib: a dictionary for applying calibration coefficients
     - normalize: if True (default), apply normalization of the water reflectance at nadir-nadir
+
+    RETURN VALUE: the level2 instance
     '''
 
     t0 = datetime.now()
     print('Starting processing at {}'.format(t0))
 
-    # initialize output file
+    # initialize level1 and level2 instances
     with level2 as l2, level1 as l1:
 
         params = Params(l1.sensor, **kwargs)
@@ -381,8 +386,12 @@ def polymer(level1, level2, **kwargs):
         l2.init(l1)
 
         # initialize the block iterator
-        if params.multiprocessing:
-            block_iter = Pool().imap_unordered(process_block,
+        if params.multiprocessing != 1:
+            if params.multiprocessing <= 0:
+                nproc = None  # use as many processes as there are CPUs
+            else:
+                nproc = params.multiprocessing
+            block_iter = Pool(nproc).imap_unordered(process_block,
                     blockiterator(l1, params, True))
         else:
             block_iter = imap(process_block,
