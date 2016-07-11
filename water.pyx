@@ -691,7 +691,7 @@ cdef class MorelMaritorena(WaterModel):
 
 
 def test():
-    pr = ParkRuddick('/home/francois/MERIS/POLYMER/auxdata/common/')
+    pr = ParkRuddick('auxdata/common/')
     pr.init(np.linspace(401, 800, 100, dtype='float32'), 0, 0, 0)
     a = pr.calc_rho(np.array([0., 0.], dtype='float32'))
     # print np.array(a)

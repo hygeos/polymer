@@ -8,13 +8,15 @@ import numpy as np
 from datetime import datetime
 from common import L2FLAGS
 import sys
+from os.path import basename, join
+from os import getcwd
 if sys.version_info[:2] >= (3, 0):
     xrange = range
 
 
 class Level1_MERIS(object):
 
-    def __init__(self, filename, sline=0, eline=-1, blocksize=100):
+    def __init__(self, filename, sline=0, eline=-1, blocksize=100, dir_smile=None):
 
         self.sensor = 'MERIS'
         self.filename = filename
@@ -22,6 +24,10 @@ class Level1_MERIS(object):
         self.width = self.prod.get_scene_width()
         self.totalheight = self.prod.get_scene_height()
         self.blocksize = blocksize
+        self.full_res = basename(filename).startswith('MER_FRS_1')
+
+        if dir_smile is None:
+            dir_smile = join(getcwd(), 'auxdata/meris/smile/v2/')
 
         self.sline = sline
         self.eline = eline
@@ -45,7 +51,10 @@ class Level1_MERIS(object):
             }
 
         # initialize solar irradiance
-        self.F0 = np.genfromtxt('/home/francois/MERIS/POLYMER/auxdata/meris/smile/v2/sun_spectral_flux_rr.txt', names=True)   # FIXME
+        if self.full_res:
+            self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_fr.txt'), names=True)
+        else:
+            self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_rr.txt'), names=True)
         self.F0_band_names = {
                     412: 'E0_band0', 443: 'E0_band1',
                     490: 'E0_band2', 510: 'E0_band3',
@@ -68,7 +77,10 @@ class Level1_MERIS(object):
                 }
 
         # initialize detector wavelength
-        self.detector_wavelength = np.genfromtxt('/home/francois/MERIS/POLYMER/auxdata/meris/smile/v2/central_wavelen_rr.txt', names=True)   # FIXME
+        if self.full_res:
+            self.detector_wavelength = np.genfromtxt(join(dir_smile, 'central_wavelen_fr.txt'), names=True)
+        else:
+            self.detector_wavelength = np.genfromtxt(join(dir_smile, 'central_wavelen_rr.txt'), names=True)
 
         # read the file date
         mph = self.prod.get_mph()

@@ -6,10 +6,12 @@ import numpy as np
 import pandas as pd
 from block import Block
 from datetime import datetime
+from os.path import join
+from os import getcwd
 
 
 class Level1_ASCII(object):
-    def __init__(self, filename, square=1, blocksize=100, additional_headers=[]):
+    def __init__(self, filename, square=1, blocksize=100, additional_headers=[], dir_smile=None):
         '''
         Interface to ASCII data
 
@@ -19,6 +21,9 @@ class Level1_ASCII(object):
         '''
 
         self.sensor = 'MERIS'
+
+        if dir_smile is None:
+            dir_smile = join(getcwd(), 'auxdata/meris/smile/v2/')
 
         self.band_names = {
                 412: 'TOAR_01', 443: 'TOAR_02',
@@ -32,7 +37,7 @@ class Level1_ASCII(object):
             }
 
         # initialize solar irradiance
-        self.F0 = np.genfromtxt('/home/francois/MERIS/POLYMER/auxdata/meris/smile/v2/sun_spectral_flux_rr.txt', names=True)   # TODO: switch RR/FR # FIXME (hardcoded)
+        self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_rr.txt'), names=True)
         self.F0_band_names = {
                     412: 'E0_band0', 443: 'E0_band1',
                     490: 'E0_band2', 510: 'E0_band3',
@@ -43,7 +48,7 @@ class Level1_ASCII(object):
                     865: 'E0_band12', 885: 'E0_band13',
                     900: 'E0_band14',
                     }
-        self.detector_wavelength = np.genfromtxt('/home/francois/MERIS/POLYMER/auxdata/meris/smile/v2/central_wavelen_rr.txt', names=True)   # FIXME
+        self.detector_wavelength = np.genfromtxt(join(dir_smile, 'central_wavelen_rr.txt', names=True))
         self.wav_band_names = {
                     412: 'lam_band0', 443: 'lam_band1',
                     490: 'lam_band2', 510: 'lam_band3',
