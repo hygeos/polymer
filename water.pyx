@@ -568,10 +568,6 @@ cdef class MorelMaritorena(WaterModel):
 
 
     cdef float[:] calc_rho(self, float[:] x):
-        '''
-        x[0] is log10(chl)
-        x[1] is log10(bbs)
-        '''
         cdef float rw_join
 
         # wavelength loop: visible

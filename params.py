@@ -21,7 +21,7 @@ class Params(object):
         self.dir_common = join(self.dir_base, 'auxdata/common/')
 
         # define common parameters
-        self.common()
+        self.common(**kwargs)
 
         # define sensor-specific parameters
         self.sensor_specific(sensor)
@@ -32,7 +32,7 @@ class Params(object):
         # finalization
         self.finalize()
 
-    def common(self):
+    def common(self, **kwargs):
         '''
         define common parameters
         '''
@@ -46,18 +46,10 @@ class Params(object):
         self.reinit_rw_neg = False
         self.max_iter = 100
         self.size_end_iter = 0.005
-        self.initial_point_1 = [-1, 0]
-        self.initial_point_2 = [1, 1]
-        self.initial_step = [0.2, 0.2]
-        self.bounds = [[-2, 2], [-3, 3]]
         self.metrics = 'W_dR2_norm'
         self.glint_precorrection = True
 
         self.thres_chi2 = 0.005
-
-        # Constraint on bbs: amplitude, sigma(chl=0.01), sigma(chl=0.1)
-        # (disactivate with amplitude == 0)
-        self.constraint_bbs = [1e-3, 0.2258, 0.9233]
 
         self.partial = 0    # whether to perform partial processing
                             #   0: standard processing
@@ -72,11 +64,35 @@ class Params(object):
         self.atm_model = 'T0,-1,Rmol'
         self.normalize = True
 
-        self.water_model = 'PR05'
+        if 'water_model' in kwargs:
+            self.water_model = kwargs['water_model']
+        else:
+            self.water_model = 'PR05'
 
-        # PR05 model only
-        self.alt_gamma_bb = False  # alternate bb spec. dep.
-        self.min_abs = False    # include mineral absorption
+        if self.water_model == 'PR05':
+            self.initial_point_1 = [-1, 0]
+            self.initial_point_2 = [1, 1]
+            self.initial_step = [0.2, 0.2]
+            self.bounds = [[-2, 2], [-3, 3]]
+
+            # Constraint on bbs: amplitude, sigma(chl=0.01), sigma(chl=0.1)
+            # (disactivate with amplitude == 0)
+            self.constraint_bbs = [1e-3, 0.2258, 0.9233]
+
+            # PR05 model only
+            self.alt_gamma_bb = False  # alternate bb spec. dep.
+            self.min_abs = False    # include mineral absorption
+
+        elif self.water_model == 'MM01':
+            self.initial_point_1 = [-1, 0]
+            self.initial_point_2 = [-1, 0]
+            self.initial_step = [0.05, 0.0005]
+            self.bounds = [[-2, 2], [-0.005, 0.1]]
+
+            # Constraint on bbs: amplitude, sigma(chl=0.01), sigma(chl=0.1)
+            # (disactivate with amplitude == 0)
+            self.constraint_bbs = [1e-3, 0.0001, 0.005]
+
 
         # no2 absorption data
         self.no2_climatology = join(self.dir_base, 'auxdata/common/no2_climatology.hdf')
