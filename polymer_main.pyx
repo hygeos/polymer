@@ -15,6 +15,14 @@ cdef enum METRICS:
     W_absdR = 2
     W_absdR_norm = 3
 
+metrics_names = {
+        'W_dR2_norm': W_dR2_norm,
+        'W_absdR': W_absdR,
+        'W_absdR_norm': W_absdR_norm,
+        'W_absdR_Rprime': W_absdR_Rprime,
+        'W_absdR2_Rprime2': W_absdR2_Rprime2,
+        }
+
 cdef class F(NelderMeadMinimizer):
     '''
     Defines the cost function minimized by Polymer
@@ -76,13 +84,9 @@ cdef class F(NelderMeadMinimizer):
             assert len(params.weights_oc) == len(params.bands_oc)
             self.weights_oc = np.array(params.weights_oc, dtype='float32')
 
-        if params.metrics == 'W_dR2_norm':
-            self.metrics = W_dR2_norm
-        elif params.metrics == 'W_absdR_norm':
-            self.metrics = W_absdR_norm
-        elif params.metrics == 'W_absdR':
-            self.metrics = W_absdR
-        else:
+        try:
+            self.metrics = metrics_names[params.metrics]
+        except KeyError:
             raise Exception('Invalid metrics "{}"'.format(params.metrics))
 
 
