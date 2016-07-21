@@ -48,7 +48,7 @@ class Level1_ASCII(object):
                     865: 'E0_band12', 885: 'E0_band13',
                     900: 'E0_band14',
                     }
-        self.detector_wavelength = np.genfromtxt(join(dir_smile, 'central_wavelen_rr.txt', names=True))
+        self.detector_wavelength = np.genfromtxt(join(dir_smile, 'central_wavelen_rr.txt'), names=True)
         self.wav_band_names = {
                     412: 'lam_band0', 443: 'lam_band1',
                     490: 'lam_band2', 510: 'lam_band3',
