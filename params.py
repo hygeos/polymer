@@ -59,8 +59,15 @@ class Params(object):
                             #   4: stop before gaseous correction
                             #   5: stop before conversion to reflectance
 
+        # weights_corr_and weights_oc:
+        # weights for atmospheric (corr) and cost function (oc) fits
+        # can be:
+        #  * array-like of weights, of same size as bands_corr and bands_oc
+        #  * function taking bands_corr or bands_oc as input, returning array-like of weights
+        #  * strings eval'd to such function
         self.weights_corr = None
         self.weights_oc = None
+
         self.atm_model = 'T0,-1,Rmol'
         self.normalize = True
 
@@ -512,11 +519,15 @@ class Params(object):
 
     def finalize(self):
 
+        if isinstance(self.weights_corr, str):
+            self.weights_corr = eval(self.weights_corr)
         if hasattr(self.weights_corr, '__call__'):
-            self.weights_corr = map(self.weights_corr, self.bands_corr)
+            self.weights_corr = self.weights_corr(self.bands_corr)
 
+        if isinstance(self.weights_oc, str):
+            self.weights_oc = eval(self.weights_oc)
         if hasattr(self.weights_oc, '__call__'):
-            self.weights_oc = map(self.weights_oc, self.bands_oc)
+            self.weights_oc = self.weights_oc(self.bands_oc)
 
         # number of terms in the model
         self.Ncoef = self.atm_model.count(',')+1
