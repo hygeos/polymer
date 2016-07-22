@@ -147,10 +147,6 @@ cdef class ParkRuddick(WaterModel):
 
         self.GI_PR = CLUT(gi, axes=[gb, None, th0, th, dphi])
 
-        # TODO
-        # store GI coefficients at nadir
-        # (for normalization)
-
         # initialize pre-interpolated gi coefficients
         # (empty)
         self.GII_PR = CLUT(np.zeros((ngb, 4)), axes=[gb, None])
@@ -589,7 +585,6 @@ cdef class MorelMaritorena(WaterModel):
         reflectance calculation for visible bands
         return -1 if invalid wavelength
         '''
-        # TODO: review annotated code
 
         cdef float Kw
         cdef float Chi, e, lam

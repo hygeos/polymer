@@ -9,11 +9,16 @@ from neldermead cimport NelderMeadMinimizer
 from water cimport WaterModel
 from glint import glitter
 
+'''
+main polymer iterative optimization module
+'''
 
 cdef enum METRICS:
     W_dR2_norm = 1
     W_absdR = 2
     W_absdR_norm = 3
+    W_absdR_Rprime = 4
+    W_absdR2_Rprime2 = 5
 
 metrics_names = {
         'W_dR2_norm': W_dR2_norm,
@@ -174,6 +179,11 @@ cdef class F(NelderMeadMinimizer):
             elif self.metrics == W_absdR_norm:
                 sumsq += self.weights_oc[ioc]*abs(dR)/norm
 
+            elif self.metrics == W_absdR_Rprime:
+                sumsq += self.weights_oc[ioc]*abs(dR/self.Rprime[ioc_read])
+
+            elif self.metrics == W_absdR2_Rprime2:
+                sumsq += self.weights_oc[ioc]*(dR/self.Rprime[ioc_read])*(dR/self.Rprime[ioc_read])
 
         if self.constraint_amplitude != 0:
             # sigma equals sigma1 when chl = 0.01
