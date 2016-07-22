@@ -8,57 +8,36 @@ from block import Block
 from datetime import datetime
 from os.path import join
 from os import getcwd
+from level1_meris import BANDS_MERIS
 
 
 class Level1_ASCII(object):
-    def __init__(self, filename, square=1, blocksize=100, additional_headers=[], dir_smile=None):
-        '''
-        Interface to ASCII data
+    '''
+    Interface to ASCII data
 
-        ascii file contains extractions of square x square pixels
-        data are processed by blocks of blocksize
-        additional_headers are also read in the ASCII file
-        '''
+    ascii file contains extractions of square x square pixels
+    data are processed by blocks of blocksize
+    additional_headers are also read in the ASCII file
+    '''
+    def __init__(self, filename, square=1, blocksize=100,
+                 additional_headers=[], dir_smile=None,
+                 sensor='MERIS'):
 
-        self.sensor = 'MERIS'
+        self.sensor = sensor
 
         if dir_smile is None:
             dir_smile = join(getcwd(), 'auxdata/meris/smile/v2/')
 
-        self.band_names = {
-                412: 'TOAR_01', 443: 'TOAR_02',
-                490: 'TOAR_03', 510: 'TOAR_04',
-                560: 'TOAR_05', 620: 'TOAR_06',
-                665: 'TOAR_07', 681: 'TOAR_08',
-                709: 'TOAR_09', 754: 'TOAR_10',
-                760: 'TOAR_11', 779: 'TOAR_12',
-                865: 'TOAR_13', 885: 'TOAR_14',
-                900: 'TOAR_15',
-            }
+        self.band_names = dict(map(lambda (i,b): (b, 'TOAR_{:02d}'.format(i+1)),
+                                   enumerate(BANDS_MERIS)))
 
         # initialize solar irradiance
         self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_rr.txt'), names=True)
-        self.F0_band_names = {
-                    412: 'E0_band0', 443: 'E0_band1',
-                    490: 'E0_band2', 510: 'E0_band3',
-                    560: 'E0_band4', 620: 'E0_band5',
-                    665: 'E0_band6', 681: 'E0_band7',
-                    709: 'E0_band8', 754: 'E0_band9',
-                    760: 'E0_band10', 779: 'E0_band11',
-                    865: 'E0_band12', 885: 'E0_band13',
-                    900: 'E0_band14',
-                    }
+        self.F0_band_names = dict(map(lambda (i,b): (b, 'E0_band{:d}'.format(i)),
+                                      enumerate(BANDS_MERIS)))
         self.detector_wavelength = np.genfromtxt(join(dir_smile, 'central_wavelen_rr.txt'), names=True)
-        self.wav_band_names = {
-                    412: 'lam_band0', 443: 'lam_band1',
-                    490: 'lam_band2', 510: 'lam_band3',
-                    560: 'lam_band4', 620: 'lam_band5',
-                    665: 'lam_band6', 681: 'lam_band7',
-                    709: 'lam_band8', 754: 'lam_band9',
-                    760: 'lam_band10', 779: 'lam_band11',
-                    865: 'lam_band12', 885: 'lam_band13',
-                    900: 'lam_band14',
-                }
+        self.wav_band_names = dict(map(lambda (i,b): (b, 'lam_band{:d}'.format(i)),
+                                       enumerate(BANDS_MERIS)))
 
         #
         # read the csv file
