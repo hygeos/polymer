@@ -3,7 +3,7 @@ from Cython.Build import cythonize
 
 
 debug=False
-annotate=True
+annotate=False
 
 
 if debug:

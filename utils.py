@@ -5,7 +5,6 @@ import numpy as np
 from scipy.ndimage import convolve
 from numpy import ones, sqrt, zeros_like, NaN
 from os import system
-from mpl_toolkits.basemap import maskoceans
 from scipy.interpolate import RectBivariateSpline
 
 def coeff_sun_earth_distance(jday):
@@ -53,6 +52,7 @@ def landmask(lat, lon, resolution='l'):
 
     (uses basemap)
     '''
+    from mpl_toolkits.basemap import maskoceans
     landmask = ~maskoceans(lon, lat, zeros_like(lat), resolution=resolution).mask
     return landmask
 
