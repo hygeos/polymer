@@ -18,7 +18,6 @@ from level2 import Level2
 
 from polymer_main import PolymerMinimizer
 from water import ParkRuddick, MorelMaritorena
-from warnings import warn
 
 import sys
 if sys.version_info[:2] >= (3, 0):
@@ -92,50 +91,72 @@ class InitCorr(object):
 
 
     def read_no2_data(self, month):
+        '''
+        read no2 data from month (1..12) or for all months if month < 0
 
-        # read total and tropospheric no2 data
-        hdf = SD(self.params.no2_climatology)
-        self.no2_total_data = hdf.select('tot_no2_{:02d}'.format(month)).get()
+        shape of arrays is (month, lat, lon)
+        '''
+        hdf1 = SD(self.params.no2_climatology)
+        hdf2 = SD(self.params.no2_frac200m)
 
-        self.no2_tropo_data = hdf.select('trop_no2_{:02d}'.format(month)).get()
-        hdf.end()
+        if month < 0:
+            months = range(1, 13)
+            nmo = 12
+        else:
+            months = [month]
+            nmo = 1
+
+        self.no2_total_data = np.zeros((nmo,720,1440), dtype='float32')
+        self.no2_tropo_data = np.zeros((nmo,720,1440), dtype='float32')
+        self.no2_frac200m_data = np.zeros((90,180), dtype='float32')
+
+
+        for i, m in enumerate(months):
+            # read total and tropospheric no2 data
+            self.no2_total_data[i,:,:] = hdf1.select('tot_no2_{:02d}'.format(m)).get()
+
+            self.no2_tropo_data[i,:,:] = hdf1.select('trop_no2_{:02d}'.format(m)).get()
 
         # read fraction of tropospheric NO2 above 200mn
-        hdf = SD(self.params.no2_frac200m)
-        self.no2_frac200m_data = hdf.select('f_no2_200m').get()
-        hdf.end()
+        self.no2_frac200m_data[:,:] = hdf2.select('f_no2_200m').get()
+
+        hdf1.end()
+        hdf2.end()
 
 
     def get_no2(self, block):
         '''
-        returns no2_frac, no2_tropo, no2_strat
+        returns no2_frac, no2_tropo, no2_strat at the pixels coordinates
         '''
 
         # get month
         if isinstance(block.jday, np.ndarray):
-            warn('no2 correction: jday is an array')
-            month = 3
+            month = (block.jday/30.5).astype('int')+1
+            month[month>12] = 12
+            mon = -1
+            imon = month-1
         else:
             month = int((float(block.jday)/30.5)) + 1
-        if month > 12:
-            month = 12
+            if month > 12:
+                month = 12
+            mon = month
+            imon = 0
 
         try:
             self.no2_tropo_data
         except:
-            self.read_no2_data(month)
+            self.read_no2_data(mon)
 
         # coordinates of current block in 1440x720 grid
-        assert self.no2_tropo_data.shape == (720, 1440)
         ilat = (4*(90 - block.latitude)).astype('int')
         ilon = (4*block.longitude).astype('int')
         ilon[ilon<0] += 4*360
 
-        no2_tropo = self.no2_tropo_data[ilat,ilon]*1e15
-        no2_strat = (self.no2_total_data[ilat,ilon]
-                     - self.no2_tropo_data[ilat,ilon])*1e15
+        no2_tropo = self.no2_tropo_data[imon,ilat,ilon]*1e15
+        no2_strat = (self.no2_total_data[imon,ilat,ilon]
+                     - self.no2_tropo_data[imon,ilat,ilon])*1e15
 
-        # coordinates of current block in 360x180 grid
+        # coordinates of current block in 90x180 grid
         ilat = (0.5*(90 - block.latitude)).astype('int')
         ilon = (0.5*(block.longitude)).astype('int')
         ilon[ilon<0] += 180
@@ -365,9 +386,10 @@ def polymer(level1, level2, **kwargs):
     Additional keyword arguments:
     see attributes defined in Params class
     Examples:
-    - multiprocessing: boolean
-        whether to use all multiple threads
-        (as many as there are cpus)
+    - multiprocessing: number of threads to use for processing (int)
+        N = 1: single thread
+        N > 1: multiple threads
+        N < 1: use as many threads as there are CPUs on local machine
     - dir_base: location of base directory to locate auxiliary data
     - calib: a dictionary for applying calibration coefficients
     - normalize: if True (default), apply normalization of the water reflectance at nadir-nadir
