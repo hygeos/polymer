@@ -40,6 +40,7 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
   netCDF4         MODIS,SeaWiFS, https://pypi.python.org/pypi/netCDF4
                   VIIRS,OLCI,
                   level2_netcdf
+  pandas          level1_ascii   https://pypi.python.org/pypi/pandas
   lxml            MSI            https://pypi.python.org/pypi/lxml
   glymur          MSI            https://pypi.python.org/pypi/Glymur/
 
