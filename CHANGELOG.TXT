@@ -1,0 +1,248 @@
+
+                           #####################
+                           #                   #
+                           # Polymer changelog #
+                           #                   #
+                           #####################
+
+
+
+v4.0beta1
+---------
+
+* Complete rewrite in python+cython:
+    * Processing speed is similar to the C version (about 5% slower)
+    * Results should be quasi-identical to the results of v3.5
+        (verified thoroughly for MERIS, and roughly for NASA sensors)
+    * multiprocessing mode: can use several CPUs available on local machine to
+      speed-up processing
+    * command files are no longer used. Parameters are passed directly to the
+      python function 'polymer'.
+    * Support all previous sensors: MERIS, MODIS, SeaWiFS, VIIRS
+    * Support OLCI (Sentinel 3) and MSI (Sentinel 2)
+    * Support ASCII files (MERIS only)
+* Minor algorithm chage: avoid re-initializing minimizer when a negative
+  reflectance is obtained.
+  => Results are almost unchanged. Processing speed increases by about 30%.
+  (because slightly negative reflectances in the NIR are often obtained)
+
+
+v3.5
+----
+
+* LICENCE updated and included in the package
+* cleanup in README and run scripts
+* MODIS: avoid failing over granules containing ths>90
+* Fixed start/stop attributes in output (J. Dingle)
+* added missing command files command_meris_MM01.txt
+
+
+v3.4
+----
+
+* Cleanup of command files, especially for SeaWiFS
+* Split command files using old & new water models: MM01 and PR05
+  MM01 reproduces results from v3.2
+  PR05 reproduces results from v3.3
+* Add SeaWiFS support in make_L1C.py
+
+v3.3
+----
+
+* Added new ocean model (PR05) based on Park&Ruddick, 2005.
+  This model is adapted to case 1 and case 2 processing
+  Added necessary auxiliary files.
+* Added "full" normalization with this model
+* Switch between "case 1" and "case 2" modes (pixel initialization adapted to
+  resp. case 1 and case 2.
+  Added a flag 1024 when case 2 mode is used (this flag does not invalidate a pixel).
+* Added Raman scattering in PR05, based on simulations from Westberry et al, 2013
+* Updated atmospheric model: now use Rmol instead of lambda^-4
+  This reduces the bias at high latitudes
+  The command file parameter is changed from
+        POLY_EXPO         0. -1. -4.
+    to
+        POLY_EXPO         0. -1. 0.
+* Add support for L1C files in netcdf format (J. Dingle)
+* Updated MERIS, MODIS and VIIRS command files
+* Some cleanup
+
+
+v3.2
+----
+
+* VIIRS and MODIS: now use 'L1C' files produced by l2gen, which brings all
+  radiometric corrections to MODIS and VIIRS.
+  A sample file producing L1C files is provided in tools/make_L1C.py
+  A new class is added as an interface to these files: level1_l2gen.
+  The classes level1_modis and level1_viirs are no longer used and may be deleted.
+  The run and command files are updated accordingly.
+* minor update in MODIS LUTs: update wavelength 551 -> 547.
+  Only the wavelength is updated, the Rayleigh optical thickness (thus the
+  values of the LUT) is unchanged.
+
+
+v3.1
+----
+
+* Add VIIRS destriping
+  Uses VIIRS XCAL tables provided in SeaDAS
+  (added to Polymer's data package)
+* Write the meteo and ozone files in the level2 attributes
+
+
+v3.0
+----
+
+* support VIIRS processing
+  new dependency: requires hdf5 library (VIIRS processing can be deactivated in Makefile)
+  added new VIIRS auxiliary data (see checksums/data_viirs.md5)
+* (minor) fix a valgrind warning
+* add MERIS full resolution data
+  to process MERIS FR data, adjust FILE_SUN_SPEC_FLUX and
+  FILE_DETECTOR_WAVELENGTH in command file to use the FR version.
+* bugfix: properly read NO2 data when in ascii mode.
+  the NO2 correction did not work correctly when in ascii mode (which requires
+  reading 12 months of NO2 climatology instead of just 1).
+  => slight change of the results processed in ascii mode.
+Note: this version brings no change of the MERIS, MODIS and SeaWiFS results.
+
+
+v3.0beta8
+---------
+
+* fix reading of MODIS level 1. Now read radiances and convert to reflectance
+  instead of incorrectly directly reading 'reflectances'.
+  => change of results
+  Also updates MODIS F0 values:
+  auxdata/modis/sun_spectral_flux_2.txt replaces auxdata/modis/sun_spectral_flux.txt
+  and is provided in data package
+* update CALIB in command_modis.txt to match current values of NASA's vicarious coefficients
+
+
+v3.0beta7
+---------
+
+* NetCDF output: allow 'classic' NetCDF4 output
+  Activated by specifying 'OUTPUT_FORMAT NETCDF_CLASSIC' in command file
+* NetCDF output: change compression from 9 to 4
+* MODIS and SeaWiFS: write attributes 'start_time' and 'stop_time'
+* minor: fix tmpfiles includes in get_meteo and get_era_interim
+
+
+v3.0beta6
+---------
+
+* Bugfix
+* Minor Makefile tweak (Mike)
+
+
+v3.0beta5
+---------
+
+* do not stop processing when encountering a grazing angle (outside of the LUT
+  boundaries)
+  => this was preventing processing MODIS granules containing pixels with
+  grazing sun angle.
+  A new bitmask ("EXCEPTION") is dedicated to flagging such invalid pixels.
+* minor corrections and clean-up
+
+v3.0beta4
+---------
+
+* Add support for MERMAID (ASCII) input files.
+
+
+v3.0beta3
+---------
+
+* Added python script tools/get_era_interim.py
+    - download and interpolate ERA-Interim data (GRIB format)
+    - This script has the same functionality as get_meteo.py
+    - additional requirement: python library "pygrib"
+    - updated the sample python scripts run*.py to use optionally ERA-Interim
+
+* Minor change
+    - add option to write water reflectance from the model (for debugging)
+    - add option to skip normalization of the reflectances (for debugging)
+
+
+
+v3.0beta2
+---------
+
+* General changes
+
+    - fixed normalization of water reflectance (account for the gothic-R term)
+      => PRODUCT CHANGE, affects ALL PRODUCTS
+      The surface transmission in the sun direction is modeled after Wang2006
+      The command files have been updated to include a keyword related to this
+      normalization correction (BRDF_OPT)
+
+    - several minor corrections
+
+    - fixed a minor bug related to band indexing in the normalization step.
+      This bug could introduce a minor product change if BANDS_CORR, BANDS_OC and
+      BANDS_RW are not all identical in the command file.
+
+    - add the possibility to write intermediary products for debugging
+      (command file keywords WRITE_RTOA, WRITE_RTOAGC)
+
+* MERIS processing
+
+    - The values of Rayleigh optical thickness used to generate the look-up
+      tables have been updated to follow the SeaDAS values (derived from
+      Bodaine et al 1999).
+      => PRODUCT CHANGE
+      => The MERIS look-up table has been updated from LUTS/MERIS/LUT.hdf to
+         LUTS/MERIS/LUTB.hdf
+
+* Added processing of SeaWiFS data from level 1B.
+
+    - Added SeaWiFS command file (command_seawifs.txt)
+    - Added SeaWiFS sample run script (run_seawifs.py)
+    - Added SeaWiFS auxiliary data (see checksums/data_seawifs.md5)
+    - the 'invalid' SeaWiFS data is considered to be NAVWARN+NAVFAIL+HILT
+      (adjustable in src/main.cpp)
+
+
+
+
+v3.0beta1 (since v2.7)
+----------------------
+
+* General changes
+
+    - Changed LUT format: now using hdf format instead of binary, which is more
+      compact and flexible. The axes are stored along the LUT. The list of
+      auxiliary files (listed in checksums/*.md5) has thus changed. There is now an
+      optional distinction between solar and view zenith angles in the LUTs, in
+      view of using spherical LUTs where the principle of reciprocity is not valid.
+
+    - Improved debugging mode where all info is printed for one pixel specified by
+      lat/lon (required compilation in debug mode). The coordinates of the target
+      pixel are provided by the keyword "DEBUG_POINT <lat> <lon>" in the command
+      file. Only the debug_point is processed.
+
+    - Improved the base Array classes. Provide 2 different classes for storing data
+      in row-major order (ArrayC) or column-major order (ArrayF).
+
+    - Allow writing (optionally) the observation angles in the output file.
+
+    - Added consistency checks for the input parameters and files.
+
+    - Code cleanup and other small fixes.
+
+* MERIS processing:
+    - now properly flag out COSMETIC pixels
+    - otherwise, the products should be identical to v2.7
+
+* Added processing of MODIS data from level 1B. The GEO file must be present
+  alongside the L1B.
+
+* Changed auxiliary files according to the change of LUT format and presence of
+  MODIS processing. MODIS processing requires providing a FILE_METEO and a
+  FILE_OZONE, the same way as for MERIS when using TOMS+NCEP files.
+
+
+
