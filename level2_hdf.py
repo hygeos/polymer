@@ -172,4 +172,10 @@ class Level2_HDF(Level2_file):
             if exists(f):
                 remove(f)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.cleanup()
+
 

@@ -13,6 +13,10 @@ from os import getcwd
 if sys.version_info[:2] >= (3, 0):
     xrange = range
 
+BANDS_MERIS = [412, 443, 490, 510, 560,
+               620, 665, 681, 709, 754,
+               760, 779, 865, 885, 900]
+
 
 class Level1_MERIS(object):
 
@@ -39,42 +43,19 @@ class Level1_MERIS(object):
             self.height = eline-sline
 
         self.shape = (self.height, self.width)
-        self.band_names = {
-                412: 'Radiance_1', 443: 'Radiance_2',
-                490: 'Radiance_3', 510: 'Radiance_4',
-                560: 'Radiance_5', 620: 'Radiance_6',
-                665: 'Radiance_7', 681: 'Radiance_8',
-                709: 'Radiance_9', 754: 'Radiance_10',
-                760: 'Radiance_11', 779: 'Radiance_12',
-                865: 'Radiance_13', 885: 'Radiance_14',
-                900: 'Radiance_15',
-            }
+        self.band_names = dict(map(lambda (i,b): (b, 'Radiance_{:d}'.format(i+1)),
+                                   enumerate(BANDS_MERIS)))
 
         # initialize solar irradiance
         if self.full_res:
             self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_fr.txt'), names=True)
         else:
             self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_rr.txt'), names=True)
-        self.F0_band_names = {
-                    412: 'E0_band0', 443: 'E0_band1',
-                    490: 'E0_band2', 510: 'E0_band3',
-                    560: 'E0_band4', 620: 'E0_band5',
-                    665: 'E0_band6', 681: 'E0_band7',
-                    709: 'E0_band8', 754: 'E0_band9',
-                    760: 'E0_band10', 779: 'E0_band11',
-                    865: 'E0_band12', 885: 'E0_band13',
-                    900: 'E0_band14',
-                    }
-        self.wav_band_names = {
-                    412: 'lam_band0', 443: 'lam_band1',
-                    490: 'lam_band2', 510: 'lam_band3',
-                    560: 'lam_band4', 620: 'lam_band5',
-                    665: 'lam_band6', 681: 'lam_band7',
-                    709: 'lam_band8', 754: 'lam_band9',
-                    760: 'lam_band10', 779: 'lam_band11',
-                    865: 'lam_band12', 885: 'lam_band13',
-                    900: 'lam_band14',
-                }
+        self.F0_band_names = dict(map(lambda (i,b): (b, 'E0_band{:d}'.format(i)),
+                                      enumerate(BANDS_MERIS)))
+
+        self.wav_band_names = dict(map(lambda (i,b): (b, 'lam_band{:d}'.format(i)),
+                                       enumerate(BANDS_MERIS)))
 
         # initialize detector wavelength
         if self.full_res:
@@ -210,4 +191,11 @@ class Level1_MERIS(object):
             offset = (yoffset, xoffset)
 
             yield self.read_block(size, offset, bands_read)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
 

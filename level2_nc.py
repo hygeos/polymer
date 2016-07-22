@@ -60,3 +60,9 @@ class Level2_NETCDF(Level2_file):
         # TODO: write attributes
         self.root.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.cleanup()
+

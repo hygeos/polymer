@@ -240,7 +240,9 @@ class Level1_OLCI(object):
 
             yield self.read_block(size, offset, bands_read)
 
+    def __enter__(self):
+        return self
 
-
-
+    def __exit__(self, *args):
+        self.cleanup()
 

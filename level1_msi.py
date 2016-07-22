@@ -265,6 +265,12 @@ class Level1_MSI(object):
 
             yield self.read_block(size, offset, bands_read)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.cleanup()
+
 
 def read_xml_block(item):
     '''

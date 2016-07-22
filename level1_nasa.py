@@ -160,6 +160,12 @@ class Level1_NASA(object):
 
             yield self.read_block(size, offset, bands_read)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
 
 class Level1_VIIRS(Level1_NASA):
     ''' Interface to VIIRS Level-1C '''
