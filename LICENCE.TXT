@@ -1,0 +1,42 @@
+############################
+#                          #
+#   Polymer licence v1.1   #
+#                          #
+############################
+
+
+Copyright 2016 HYGEOS
+
+The Polymer software source code is provided by Hygeos (the licensor) to you
+(the licensee) under the following terms and conditions:
+
+1. The license is a non-exclusive, non-transferable, limited license
+
+2. The source code must retain the above copyright notice, this list of
+   conditions, and the following disclaimer.
+
+3. Offline usage
+   You shall not make use of the software for any other purpose than archive Ocean
+   Colour data processing, which excludes processing data less than 15 days after
+   its acquisition.
+
+4. You shall not disclose or copy to a third party the software or any part
+   thereof.
+
+5. You commit to provide back any algorithm adaptation or modification,
+   should it believe it would benefit the user community and in such a case,
+   submit it to Hygeos for inclusion in the maintained version of the software.
+   Hygeos shall be entitled to use and transfer any such modification free of
+   charge.
+
+6. You shall indemnify Hygeos from and against all claims, proceedings,
+   damages, costs and expenses arising from any infrigements of third party rights
+   resulting from the wrongful disclosure of the software contrary to the above
+   terms.
+
+7. Unless required by applicable law or agreed to in writing, software
+   distributed under the license is distributed on an "as is" basis,
+   without warranties or conditions of any kind, either express or implied.
+   Hygeos shall not be held liable for the consequences of any use of the
+   software.
+
