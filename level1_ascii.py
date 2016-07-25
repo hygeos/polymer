@@ -9,6 +9,12 @@ from datetime import datetime
 from os.path import join
 from os import getcwd
 from level1_meris import BANDS_MERIS
+from common import L2FLAGS
+
+# bands stored in the ASCII extractions
+BANDS_MODIS = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240]
+BANDS_SEAWIFS = [412,443,490,510,555,670,765,865]
+BANDS_VIIRS = [410,443,486,551,671,745,862,1238,1601,2257]
 
 
 class Level1_ASCII(object):
@@ -17,27 +23,42 @@ class Level1_ASCII(object):
 
     ascii file contains extractions of square x square pixels
     data are processed by blocks of blocksize
-    additional_headers are also read in the ASCII file
+
+    arguments:
+        * additional_headers (list of strings): additional datasets to read in
+          the ASCII file and store in self.csv
+        * TOAR: 'radiance' or 'reflectance'
     '''
     def __init__(self, filename, square=1, blocksize=100,
                  additional_headers=[], dir_smile=None,
-                 sensor='MERIS'):
+                 sensor=None, BANDS=None, TOAR='radiance'):
 
         self.sensor = sensor
+        self.filename = filename
+        self.TOAR = TOAR
 
-        if dir_smile is None:
-            dir_smile = join(getcwd(), 'auxdata/meris/smile/v2/')
+        if BANDS is None:
+            BANDS = {
+                    'MERIS': BANDS_MERIS,
+                    'SeaWiFS': BANDS_SEAWIFS,
+                    'MODIS': BANDS_MODIS,
+                    'VIIRS': BANDS_VIIRS,
+                    }[sensor]
 
         self.band_names = dict(map(lambda (i,b): (b, 'TOAR_{:02d}'.format(i+1)),
-                                   enumerate(BANDS_MERIS)))
+                                   enumerate(BANDS)))
 
-        # initialize solar irradiance
-        self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_rr.txt'), names=True)
-        self.F0_band_names = dict(map(lambda (i,b): (b, 'E0_band{:d}'.format(i)),
-                                      enumerate(BANDS_MERIS)))
-        self.detector_wavelength = np.genfromtxt(join(dir_smile, 'central_wavelen_rr.txt'), names=True)
-        self.wav_band_names = dict(map(lambda (i,b): (b, 'lam_band{:d}'.format(i)),
-                                       enumerate(BANDS_MERIS)))
+        if sensor == 'MERIS':
+            if dir_smile is None:
+                dir_smile = join(getcwd(), 'auxdata/meris/smile/v2/')
+
+            # initialize solar irradiance
+            self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_rr.txt'), names=True)
+            self.F0_band_names = dict(map(lambda (i,b): (b, 'E0_band{:d}'.format(i)),
+                                          enumerate(BANDS)))
+            self.detector_wavelength = np.genfromtxt(join(dir_smile, 'central_wavelen_rr.txt'), names=True)
+            self.wav_band_names = dict(map(lambda (i,b): (b, 'lam_band{:d}'.format(i)),
+                                           enumerate(BANDS)))
 
         #
         # read the csv file
@@ -87,28 +108,45 @@ class Level1_ASCII(object):
         block._raa = self.get_field('DELTA_AZIMUTH', sl, size)
 
         # read TOA
-        Ltoa = np.zeros((ysize,xsize,nbands)) + np.NaN
+        TOA = np.zeros((ysize,xsize,nbands)) + np.NaN
         for iband, band in enumerate(bands):
             name = self.band_names[band]
-            Ltoa[:,:,iband] = self.csv[name][sl].reshape(size)
-        block.Ltoa = Ltoa
+            TOA[:,:,iband] = self.csv[name][sl].reshape(size)
 
-        # detector index
-        di = self.csv['DETECTOR'][sl].reshape(size)
+        if self.TOAR == 'reflectance':
+            block.Rtoa = TOA
 
-        # F0
-        block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
-        for iband, band in enumerate(bands):
-            block.F0[:,:,iband] = self.F0[self.F0_band_names[band]][di]
+            block.wavelen = np.zeros((ysize,xsize,nbands), dtype='float32') + np.NaN
+            for iband, band in enumerate(bands):
+                block.wavelen[:,:,iband] = float(band)
 
-        # detector wavelength
-        block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
-        for iband, band in enumerate(bands):
-            block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][di]
+        elif self.TOAR == 'radiance':
+            block.Ltoa = TOA
+
+            assert self.sensor == 'MERIS'
+
+            # detector index
+            di = self.csv['DETECTOR'][sl].reshape(size)
+
+            # F0
+            block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
+            for iband, band in enumerate(bands):
+                block.F0[:,:,iband] = self.F0[self.F0_band_names[band]][di]
+
+            # detector wavelength
+            block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
+            for iband, band in enumerate(bands):
+                block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][di]
+
+        else:
+            raise Exception('Invalid TOAR type "{}"'.format(self.TOAR))
 
         block.jday = np.array(map(lambda x: x.timetuple().tm_yday,
                                   self.dates[sl])).reshape(size)
         block.bitmask = np.zeros(size, dtype='uint16')
+        invalid = np.isnan(block._raa)
+        invalid |= TOA[:,:,0] < 0
+        block.bitmask += L2FLAGS['L1_INVALID']*invalid.astype('uint16')
 
         # ozone
         block.ozone = self.csv['OZONE_ECMWF'][sl].reshape(size)
