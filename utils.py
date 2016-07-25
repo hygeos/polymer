@@ -112,3 +112,16 @@ def rectBivariateSpline(A, shp):
     f = RectBivariateSpline(x, y, A)
 
     return f(xin, yin).astype('float32')
+
+def pstr(x):
+    '''
+    'pretty' representation of object x as string
+    '''
+    if isinstance(x, dict):
+        s = []
+        for k, v in sorted(x.items()):
+            s.append('{}: {}'.format(k, v))
+        return '{' + ', '.join(s) + '}'
+    else:
+        return str(x)
+

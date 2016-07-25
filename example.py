@@ -14,11 +14,11 @@ if __name__ == "__main__":
     # using the generic (autodetecting) Level1 class
     # and the generic level2 class (hdf4 by default)
     polymer(Level1('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1'),
-            Level2('output.hdf'))
+            Level2(filename='output.hdf'))
 
     # NOTES:
     # * netcdf4 output can be selected with
-    #   Level2(fmt='netcdf4', filename='output.nc')
+    #   Level2(filename='output.nc', fmt='netcdf4')
     # * instead of the generic Level1 and Level2 you can use directly
     #   the appropriate Level1 and Level2 classes (see next example)
 
@@ -55,7 +55,9 @@ if __name__ == "__main__":
                     760: 1.0 , 779: 1.0,
                     865: 1.0 , 885: 1.0,
                     900: 1.0 ,
-                    }
+                    }  # or calib=None to set all coefficients to 1
+                       # (default calibration: use per-sensor defaults as defined in
+                       #  param.py)
                  )
     plot(l2.bands, l2.Rw[0,0,:])  # plot spectrum of pixel at (0,0)
 
