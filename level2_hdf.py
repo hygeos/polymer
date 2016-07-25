@@ -10,6 +10,7 @@ from os.path import exists, dirname, join, basename
 import tempfile
 from utils import safemove
 from shutil import rmtree
+from utils import pstr
 
 
 class Level2_HDF(Level2_file):
@@ -50,6 +51,10 @@ class Level2_HDF(Level2_file):
         self.typeconv = {
                     np.dtype('float32'): SDC.FLOAT32,
                     np.dtype('float64'): SDC.FLOAT64,
+                    np.dtype('int8'): SDC.INT8,
+                    np.dtype('int16'): SDC.INT16,
+                    np.dtype('int32'): SDC.INT32,
+                    np.dtype('uint8'): SDC.UINT8,
                     np.dtype('uint16'): SDC.UINT16,
                     np.dtype('uint32'): SDC.UINT32,
                     }
@@ -150,8 +155,8 @@ class Level2_HDF(Level2_file):
 
         # write attributes
         for k, v in params.__dict__.iteritems():
-            print(str(k), str(v))
-            setattr(hdf, str(k), str(v))
+            print(str(k), pstr(v))
+            setattr(hdf, str(k), pstr(v))
 
         if self.compress:
             # cleanup
