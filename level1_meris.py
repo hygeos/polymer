@@ -128,17 +128,17 @@ class Level1_MERIS(object):
         block.vaa = self.read_band('view_azimuth', size, offset)
 
         # read detector index
-        di = self.read_band('detector_index', size, offset)
+        block.detector_index = self.read_band('detector_index', size, offset)
 
         # get F0 for each band
         block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
         for iband, band in enumerate(bands):
-            block.F0[:,:,iband] = self.F0[self.F0_band_names[band]][di]
+            block.F0[:,:,iband] = self.F0[self.F0_band_names[band]][block.detector_index]
 
         # calculate detector wavelength for each band
         block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
-            block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][di]
+            block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][block.detector_index]
 
         # read TOA
         Ltoa = np.zeros((ysize,xsize,nbands)) + np.NaN
