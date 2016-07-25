@@ -360,7 +360,7 @@ class LUT(object):
                 if k.name not in [None, self.names[i]]:
                     msg = 'Error, wrong parameter passed at position {}, expected {}, got {}'
                     raise Exception(msg.format(i, self.names[i], k.name))
-                keys[i] = k.index(self.axes[i])
+                keys[i] = k.index(self.axes[i], name=k.name)
 
         # determine the dimensions of the result (for broadcasting coef)
         dims_array = None
@@ -547,6 +547,12 @@ class LUT(object):
 
     def __rmul__(self, other):
         return self.__binary_operation__(other, lambda x, y: x*y)
+
+    def __div__(self, other):
+        return self.__binary_operation__(other, lambda x, y: x/y)
+
+    def __rdiv__(self, other):
+        return self.__binary_operation__(other, lambda x, y: y/x)
 
     def __truediv__(self, other):
         return self.__binary_operation__(other, lambda x, y: x/y)
@@ -986,7 +992,7 @@ class Idx(object):
             self.bounds_error = bounds_error
             self.fill_value = fill_value
 
-    def index(self, axis):
+    def index(self, axis, name=None):
         '''
         Return the floating point index of the values in the axis
         '''
@@ -1001,9 +1007,16 @@ class Idx(object):
 
         else:
             # axis is scalar or ndarray: interpolate
-            res = interp1d(axis, np.arange(len(axis)),
-                    bounds_error=self.bounds_error,
-                    fill_value=self.fill_value)(self.value)
+            try:
+                res = interp1d(axis, np.arange(len(axis)),
+                        bounds_error=self.bounds_error,
+                        fill_value=self.fill_value)(self.value)
+            except ValueError:
+                print('Axis "{}": Out of axis error'.format(name))
+                print('           Axis = [{}..{}]'.format(axis[0], axis[-1]))
+                print('           Value between {} and {}'.format(
+                            np.amin(self.value), np.amax(self.value)))
+                raise
             if self.round:
                 if isinstance(res, np.ndarray):
                     res = res.round().astype(int)
