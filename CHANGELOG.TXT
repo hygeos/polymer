@@ -7,6 +7,15 @@
 
 
 
+v4.0beta2
+---------
+
+A few fixes:
+* Add a missing auxiliary file
+* Level1_ASCII: Deal with ASCII extractions of multiple sensors
++ a few more corrections
+
+
 v4.0beta1
 ---------
 
