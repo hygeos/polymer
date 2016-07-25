@@ -73,7 +73,7 @@ class Provider(object):
         self.offline = offline
         self.url = 'http://oceandata.sci.gsfc.nasa.gov/cgi/getfile/'
 
-        assert isdir(directory)
+        assert isdir(directory), '{} does not exist'.format(directory)
 
     def get(self, param, date=None):
         # TODO
