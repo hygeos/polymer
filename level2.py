@@ -6,6 +6,7 @@ from __future__ import print_function
 import numpy as np
 from os import remove
 from os.path import exists, join, basename
+from warnings import warn
 
 default_datasets = [
             'latitude', 'longitude',
@@ -84,6 +85,7 @@ class Level2_base(object):
 
         for d in self.datasets:
             if d not in block.datasets():
+                warn('Could not find dataset "{}"'.format(d))
                 continue
 
             data = block[d]
