@@ -85,6 +85,9 @@ class InitCorr(object):
         '''
         Apply calibration coefficients on Rtoa
         '''
+        if self.params.calib is None:
+            return
+
         ok = (block.bitmask & BITMASK_INVALID) == 0
         for i, b in enumerate(block.bands):
             block.Rtoa[ok,i] *= self.params.calib[b]
@@ -227,12 +230,13 @@ class InitCorr(object):
 
         inir_block = block.bands.index(params.band_cloudmask)
         inir_lut = params.bands_lut.index(params.band_cloudmask)
-        block.Rnir = block.Rtoa_gc[:,:,inir_block] - self.mlut['Rmol'][
-                Idx(block.muv),
-                Idx(block.raa),
-                Idx(block.mus),
+
+        block.Rnir = np.zeros(block.size, dtype='float32')
+        block.Rnir[ok] = block.Rtoa_gc[:,:,inir_block][ok] - self.mlut['Rmol'][
+                Idx(block.muv[ok]),
+                Idx(block.raa[ok]),
+                Idx(block.mus[ok]),
                 inir_lut]
-        block.Rnir[~ok] = 0.
 
         if params.thres_Rcloud >= 0:
             cloudmask = block.Rnir > params.thres_Rcloud
