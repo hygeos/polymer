@@ -11,6 +11,7 @@ import tempfile
 from utils import safemove
 from shutil import rmtree
 from utils import pstr
+from warnings import warn
 
 
 class Level2_HDF(Level2_file):
@@ -120,6 +121,7 @@ class Level2_HDF(Level2_file):
 
             # don't write dataset if not in block
             if d not in block.datasets():
+                warn('Could not find dataset "{}"'.format(d))
                 continue
 
             if block[d].ndim == 2:

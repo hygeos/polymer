@@ -6,7 +6,7 @@ VERSION='4.0beta2'
 BASE=`pwd`
 SRC=polymer-src-v$VERSION.tar.gz
 DATA=polymer-data-v$VERSION.tar.gz
-TARGET='RELEASE/TARGET/'
+TARGET='RELEASE/v'$VERSION'/'
 DIR='POLYMER/'
 TEMP=$TARGET$DIR
 

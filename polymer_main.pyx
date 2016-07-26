@@ -221,20 +221,24 @@ def atm_func(block, params, bands):
     T0 = np.exp(-taum*((1-0.5*np.exp(-block.Rgli/Rgli0))*block.air_mass)[:,:,None])
 
     if params.atm_model == 'T0,-1,-4':
+        assert Ncoef == 3
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
         A[:,:,:,0] = T0*(lam/1000.)**0.
         A[:,:,:,1] = (lam/1000.)**-1.
         A[:,:,:,2] = (lam/1000.)**-4.
     elif params.atm_model == 'T0,-1,Rmol':
+        assert Ncoef == 3
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
         A[:,:,:,0] = T0*(lam/1000.)**0.
         A[:,:,:,1] = (lam/1000.)**-1.
         A[:,:,:,2] = block.Rmol[:,:,idx]
     elif params.atm_model == 'T0,-1':
+        assert Ncoef == 2
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
         A[:,:,:,0] = T0*(lam/1000.)**0.
         A[:,:,:,1] = (lam/1000.)**-1.
     elif params.atm_model == 'T0,-2':
+        assert Ncoef == 2
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
         A[:,:,:,0] = T0*(lam/1000.)**0.
         A[:,:,:,1] = (lam/1000.)**-2.

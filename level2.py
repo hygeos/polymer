@@ -104,7 +104,7 @@ class Level2_base(object):
                 raise Exception('Error')
 
     def finish(self, params):
-        pass
+        self.attrs = params.__dict__
 
     def cleanup(self):
         pass
