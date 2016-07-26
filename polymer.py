@@ -204,6 +204,8 @@ class InitCorr(object):
 
         no2_tr200 = no2_frac * no2_tropo
 
+        no2_tr200[no2_tr200<0] = 0
+
         for i, b in enumerate(block.bands):
 
             k_no2 = params.K_NO2[b]
