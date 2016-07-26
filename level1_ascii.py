@@ -97,6 +97,7 @@ class Level1_ASCII(object):
         # initialize block
         block = Block(offset=offset, size=size, bands=bands)
         sl = slice(offset[0]*xsize, (offset[0]+ysize)*xsize)
+        block.wavelen = np.zeros((ysize,xsize,nbands), dtype='float32') + np.NaN
 
         # coordinates
         block.latitude = self.get_field('LAT', sl, size)
@@ -116,16 +117,14 @@ class Level1_ASCII(object):
         if self.TOAR == 'reflectance':
             block.Rtoa = TOA
 
-            block.wavelen = np.zeros((ysize,xsize,nbands), dtype='float32') + np.NaN
-            for iband, band in enumerate(bands):
-                block.wavelen[:,:,iband] = float(band)
-
         elif self.TOAR == 'radiance':
             block.Ltoa = TOA
 
-            assert self.sensor == 'MERIS'
+        else:
+            raise Exception('Invalid TOAR type "{}"'.format(self.TOAR))
 
-            # detector index
+        # detector index
+        if self.sensor == 'MERIS':
             di = self.csv['DETECTOR'][sl].reshape(size)
 
             # F0
@@ -137,9 +136,9 @@ class Level1_ASCII(object):
             block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
             for iband, band in enumerate(bands):
                 block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][di]
-
         else:
-            raise Exception('Invalid TOAR type "{}"'.format(self.TOAR))
+            for iband, band in enumerate(bands):
+                block.wavelen[:,:,iband] = float(band)
 
         block.jday = np.array(map(lambda x: x.timetuple().tm_yday,
                                   self.dates[sl])).reshape(size)
