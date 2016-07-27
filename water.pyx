@@ -45,8 +45,9 @@ cdef class ParkRuddick(WaterModel):
     cdef int debug
     cdef int alt_gamma_bb
     cdef int min_abs
-    cdef float[:] atot, bbtot, aphy, aCDM, aNAP
+    cdef float[:] atot, bbtot, btot, aphy, aCDM, aNAP
     cdef float gamma, SPM
+    cdef object out_type
 
     cdef int[:] index  # multi-purpose vector
 
@@ -177,6 +178,7 @@ cdef class ParkRuddick(WaterModel):
             if self.debug:
                 self.atot = np.zeros(len(wav), dtype='float32') + np.NaN
                 self.bbtot = np.zeros(len(wav), dtype='float32') + np.NaN
+                self.btot = np.zeros(len(wav), dtype='float32') + np.NaN
                 self.aCDM = np.zeros(len(wav), dtype='float32') + np.NaN
                 self.aNAP = np.zeros(len(wav), dtype='float32') + np.NaN
                 self.aphy = np.zeros(len(wav), dtype='float32') + np.NaN
@@ -413,6 +415,7 @@ cdef class ParkRuddick(WaterModel):
             if self.debug:
                 self.atot[i] = a
                 self.bbtot[i] = bb
+                self.btot[i] = self.bw[i] + bp550*(lam/550.)**(-gamma)
                 self.aphy[i] = aphy
                 self.aCDM[i] = aCDM
                 self.aNAP[i] = aNAP
@@ -422,15 +425,29 @@ cdef class ParkRuddick(WaterModel):
 
         return self.Rw
 
-    def calc(self, wav, logchl, logfb=0., logfa=0., sza=0., vza=0., raa=0.):
-        ''' water reflectance calculation (python interface) '''
+    def calc(self, w, logchl, logfb=0., logfa=0., sza=0., vza=0., raa=0.):
+        '''
+        water reflectance calculation (python interface)
+        w: wavelength (nm) [float, list or array]
+        returns above-water reflectance as float, list or array
+        '''
+        if isinstance(w, np.ndarray):
+            self.out_type = np.array
+            wav = w.astype('float32')
+        elif isinstance(w, list):
+            self.out_type = list
+            wav = np.array(w, dtype='float32')
+        else: # float
+            self.out_type = lambda x: x[0]
+            wav = np.array([w], dtype='float32')
+
         self.init(wav.astype('float32'), float(sza), float(vza), float(raa))
         params = np.zeros(3, dtype='float32')
         params[0] = logchl
         params[1] = logfb
         params[2] = logfa
         R = self.calc_rho(params)
-        return np.array(R)
+        return self.out_type(R)
 
     def iops(self):
         '''
@@ -439,13 +456,14 @@ cdef class ParkRuddick(WaterModel):
         assert self.debug
 
         return {
-                'bw': np.array(self.bw),
-                'aw': np.array(self.aw),
-                'atot': np.array(self.atot),
-                'bbtot': np.array(self.bbtot),
-                'aphy': np.array(self.aphy),
-                'aCDM': np.array(self.aCDM),
-                'aNAP': np.array(self.aNAP),
+                'bw':   self.out_type(self.bw),
+                'aw':   self.out_type(self.aw),
+                'atot': self.out_type(self.atot),
+                'bbtot':self.out_type(self.bbtot),
+                'btot': self.out_type(self.btot),
+                'aphy': self.out_type(self.aphy),
+                'aCDM': self.out_type(self.aCDM),
+                'aNAP': self.out_type(self.aNAP),
                 'gamma': self.gamma,
                 'SPM': self.SPM,
                 }
@@ -464,6 +482,7 @@ cdef class MorelMaritorena(WaterModel):
     cdef float[:] simspec_i
     cdef float lam_join
     cdef initialized
+    cdef object out_type
 
     cdef int debug
     cdef float[:] bw, atot, bbtot
@@ -671,16 +690,28 @@ cdef class MorelMaritorena(WaterModel):
     cdef float calc_rho_nir(self, int i, float rw_join):
         return self.simspec_i[i]*rw_join/self.simspec_i[self.Nwav]
 
-    def calc(self, wav, logchl, bbs=0., sza=0., vza=0., raa=0.):
+    def calc(self, w, logchl, bbs=0., sza=0., vza=0., raa=0.):
         '''
         water reflectance calculation (python interface)
+        w: wavelength (nm) [float, list or array]
+        returns above-water reflectance as float, list or array
         '''
-        self.init(wav.astype('float32'), float(sza), float(vza), float(raa))
+        if isinstance(w, np.ndarray):
+            self.out_type = np.array
+            wav = w.astype('float32')
+        elif isinstance(w, list):
+            self.out_type = list
+            wav = np.array(w, dtype='float32')
+        else: # float
+            self.out_type = lambda x: x[0]
+            wav = np.array([w], dtype='float32')
+
+        self.init(wav, float(sza), float(vza), float(raa))
         params = np.zeros(2, dtype='float32')
         params[0] = logchl
         params[1] = bbs
         R = self.calc_rho(params)
-        return np.array(R)
+        return self.out_type(R)
 
     def iops(self):
         '''
@@ -689,9 +720,9 @@ cdef class MorelMaritorena(WaterModel):
         assert self.debug
 
         return {
-                'bw': np.array(self.bw),
-                'atot': np.array(self.atot),
-                'bbtot': np.array(self.bbtot),
+                'bw':    self.out_type(self.bw),
+                'atot':  self.out_type(self.atot),
+                'bbtot': self.out_type(self.bbtot),
                 }
 
 
