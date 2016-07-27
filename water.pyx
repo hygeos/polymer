@@ -44,8 +44,9 @@ cdef class ParkRuddick(WaterModel):
     cdef int Nwav
     cdef int debug
     cdef int alt_gamma_bb
-    cdef float[:] atot, bbtot
     cdef int min_abs
+    cdef float[:] atot, bbtot, aphy, aCDM, aNAP
+    cdef float gamma, SPM
 
     cdef int[:] index  # multi-purpose vector
 
@@ -176,6 +177,9 @@ cdef class ParkRuddick(WaterModel):
             if self.debug:
                 self.atot = np.zeros(len(wav), dtype='float32') + np.NaN
                 self.bbtot = np.zeros(len(wav), dtype='float32') + np.NaN
+                self.aCDM = np.zeros(len(wav), dtype='float32') + np.NaN
+                self.aNAP = np.zeros(len(wav), dtype='float32') + np.NaN
+                self.aphy = np.zeros(len(wav), dtype='float32') + np.NaN
         elif len(wav) != len(self.Rw):
             raise Exception('Invalid length of wav')
 
@@ -409,6 +413,11 @@ cdef class ParkRuddick(WaterModel):
             if self.debug:
                 self.atot[i] = a
                 self.bbtot[i] = bb
+                self.aphy[i] = aphy
+                self.aCDM[i] = aCDM
+                self.aNAP[i] = aNAP
+                self.gamma = gamma
+                self.SPM = SPM
 
 
         return self.Rw
@@ -434,6 +443,11 @@ cdef class ParkRuddick(WaterModel):
                 'aw': np.array(self.aw),
                 'atot': np.array(self.atot),
                 'bbtot': np.array(self.bbtot),
+                'aphy': np.array(self.aphy),
+                'aCDM': np.array(self.aCDM),
+                'aNAP': np.array(self.aNAP),
+                'gamma': self.gamma,
+                'SPM': self.SPM,
                 }
 
 
