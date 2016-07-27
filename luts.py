@@ -1497,7 +1497,7 @@ class MLUT(object):
                 raise ex
 
         if verbose:
-            print('Writing "{}" to "{}" ({} format)'.format(self.desc, filename, fmt))
+            print('Writing MLUT to "{}" ({} format)'.format(filename, fmt))
 
         if fmt is None:
             if filename.endswith('.hdf'):
@@ -1884,7 +1884,7 @@ class MLUT(object):
                         index = slider.value
                         keys.append(index)
                         # set text (value)
-                        if self[d].axes[i] != None:
+                        if self[d].axes[i] is not None:
                             text.value = '&nbsp;&nbsp;{:.5g}&nbsp;&nbsp;'.format(self[d].axes[i][index])
                     else:
                         keys.append(slice(None))
