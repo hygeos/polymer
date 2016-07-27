@@ -43,7 +43,7 @@ if __name__ == "__main__":
     # Process an ASCII file (MERIS)
     # using custom calibration coefficients
     # returns in-memory level2 (do not write file)
-    l2 = polymer(Level1_ASCII('extraction.csv', square=5),
+    l2 = polymer(Level1_ASCII('extraction.csv', square=5, sensor='MERIS'),
                  Level2('memory'),
                  force_initialization=True,
                  calib={
