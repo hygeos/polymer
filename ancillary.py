@@ -129,47 +129,61 @@ class Provider(object):
             print('Downloading {}'.format(url))
             content = requests.get(url).content
             t.write(content)
-            print('Done')
+            print('...done')
 
         return 0
 
 
-    def try_resource(self, pattern, date):
+    def try_resources(self, patterns, date):
 
-        url = date.strftime(self.url+pattern)
-        target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
-        if not exists(target):
-            if self.download(url, target):
-                print('Trying to download', url)
-                return None
-        return target
+        # first, try local files
+        for pattern in patterns:
+            target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
+            if exists(target):
+                return target
+
+        # then try to download
+        for pattern in patterns:
+            url = date.strftime(self.url+pattern)
+            target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
+
+            print('Trying to download', url)
+            if self.download(url, target) == 0:
+                print('...success!')
+                return target
+            else:
+                print('...failure')
+
+        return None
 
     def find_meteo(self, date):
 
         d0 = datetime(date.year, date.month, date.day,
                        6*int(date.hour/6.))
-        for pat in [
+        filename = self.try_resources([
                 'N%Y%j%H_MET_NCEP_6h.hdf',
                 'S%Y%j%H_NCEP.MET',
-                ]:
-            filename = self.try_resource(pat, d0)
-            if filename is not None:
-                return filename
+                ], d0)
 
-        raise Exception('Could not find any valid meteo file for {}'.format(d0))
+        if filename is None:
+            raise Exception('Could not find any valid meteo file for {}'.format(d0))
+
+        return filename
 
     def find_ozone(self, date):
 
         d0 = datetime(date.year, date.month, date.day)
         for i in range(10):
-            for pat in [
-                    'N%Y%j00_O3_AURAOMI_24h.hdf',
-                    'S%Y%j00%j23_TOAST.OZONE',
-                    'N%Y%j00_O3_EPTOMS_24h.hdf',
-                    ]:
-                filename = self.try_resource(pat, d0 - timedelta(days=1))
-                if filename is not None:
-                    return filename
-        raise Exception('Could not find any valid ozone file')
+            filename = self.try_resources([
+                'N%Y%j00_O3_AURAOMI_24h.hdf',
+                'S%Y%j00%j23_TOAST.OZONE',
+                'N%Y%j00_O3_EPTOMS_24h.hdf',
+                ], d0 - timedelta(days=i))
+            if filename is not None:
+                break
+        if filename is None:
+            raise Exception('Could not find any valid ozone file')
+
+        return filename
 
 
