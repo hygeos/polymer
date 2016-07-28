@@ -158,8 +158,9 @@ class Level1_MERIS(object):
         # surface pressure
         block.surf_press = self.read_band('atm_press', size, offset)
 
-        # set julian day
+        # set julian day and month
         block.jday = self.date.timetuple().tm_yday
+        block.month = self.date.timetuple().tm_mon
 
         # read bitmask
         block.bitmask = L2FLAGS['LAND']*self.read_bitmask(size, offset,

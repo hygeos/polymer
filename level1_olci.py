@@ -199,8 +199,9 @@ class Level1_OLCI(object):
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = self.lam0[self.band_index[band], di]
 
-        # julian day
+        # julian day and month
         block.jday = self.date().timetuple().tm_yday
+        block.month = self.date().timetuple().tm_mon
 
         # read total ozone in kg/m2
         block.ozone = self.read_band('total_ozone', size, offset)

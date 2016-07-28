@@ -142,6 +142,10 @@ class Level1_ASCII(object):
 
         block.jday = np.array(map(lambda x: x.timetuple().tm_yday,
                                   self.dates[sl])).reshape(size)
+
+        block.month = np.array(map(lambda x: x.timetuple().tm_mon,
+                                  self.dates[sl])).reshape(size)
+
         block.bitmask = np.zeros(size, dtype='uint16')
         invalid = np.isnan(block._raa)
         invalid |= TOA[:,:,0] < 0

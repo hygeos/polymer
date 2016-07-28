@@ -218,7 +218,8 @@ class Level1_MSI(object):
         block.vza = self.vza[SY, SX, band_id]
         block.vaa = self.vaa[SY, SX, band_id]
 
-        block.jday = 100  # FIXME
+        block.jday = 1    # FIXME
+        block.month = 1   # FIXME
 
         # read RTOA
         block.Rtoa = np.zeros((ysize,xsize,nbands)) + np.NaN

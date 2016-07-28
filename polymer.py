@@ -133,16 +133,11 @@ class InitCorr(object):
         '''
 
         # get month
-        if isinstance(block.jday, np.ndarray):
-            month = (block.jday/30.5).astype('int')+1
-            month[month>12] = 12
+        if isinstance(block.month, np.ndarray):
             mon = -1
-            imon = month-1
+            imon = block.month-1
         else:
-            month = int((float(block.jday)/30.5)) + 1
-            if month > 12:
-                month = 12
-            mon = month
+            mon = block.month
             imon = 0
 
         try:

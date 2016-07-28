@@ -112,6 +112,7 @@ class Level1_NASA(object):
         block.surf_press = self.surf_press[block.latitude, block.longitude]
 
         block.jday = self.date().timetuple().tm_yday
+        block.month = self.date().timetuple().tm_mon
 
         block.wavelen = np.zeros(size3, dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
