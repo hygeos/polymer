@@ -139,7 +139,8 @@ class Level2_HDF(Level2_file):
             hdf = SD(self.tmpfilename, SDC.WRITE | SDC.CREATE)
 
             for name in sorted(self.sdslist):
-                print('Write compressed dataset {}'.format(name))
+                if params.verbose:
+                    print('Write compressed dataset {}'.format(name))
                 sds = self.sdslist[name]
 
                 dtype  = sds.info()[3]
@@ -157,7 +158,8 @@ class Level2_HDF(Level2_file):
 
         # write attributes
         for k, v in params.__dict__.iteritems():
-            print(str(k), pstr(v))
+            if params.verbose:
+                print(str(k), pstr(v))
             setattr(hdf, str(k), pstr(v))
 
         if self.compress:
