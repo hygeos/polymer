@@ -458,6 +458,8 @@ cdef class PolymerMinimizer:
                 bbs[i,j] = self.f.xmin[1]
                 niter[i,j] = self.f.niter
 
+                # update water model with final parameters
+                self.f.w.calc_rho(self.f.xmin)
 
                 # calculate water reflectance
                 # and store atmospheric reflectance
