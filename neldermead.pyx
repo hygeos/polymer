@@ -63,7 +63,7 @@ cdef class NelderMeadMinimizer:
         Initialize the Nelder-Mead minimize with initial vector x0 and initial
         step dx
         '''
-        self.niter = 1
+        self.niter = 0
         if self.N != len(x0):
             raise Exception('')
         cdef int N = self.N
