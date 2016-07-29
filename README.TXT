@@ -89,6 +89,21 @@ More options are available by running polymer directly from your own python scri
 See example.py for more details...
 
 
+2.2 Ancillary data
+    --------------
+
+Ancillary data (ozone total column, wind speed, surface pressure) can be
+provided to the level1 class through the class Ancillary_NASA (NASA files in
+hdf4 format):
+
+Level1(<filename>, ancillary=Ancillary_NASA(
+                        meteo='S201303118_NCEP.MET',
+                        ozone='N201303100_O3_AURAOMI_24h.hdf'))
+
+NOTE: the class Ancillary_NASA has default options to automatically download
+the closest available dataset.
+
+
 2.2 Output
     ------
 
