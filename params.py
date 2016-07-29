@@ -9,7 +9,10 @@ from os.path import join
 # pass these parameters to polymer to obtain the quasi-same results as polymer v3.5
 # polymer(<level>, <level2>, **params_v3_5)
 params_v3_5 = {
-    'reinit_rw_neg': True}
+    'reinit_rw_neg': True,
+    'constraint_bbs': [1e-3, 0.2258, 0.9233],
+    'metrics': 'polymer_3_5',
+    }
 
 class Params(object):
     '''
@@ -76,6 +79,8 @@ class Params(object):
         self.atm_model = 'T0,-1,Rmol'
         self.normalize = True
 
+        self.Rprime_consistency = False
+
         if 'water_model' in kwargs:
             self.water_model = kwargs['water_model']
         else:
@@ -89,7 +94,9 @@ class Params(object):
 
             # Constraint on bbs: amplitude, sigma(chl=0.01), sigma(chl=0.1)
             # (disactivate with amplitude == 0)
-            self.constraint_bbs = [1e-3, 0.2258, 0.9233]
+            # NOTE: amplitiude changed from 1e-3 to 1e-4 since sumsq is now divided by the sum of weights
+            # (inter-sensor consistency)
+            self.constraint_bbs = [1e-4, 0.2258, 0.9233]
 
             # PR05 model only
             self.alt_gamma_bb = False  # alternate bb spec. dep.

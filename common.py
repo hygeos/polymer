@@ -9,6 +9,7 @@ L2FLAGS = {
         'NEGATIVE_BB'   : 8,
         'OUT_OF_BOUNDS' : 16,
         'EXCEPTION'     : 32,
+        'INCONSISTENCY' : 64,
         'EXTERNAL_MASK' : 512,
         'CASE2'         : 1024,
         }

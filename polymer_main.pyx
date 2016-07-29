@@ -2,7 +2,7 @@ import numpy as np
 cimport numpy as np
 from numpy.linalg import inv
 from common import BITMASK_INVALID, L2FLAGS
-from libc.math cimport nan, exp, log, abs
+from libc.math cimport nan, exp, log, abs, sqrt
 from cpython.exc cimport PyErr_CheckSignals
 
 from neldermead cimport NelderMeadMinimizer
@@ -20,6 +20,7 @@ cdef enum METRICS:
     W_absdR_Rprime = 4
     W_absdR2_Rprime2 = 5
     W_dR2_Rprime_noglint2 = 6
+    polymer_3_5 = 7
 
 metrics_names = {
         'W_dR2_norm': W_dR2_norm,
@@ -28,6 +29,7 @@ metrics_names = {
         'W_absdR_Rprime': W_absdR_Rprime,
         'W_absdR2_Rprime2': W_absdR2_Rprime2,
         'W_dR2_Rprime_noglint2': W_dR2_Rprime_noglint2,
+        'polymer_3_5': polymer_3_5,
         }
 
 cdef class F(NelderMeadMinimizer):
@@ -121,7 +123,7 @@ cdef class F(NelderMeadMinimizer):
         '''
 
         cdef float C
-        cdef float sumsq, dR, norm
+        cdef float sumsq, sumw, dR, norm
         cdef int icorr, icorr_read
         cdef int ioc, ioc_read, iread
         cdef float sigma
@@ -157,6 +159,7 @@ cdef class F(NelderMeadMinimizer):
         # calculate the residual
         #
         sumsq = 0.
+        sumw = 0.
         for ioc in range(self.N_bands_oc):
             ioc_read = self.i_oc_read[ioc]
 
@@ -174,8 +177,7 @@ cdef class F(NelderMeadMinimizer):
             if norm < self.thres_chi2:
                 norm = self.thres_chi2
 
-            if self.metrics == W_dR2_norm:
-
+            if (self.metrics == W_dR2_norm) or (self.metrics == polymer_3_5):
                 sumsq += self.weights_oc[ioc]*dR*dR/norm
 
             elif self.metrics == W_absdR:
@@ -193,6 +195,10 @@ cdef class F(NelderMeadMinimizer):
             elif self.metrics == W_dR2_Rprime_noglint2:
                 sumsq += self.weights_oc[ioc]*(dR/self.Rprime_noglint[ioc_read])**2
 
+            sumw += self.weights_oc[ioc]
+
+        if self.metrics != polymer_3_5:
+            sumsq = sumsq/sumw
 
         if self.constraint_amplitude != 0:
             # sigma equals sigma1 when chl = 0.01
@@ -336,12 +342,17 @@ cdef class PolymerMinimizer:
     cdef float size_end_iter
     cdef int max_iter
     cdef int L2_FLAG_CASE2
+    cdef int L2_FLAG_INCONSISTENCY
     cdef int L2_FLAG_OUT_OF_BOUNDS
     cdef object params
     cdef int normalize
     cdef int force_initialization
     cdef int reinit_rw_neg
     cdef int[:] dbg_pt
+    cdef int Rprime_consistency
+    cdef int N_bands_oc
+    cdef int[:] i_oc_read  # index or the 'oc' bands within the 'read' bands
+    cdef int N_bands_read
 
     def __init__(self, watermodel, params):
 
@@ -358,12 +369,20 @@ cdef class PolymerMinimizer:
         self.size_end_iter = params.size_end_iter
         self.max_iter = params.max_iter
         self.L2_FLAG_CASE2 = L2FLAGS['CASE2']
+        self.L2_FLAG_INCONSISTENCY = L2FLAGS['INCONSISTENCY']
         self.L2_FLAG_OUT_OF_BOUNDS = L2FLAGS['OUT_OF_BOUNDS']
         self.params = params
         self.normalize = params.normalize
         self.force_initialization = params.force_initialization
         self.reinit_rw_neg = params.reinit_rw_neg
         self.dbg_pt = np.array(params.dbg_pt, dtype='int32')
+        self.Rprime_consistency = params.Rprime_consistency
+
+        self.N_bands_oc = len(params.bands_oc)
+        self.i_oc_read = np.searchsorted(
+                params.bands_read(),
+                params.bands_oc).astype('int32')
+        self.N_bands_read = len(params.bands_read())
 
     cdef loop(self, block,
               float[:,:,:,:] A,
@@ -383,7 +402,6 @@ cdef class PolymerMinimizer:
         cdef float[:,:] raa = block.raa
 
         cdef unsigned short[:,:] bitmask = block.bitmask
-        # cdef int Nb = Rprime.shape[0]
         cdef int Nx = Rprime.shape[0]
         cdef int Ny = Rprime.shape[1]
         cdef float[:] x
@@ -405,8 +423,11 @@ cdef class PolymerMinimizer:
         cdef float[:,:,:] Ratm = block.Ratm
         block.Rwmod = np.zeros(block.size+(block.nbands,), dtype='float32')
         cdef float[:,:,:] Rwmod = block.Rwmod
+        block.eps = np.zeros(block.size, dtype='float32')
+        cdef float[:,:] eps = block.eps
 
-        cdef int i, j, ib
+        cdef int i, j, ib, ioc
+        cdef int flag_reinit
 
         #
         # pixel loop
@@ -466,6 +487,7 @@ cdef class PolymerMinimizer:
 
 
                 logchl[i,j] = self.f.xmin[0]
+                eps[i,j] = self.f.fsim[0]
                 bbs[i,j] = self.f.xmin[1]
                 niter[i,j] = self.f.niter
 
@@ -475,7 +497,7 @@ cdef class PolymerMinimizer:
                 # calculate water reflectance
                 # and store atmospheric reflectance
                 rw_neg = 0
-                for ib in range(len(self.f.Rwmod)):
+                for ib in range(self.N_bands_read):
                     Rw[i,j,ib] = Rprime[i,j,ib] - self.f.Ratm[ib]
                     Rw[i,j,ib] /= Tmol[i,j,ib]
                     if Rw[i,j,ib] < 0:
@@ -485,11 +507,20 @@ cdef class PolymerMinimizer:
 
                     Ratm[i,j,ib] = self.f.Ratm[ib]
 
+                # consistency test at bands_oc
+                for ioc in range(self.N_bands_oc):
+                    ib = self.i_oc_read[ioc]
+                    if (self.Rprime_consistency and (
+                              (self.f.Ratm[ib] > Rprime_noglint[i,j,ib])
+                           or (self.f.Rwmod[ib]*Tmol[i,j,ib] > Rprime_noglint[i,j,ib]))):
+                        raiseflag(bitmask, i, j, self.L2_FLAG_INCONSISTENCY)
+                        flag_reinit = 1
+
                 # water reflectance normalization
                 if self.normalize:
                     # Rw -> Rw*Rwmod[nadir]/Rwmod
 
-                    for ib in range(len(self.f.Rwmod)):
+                    for ib in range(self.N_bands_read):
                         Rw[i,j,ib] /= self.f.Rwmod[ib]
 
                     # calculate model reflectance at nadir
@@ -502,14 +533,17 @@ cdef class PolymerMinimizer:
                             0., 0., 0.)
                     self.f.w.calc_rho(self.f.xmin)
 
-                    for ib in range(len(self.f.Rwmod)):
+                    for ib in range(self.N_bands_read):
                         Rw[i,j,ib] *= self.f.Rwmod[ib]
 
                 # initialization of next pixel
                 if (self.force_initialization
                         or testflag(bitmask, i, j,  self.L2_FLAG_CASE2)
-                        or (rw_neg and self.reinit_rw_neg)):
+                        or (rw_neg and self.reinit_rw_neg)
+                        or (flag_reinit)
+                        ):
                     x0[:] = self.initial_point_1[:]
+                    flag_reinit = 0
                 else:
                     x0[:] = self.f.xmin[:]
 
