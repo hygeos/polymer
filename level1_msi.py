@@ -11,7 +11,7 @@ import numpy as np
 from block import Block
 from utils import rectBivariateSpline, landmask
 import pyproj
-from ancillary import Provider
+from ancillary import Ancillary_NASA
 from common import L2FLAGS
 
 '''
@@ -38,7 +38,7 @@ B12  SWIR 2      2190nm     20m
 class Level1_MSI(object):
 
     def __init__(self, dirname, blocksize=200, resolution='60',
-                 sline=0, eline=-1, provider=None):
+                 sline=0, eline=-1, ancillary=None):
         '''
         dirname: granule dirname
 
@@ -53,10 +53,10 @@ class Level1_MSI(object):
         self.sline = sline
         self.eline = eline
 
-        if provider is None:
-            self.provider = Provider()
+        if ancillary is None:
+            self.ancillary = Ancillary_NASA()
         else:
-            self.provider = provider
+            self.ancillary = ancillary
 
         self.band_names = {
                 443 : 'B01', 490 : 'B02',

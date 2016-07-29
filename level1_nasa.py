@@ -7,7 +7,7 @@ import numpy as np
 from itertools import product
 from block import Block
 from datetime import datetime
-from ancillary import Provider
+from ancillary import Ancillary_NASA
 from common import L2FLAGS
 
 
@@ -20,7 +20,7 @@ class Level1_NASA(object):
         - MODIS
     '''
     def __init__(self, filename, sensor=None, blocksize=(500, 400),
-                 sline=0, eline=-1, srow=0, erow=-1, provider=None):
+                 sline=0, eline=-1, srow=0, erow=-1, ancillary=None):
         self.sensor = sensor
         self.filename = filename
         self.root = Dataset(filename)
@@ -30,10 +30,10 @@ class Level1_NASA(object):
         self.srow = srow
         self.blocksize = blocksize
         self.ancillary_initialized = False
-        if provider is None:
-            self.provider = Provider()
+        if ancillary is None:
+            self.ancillary = Ancillary_NASA()
         else:
-            self.provider = provider
+            self.ancillary = ancillary
 
 
         if eline < 0:
@@ -62,9 +62,9 @@ class Level1_NASA(object):
 
     def init_ancillary(self):
         if not self.ancillary_initialized:
-            self.ozone = self.provider.get('ozone', self.date())
-            self.wind_speed = self.provider.get('wind_speed', self.date())
-            self.surf_press = self.provider.get('surf_press', self.date())
+            self.ozone = self.ancillary.get('ozone', self.date())
+            self.wind_speed = self.ancillary.get('wind_speed', self.date())
+            self.surf_press = self.ancillary.get('surf_press', self.date())
 
             self.ancillary_initialized = True
 

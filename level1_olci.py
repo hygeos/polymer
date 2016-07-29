@@ -8,7 +8,7 @@ from common import L2FLAGS
 from netCDF4 import Dataset
 from scipy.ndimage import map_coordinates
 from datetime import datetime
-from ancillary import Provider
+from ancillary import Ancillary_NASA
 import os
 
 
@@ -17,7 +17,7 @@ class Level1_OLCI(object):
     OLCI reader using the netcdf module
     '''
     def __init__(self, dirname, sline=0, eline=-1,
-                 blocksize=100, provider=None):
+                 blocksize=100, ancillary=None):
 
         self.sensor = 'OLCI'
 
@@ -26,10 +26,10 @@ class Level1_OLCI(object):
 
         self.dirname = dirname
         self.filename = dirname
-        if provider is None:
-            self.provider = Provider()
+        if ancillary is None:
+            self.ancillary = Ancillary_NASA()
         else:
-            self.provider = provider
+            self.ancillary = ancillary
         self.ancillary_initialized = False
         self.nc_datasets = {}
 
@@ -91,7 +91,7 @@ class Level1_OLCI(object):
 
     def init_ancillary(self):
         if not self.ancillary_initialized:
-            self.wind_speed = self.provider.get('wind_speed', self.date())
+            self.wind_speed = self.ancillary.get('wind_speed', self.date())
             self.ancillary_initialized = True
 
 

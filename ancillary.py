@@ -55,9 +55,9 @@ class LockFile(object):
         remove(self.filename)
 
 
-class Provider(object):
+class Ancillary_NASA(object):
     '''
-    Ancillary data provider
+    Ancillary data provider using NASA data
 
     Arguments:
     meteo: NCEP filename
@@ -75,7 +75,7 @@ class Provider(object):
 
         assert isdir(directory), '{} does not exist'.format(directory)
 
-    def get(self, param, date=None):
+    def get(self, param, date):
         # TODO
         # interpolate between 2 bracketing datasets
 
@@ -126,10 +126,8 @@ class Provider(object):
 
         with LockFile(lock), open(target, 'w') as t:
 
-            print('Downloading {}'.format(url))
             content = requests.get(url).content
             t.write(content)
-            print('...done')
 
         return 0
 
