@@ -6,6 +6,11 @@ import numpy as np
 import os
 from os.path import join
 
+# pass these parameters to polymer to obtain the quasi-same results as polymer v3.5
+# polymer(<level>, <level2>, **params_v3_5)
+params_v3_5 = {
+    'reinit_rw_neg': True}
+
 class Params(object):
     '''
     A class to store the processing parameters

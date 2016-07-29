@@ -19,6 +19,7 @@ cdef enum METRICS:
     W_absdR_norm = 3
     W_absdR_Rprime = 4
     W_absdR2_Rprime2 = 5
+    W_dR2_Rprime_noglint2 = 6
 
 metrics_names = {
         'W_dR2_norm': W_dR2_norm,
@@ -26,6 +27,7 @@ metrics_names = {
         'W_absdR_norm': W_absdR_norm,
         'W_absdR_Rprime': W_absdR_Rprime,
         'W_absdR2_Rprime2': W_absdR2_Rprime2,
+        'W_dR2_Rprime_noglint2': W_dR2_Rprime_noglint2,
         }
 
 cdef class F(NelderMeadMinimizer):
@@ -35,6 +37,7 @@ cdef class F(NelderMeadMinimizer):
     '''
 
     cdef float[:] Rprime
+    cdef float[:] Rprime_noglint
     cdef float[:] Tmol
     cdef float[:] wav
     cdef WaterModel w
@@ -95,13 +98,15 @@ cdef class F(NelderMeadMinimizer):
             raise Exception('Invalid metrics "{}"'.format(params.metrics))
 
 
-    cdef init_pixel(self, float[:] Rprime, float[:,:] A, float[:,:] pA,
-            float[:] Tmol,
-            float[:] wav, float sza, float vza, float raa):
+    cdef init_pixel(self, float[:] Rprime, float[:] Rprime_noglint,
+                   float[:,:] A, float[:,:] pA,
+                   float[:] Tmol,
+                   float[:] wav, float sza, float vza, float raa):
         '''
         set the input parameters for the current pixel
         '''
         self.Rprime = Rprime
+        self.Rprime_noglint = Rprime_noglint
         self.wav = wav  # bands_read
         self.pA = pA
         self.A = A
@@ -183,7 +188,11 @@ cdef class F(NelderMeadMinimizer):
                 sumsq += self.weights_oc[ioc]*abs(dR/self.Rprime[ioc_read])
 
             elif self.metrics == W_absdR2_Rprime2:
-                sumsq += self.weights_oc[ioc]*(dR/self.Rprime[ioc_read])*(dR/self.Rprime[ioc_read])
+                sumsq += self.weights_oc[ioc]*(dR/self.Rprime[ioc_read])**2
+
+            elif self.metrics == W_dR2_Rprime_noglint2:
+                sumsq += self.weights_oc[ioc]*(dR/self.Rprime_noglint[ioc_read])**2
+
 
         if self.constraint_amplitude != 0:
             # sigma equals sigma1 when chl = 0.01
@@ -366,6 +375,7 @@ cdef class PolymerMinimizer:
         '''
 
         cdef float[:,:,:] Rprime = block.Rprime
+        cdef float[:,:,:] Rprime_noglint = block.Rprime_noglint
         cdef float[:,:,:] Tmol = block.Tmol
         cdef float[:,:,:] wav = block.wavelen
         cdef float[:,:] sza = block.sza
@@ -412,6 +422,7 @@ cdef class PolymerMinimizer:
 
                 self.f.init_pixel(
                         Rprime[i,j,:],
+                        Rprime_noglint[i,j,:],
                         A[i,j,:,:], pA[i,j,:,:],
                         Tmol[i,j,:],
                         wav[i,j,:],
@@ -484,6 +495,7 @@ cdef class PolymerMinimizer:
                     # calculate model reflectance at nadir
                     self.f.init_pixel(
                             Rprime[i,j,:],
+                            Rprime_noglint[i,j,:],
                             A[i,j,:,:], pA[i,j,:,:],
                             Tmol[i,j,:],
                             wav[i,j,:],

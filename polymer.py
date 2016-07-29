@@ -256,6 +256,7 @@ class InitCorr(object):
             return
 
         block.Rprime = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
+        block.Rprime_noglint = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
         block.Rmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
         block.Rmolgli = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
         block.Tmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
@@ -298,6 +299,8 @@ class InitCorr(object):
                 block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - Rmolgli
             else:
                 block.Rprime[ok,i] = block.Rtoa_gc[ok,i] - Rmol
+
+            block.Rprime_noglint[ok,i] = block.Rtoa_gc[ok,i] - Rmol
 
             # TODO: share axes indices
             # and across wavelengths
