@@ -3,7 +3,7 @@
 
 import numpy as np
 from scipy.ndimage import convolve
-from numpy import ones, sqrt, zeros_like, NaN
+from numpy import ones, sqrt, zeros_like, NaN, isnan
 from os import system
 from scipy.interpolate import RectBivariateSpline
 
@@ -68,7 +68,9 @@ def stdev(S, S2, N, fillv=NaN):
 
     R = zeros_like(S) + fillv
     ok = N != 0
-    R[ok] = sqrt(S2[ok]/N[ok] - (S[ok]/N[ok])**2)
+    R[ok] = S2[ok]/N[ok] - (S[ok]/N[ok])**2
+    R[R<0] = 0.   # because a few values may be slightly negative
+    R[ok] = sqrt(R[ok])
     return R
 
 
