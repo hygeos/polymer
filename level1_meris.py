@@ -20,7 +20,8 @@ BANDS_MERIS = [412, 443, 490, 510, 560,
 
 class Level1_MERIS(object):
 
-    def __init__(self, filename, sline=0, eline=-1, blocksize=100, dir_smile=None):
+    def __init__(self, filename, sline=0, eline=-1, blocksize=100,
+                 dir_smile=None, ancillary=None):
 
         self.sensor = 'MERIS'
         self.filename = filename
@@ -29,6 +30,8 @@ class Level1_MERIS(object):
         self.totalheight = self.prod.get_scene_height()
         self.blocksize = blocksize
         self.full_res = basename(filename).startswith('MER_FRS_1')
+        self.ancillary = ancillary
+        self.ancillary_initialized = False
 
         if dir_smile is None:
             dir_smile = join(getcwd(), 'auxdata/meris/smile/v2/')
@@ -84,6 +87,19 @@ class Level1_MERIS(object):
 
         print('Opened "{}", ({}x{})'.format(filename, self.width, self.height))
 
+
+    def init_ancillary(self):
+        if self.ancillary is None:
+            return
+        if self.ancillary_initialized:
+            return
+
+        self.ozone = self.ancillary.get('ozone', self.date)
+        self.wind_speed = self.ancillary.get('wind_speed', self.date)
+        self.surf_press = self.ancillary.get('surf_press', self.date)
+
+        self.ancillary_initialized = True
+
     def read_band(self, band_name, size, offset):
         '''
         offset: within the area of interest
@@ -111,6 +127,7 @@ class Level1_MERIS(object):
         bands: list of bands identifiers
         req: list of identifiers of required datasets
         '''
+        self.init_ancillary()
 
         (ysize, xsize) = size
         nbands = len(bands)
@@ -147,16 +164,24 @@ class Level1_MERIS(object):
             Ltoa[:,:,iband] = Ltoa_[:,:]
         block.Ltoa = Ltoa
 
-        # wind speed (zonal and merdional)
-        zwind = self.read_band('zonal_wind', size, offset)
-        mwind = self.read_band('merid_wind', size, offset)
-        block.wind_speed = np.sqrt(zwind**2 + mwind**2)
+        #
+        # read ancillary data
+        #
+        if self.ancillary is not None:
+            block.ozone = self.ozone[block.latitude, block.longitude]
+            block.wind_speed = self.wind_speed[block.latitude, block.longitude]
+            block.surf_press = self.surf_press[block.latitude, block.longitude]
+        else:
+            # wind speed (zonal and merdional)
+            zwind = self.read_band('zonal_wind', size, offset)
+            mwind = self.read_band('merid_wind', size, offset)
+            block.wind_speed = np.sqrt(zwind**2 + mwind**2)
 
-        # ozone
-        block.ozone = self.read_band('ozone', size, offset)
+            # ozone
+            block.ozone = self.read_band('ozone', size, offset)
 
-        # surface pressure
-        block.surf_press = self.read_band('atm_press', size, offset)
+            # surface pressure
+            block.surf_press = self.read_band('atm_press', size, offset)
 
         # set julian day and month
         block.jday = self.date.timetuple().tm_yday
