@@ -372,20 +372,27 @@ def polymer(level1, level2, **kwargs):
 
     ARGUMENTS:
 
-    level1: level1 initializer
+    level1: level1 instance
         Example:
-        Level1('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1', sline=1500, eline=2000)
+        Level1('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1',
+               sline=1500, eline=2000)   # all-purpose sensor-detecting level1
+        Level1_NASA('A2004181120500.L1C', sensor='MODIS',
+                    sline=1500, eline=2000, srow=100, erow=500)
+        Level1_ASCII('extraction.csv', square=5, sensor='MERIS')
 
-    level2: level2 initializer
+    level2: level2 instance
         argument fmt determines the level2 class to use
         ('hdf4, 'netcdf')
         See appropriate Level2_* class for argument list (the additional
         arguments kwargs are passed directly to this class)
 
         Examples:
+        # using the all-purpose level2
         Level2(fmt='hdf4', ext='.polymer.hdf', outdir='/data/')
         Level2(filename='/data/out.hdf', fmt='hdf4', compress=True)
         Level2('memory')   # store output in memory
+        # using specific level2 classes
+        Level2_NETCDF('out.nc', overwrite=True)
 
     Additional keyword arguments:
     see attributes defined in Params class
@@ -398,7 +405,7 @@ def polymer(level1, level2, **kwargs):
     - calib: a dictionary for applying calibration coefficients
     - normalize: if True (default), apply normalization of the water reflectance at nadir-nadir
 
-    RETURN VALUE: the level2 instance
+    RETURNS: the level2 instance
     '''
 
     t0 = datetime.now()
