@@ -6,6 +6,22 @@
                            #####################
 
 
+v4.0beta3
+---------
+
+* added an inconsistency test which raises a flag (64) and reinitializes the pixel parameters.
+  Some unstable results for SeaWiFS are avoided. Some dubious pixels are flagged out.
+* improved the definition of the cost function by normalizing by the sum of
+  weights. This has an impact on backscattering constraint for clear waters and
+  should improve the inter-sensor consistency over clear waters.  The amplitude
+  of the constraint is modified accordingly.
+* Bugfix in Level1_ASCII (only affecting v4)
+* Fix month determination in NO2 calculation
+* Slight improvement in water reflectance calculation, improves consistency with C code.
+* Allow to pass external ancillary data to MERIS, as was already the case for
+  NASA sensors (see parameter ancillary of Level1_* classes)
+* Minor changes
+
 
 v4.0beta2
 ---------
