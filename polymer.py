@@ -409,7 +409,8 @@ def polymer(level1, level2, **kwargs):
     '''
 
     t0 = datetime.now()
-    print('Starting processing at {}'.format(t0))
+    if ('verbose' not in kwargs) or kwargs['verbose']:
+        print('Starting processing at {}'.format(t0))
 
     # initialize level1 and level2 instances
     with level2 as l2, level1 as l1:
@@ -424,7 +425,8 @@ def polymer(level1, level2, **kwargs):
                 nproc = None  # use as many processes as there are CPUs
             else:
                 nproc = params.multiprocessing
-            block_iter = Pool(nproc).imap_unordered(process_block,
+            pool = Pool(nproc)
+            block_iter = pool.imap_unordered(process_block,
                     blockiterator(l1, params, True))
         else:
             block_iter = imap(process_block,
@@ -437,7 +439,11 @@ def polymer(level1, level2, **kwargs):
         params.processing_duration = datetime.now()-t0
         l2.finish(params)
 
-        print('Done in {}'.format(datetime.now()-t0))
+        if params.multiprocessing != 1:
+            pool.terminate()
+
+        if params.verbose:
+            print('Done in {}'.format(datetime.now()-t0))
 
         return l2
 
