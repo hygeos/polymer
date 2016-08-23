@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     # A more advanced example:
     polymer(Level1_NASA('A2004181120500.L1C', sensor='MODIS',
-                         sline=1500, eline=2000, srow=100, erow=500),
+                         sline=1500, eline=2000, scol=100, ecol=500),
             Level2_HDF(outdir='/data/',    # directory for result
                        ext='.polymer.hdf', # determine output filename from level1,
                                            # appending this extension

@@ -20,14 +20,14 @@ class Level1_NASA(object):
         - MODIS
     '''
     def __init__(self, filename, sensor=None, blocksize=(500, 400),
-                 sline=0, eline=-1, srow=0, erow=-1, ancillary=None):
+                 sline=0, eline=-1, scol=0, ecol=-1, ancillary=None):
         self.sensor = sensor
         self.filename = filename
         self.root = Dataset(filename)
         lat = self.root.groups['navigation_data'].variables['latitude']
         self.totalheight, self.totalwidth = lat.shape
         self.sline = sline
-        self.srow = srow
+        self.scol = scol
         self.blocksize = blocksize
         self.ancillary_initialized = False
         if ancillary is None:
@@ -43,12 +43,12 @@ class Level1_NASA(object):
         else:
             self.height = eline-sline
 
-        if erow < 0:
+        if ecol < 0:
             self.width = self.totalwidth
-            self.width -= srow
-            self.width += erow + 1
+            self.width -= scol
+            self.width += ecol + 1
         else:
-            self.width = erow - srow
+            self.width = ecol - scol
 
         self.shape = (self.height, self.width)
 
@@ -75,7 +75,7 @@ class Level1_NASA(object):
         size3 = size + (nbands,)
 
         SY = slice(offset[0]+self.sline, offset[0]+self.sline+size[0])
-        SX = slice(offset[1]+self.srow , offset[1]+self.srow+size[1])
+        SX = slice(offset[1]+self.scol , offset[1]+self.scol+size[1])
 
         # initialize block
         block = Block(offset=offset, size=size, bands=bands)
