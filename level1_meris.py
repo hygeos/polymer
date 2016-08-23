@@ -193,8 +193,6 @@ class Level1_MERIS(object):
         block.bitmask += L2FLAGS['L1_INVALID']*self.read_bitmask(size, offset,
                 '(l1_flags.INVALID) OR (l1_flags.SUSPECT) OR (l1_flags.COSMETIC)')
 
-        print('Read', block)
-
         return block
 
 

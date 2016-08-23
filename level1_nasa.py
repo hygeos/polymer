@@ -118,8 +118,6 @@ class Level1_NASA(object):
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = float(band)
 
-        print('Read', block)
-
         return block
 
     def date(self):

@@ -241,8 +241,6 @@ class Level1_MSI(object):
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = float(band)
 
-        print('Read', block)
-
         return block
 
 

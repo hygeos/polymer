@@ -217,8 +217,6 @@ class Level1_OLCI(object):
         block.bitmask = np.zeros(size, dtype='uint16')
         block.bitmask += L2FLAGS['LAND']*(bitmask & self.quality_flags['land'] != 0).astype('uint16')
 
-        print('Read', block)
-
         return block
 
     def blocks(self, bands_read):
