@@ -128,7 +128,7 @@ class Params(object):
         '''
         define sensor-specific default parameters
         '''
-        if sensor == 'MERIS':
+        if sensor in ['MERIS', 'MERIS_FR', 'MERIS_RR']:
             self.defaults_meris()
         elif sensor == 'MSI':
             self.defaults_msi()
