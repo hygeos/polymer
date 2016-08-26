@@ -415,6 +415,8 @@ cdef class PolymerMinimizer:
         cdef float[:,:] logchl = block.logchl
         block.bbs = np.zeros(block.size, dtype='float32')
         cdef float[:,:] bbs = block.bbs
+        block.SPM = np.zeros(block.size, dtype='float32')
+        cdef float[:,:] SPM = block.SPM
         block.niter = np.zeros(block.size, dtype='uint32')
         cdef unsigned int[:,:] niter = block.niter
         block.Rw = np.zeros(block.size+(block.nbands,), dtype='float32')
@@ -437,6 +439,7 @@ cdef class PolymerMinimizer:
 
                 if (bitmask[i,j] & self.BITMASK_INVALID) != 0:
                     logchl[i,j] = self.NaN
+                    SPM[i,j] = self.NaN
                     bbs[i,j] = self.NaN
                     Rw[i,j,:] = self.NaN
                     continue
@@ -485,14 +488,14 @@ cdef class PolymerMinimizer:
                             raiseflag(bitmask, i, j, self.L2_FLAG_OUT_OF_BOUNDS)
                             break
 
+                # update water model with final parameters
+                self.f.w.calc_rho(self.f.xmin)
 
                 logchl[i,j] = self.f.xmin[0]
                 eps[i,j] = self.f.fsim[0]
                 bbs[i,j] = self.f.xmin[1]
                 niter[i,j] = self.f.niter
-
-                # update water model with final parameters
-                self.f.w.calc_rho(self.f.xmin)
+                SPM[i,j] = self.f.w.SPM
 
                 # calculate water reflectance
                 # and store atmospheric reflectance

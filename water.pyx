@@ -46,7 +46,7 @@ cdef class ParkRuddick(WaterModel):
     cdef int alt_gamma_bb
     cdef int min_abs
     cdef float[:] atot, bbtot, btot, aphy, aCDM, aNAP
-    cdef float gamma, SPM
+    cdef float gamma
     cdef object out_type
 
     cdef int[:] index  # multi-purpose vector
@@ -420,8 +420,7 @@ cdef class ParkRuddick(WaterModel):
                 self.aCDM[i] = aCDM
                 self.aNAP[i] = aNAP
                 self.gamma = gamma
-                self.SPM = SPM
-
+            self.SPM = SPM
 
         return self.Rw
 
