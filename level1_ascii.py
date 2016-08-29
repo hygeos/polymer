@@ -45,6 +45,7 @@ class Level1_ASCII(object):
         * relative_azimuth: boolean
         * wind_module: if True, read the wind module
                        else read the zonal and meridinal wind speeds
+                       or float to use a constant value
         * headers: dictionary
     '''
     def __init__(self, filename, square=1, blocksize=100,
@@ -54,7 +55,7 @@ class Level1_ASCII(object):
                  relative_azimuth=True,
                  wind_module=True,
                  datetime_fmt='%Y%m%dT%H%M%SZ', verbose=True,
-                 sep=';'):
+                 sep=';', skiprows=0):
 
         self.sensor = sensor
         self.filename = filename
@@ -107,7 +108,9 @@ class Level1_ASCII(object):
             columns.append(self.headers['SAA'])
             columns.append(self.headers['VAA'])
 
-        if self.wind_module:
+        if isinstance(self.wind_module, float):
+            pass
+        elif self.wind_module:
             columns.append(self.headers['WIND'])
         else:
             columns.append(self.headers['ZONAL_WIND'])
@@ -115,6 +118,8 @@ class Level1_ASCII(object):
 
         if sensor in ['MERIS', 'MERIS_RR', 'MERIS_FR']:
             columns.append(self.headers['DETECTOR_INDEX'])
+        if 'F0' in self.headers:
+            columns += map(lambda (i, b): self.headers['F0'].format(i+1), enumerate(BANDS))
 
         columns += additional_headers
         columns += self.band_names.values()
@@ -124,6 +129,7 @@ class Level1_ASCII(object):
         self.csv = pd.read_csv(filename,
                 sep=sep,
                 usecols = columns,
+                skiprows=skiprows,
                 )
         nrows = self.csv.shape[0]
         if self.verbose:
@@ -196,8 +202,15 @@ class Level1_ASCII(object):
             for iband, band in enumerate(bands):
                 block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][di]
         else:
+            if 'F0' in self.headers:
+                block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
+
             for iband, band in enumerate(bands):
                 block.wavelen[:,:,iband] = float(band)
+
+                if 'F0' in self.headers:
+                    name = self.headers['F0'].format(iband+1)
+                    block.F0[:,:,iband] = self.csv[name][sl].reshape(size)
 
         block.jday = np.array(map(lambda x: x.timetuple().tm_yday,
                                   self.dates[sl])).reshape(size)
@@ -214,7 +227,10 @@ class Level1_ASCII(object):
         block.ozone = self.csv[self.headers['OZONE']][sl].reshape(size)
 
         # wind speed
-        if self.wind_module:
+        if isinstance(self.wind_module, float):
+            block.wind_speed = np.zeros(size)
+            block.wind_speed[:] = self.wind_module
+        elif self.wind_module:
             block.wind_speed = self.csv[self.headers['WIND']][sl].reshape(size)
         else:
             zwind = self.csv[self.headers['ZONAL_WIND']][sl].reshape(size)

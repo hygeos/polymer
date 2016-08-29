@@ -140,8 +140,26 @@ class Params(object):
             self.defaults_modis()
         elif sensor == 'SeaWiFS':
             self.defaults_seawifs()
+        elif sensor == 'GENERIC':
+            self.defaults_generic()
         else:
             raise Exception('Params.sensor_specific: invalid sensor "{}"'.format(sensor))
+
+    def defaults_generic(self):
+        '''
+        sensor_specific parameters should be provided by the user
+        '''
+
+        self.bands_corr = []
+        self.bands_oc =   []
+        self.bands_rw =   []
+        self.lut_file = ''
+        self.bands_lut = []
+        self.band_cloudmask = -999
+        self.calib = {}
+        self.K_OZ = {}
+        self.K_NO2 = {}
+        self.central_wavelength = {}
 
     def defaults_meris(self):
         '''
@@ -200,10 +218,6 @@ class Params(object):
                 865: 864.876 , 885: 884.944,
                 900: 900.000 ,
                 }
-
-        self.NO2_CLIMATOLOGY = join(self.dir_base, 'auxdata/common/no2_climatology.hdf')
-        self.NO2_FRAC200M = join(self.dir_base, 'auxdata/common/trop_f_no2_200m.hdf')
-
 
     def defaults_olci(self):
         '''

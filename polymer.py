@@ -18,6 +18,7 @@ from level2 import Level2
 
 from polymer_main import PolymerMinimizer
 from water import ParkRuddick, MorelMaritorena
+from warnings import warn
 
 import sys
 if sys.version_info[:2] >= (3, 0):
@@ -180,7 +181,7 @@ class InitCorr(object):
         #
         # make sure that ozone is in DU
         if (block.ozone[ok] < 50).any() or (block.ozone[ok] > 1000).any():
-            raise Exception('Error, ozone is assumed in DU')
+            warn('ozone is assumed in DU')
 
         # bands loop
         for i, b in enumerate(block.bands):
