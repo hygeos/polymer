@@ -1,19 +1,44 @@
 from level2 import Level2_file
 from netCDF4 import Dataset
+import tempfile
+from utils import safemove
+from os.path import exists, dirname, join, basename
+from shutil import rmtree
 
 class Level2_NETCDF(Level2_file):
-    def __init__(self, filename, overwrite=False, datasets=None, compress=True):
+    def __init__(self,
+                 filename=None,
+                 ext='.nc',
+                 tmpdir=None,
+                 outdir=None,
+                 overwrite=False,
+                 datasets=None,
+                 compress=True):
         self.filename = filename
         self.overwrite = overwrite
         self.datasets = datasets
         self.compress = compress
+        self.outdir = outdir
         self.initialized = False
         self.varlist = {}
+        self.ext = ext
+        self.__tmpdir = tmpdir   # base tmp dir
+        self.tmpdir = None       # sub dir, should be removed
+        self.tmpfilename = None
 
     def init(self, level1):
         super(self.__class__, self).init(level1)
 
-        self.root = Dataset(self.filename, 'w', format='NETCDF4')
+        if self.__tmpdir is None:
+            tmpdir = dirname(self.filename)
+        else:
+            tmpdir = tempfile.mkdtemp(dir=self.__tmpdir, prefix='level2_netcdf4_tmp_')
+            self.tmpdir = tmpdir
+
+        self.tmpfilename = join(tmpdir, basename(self.filename) + '.tmp')
+
+        self.root = Dataset(self.tmpfilename, 'w', format='NETCDF4')
+
 
     def write_block(self, name, data, S):
         '''
@@ -60,9 +85,15 @@ class Level2_NETCDF(Level2_file):
         # TODO: write attributes
         self.root.close()
 
+        # move to destination
+        safemove(self.tmpfilename, self.filename)
+
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         self.cleanup()
 
+    def cleanup(self):
+        if self.tmpdir is not None:
+            rmtree(self.tmpdir)
