@@ -7,6 +7,7 @@ from glymur import Jp2k
 from glob import glob
 from lxml import objectify
 from os.path import join
+from datetime import datetime
 import numpy as np
 from block import Block
 from utils import rectBivariateSpline, landmask
@@ -52,6 +53,7 @@ class Level1_MSI(object):
         assert isinstance(resolution, str)
         self.sline = sline
         self.eline = eline
+        self.ancillary_initialized = False
 
         if ancillary is None:
             self.ancillary = Ancillary_NASA()
@@ -69,8 +71,11 @@ class Level1_MSI(object):
                 }
 
         # load xml file
-        xmlfile = glob(join(self.dirname, '*.xml'))[0]
+        xmlfiles = glob(join(self.dirname, '*.xml'))
+        assert len(xmlfiles) == 1
+        xmlfile = xmlfiles[0]
         self.xmlroot = objectify.parse(xmlfile).getroot()
+        self.date = datetime.strptime(str(self.xmlroot.General_Info.find('SENSING_TIME')), '%Y-%m-%dT%H:%M:%S.%fZ')
         self.geocoding = self.xmlroot.Geometric_Info.find('Tile_Geocoding')
         self.tileangles = self.xmlroot.Geometric_Info.find('Tile_Angles')
 
@@ -93,6 +98,13 @@ class Level1_MSI(object):
         self.init_latlon()
         self.init_geometry()
 
+    def init_ancillary(self):
+        if not self.ancillary_initialized:
+            self.ozone = self.ancillary.get('ozone', self.date)
+            self.wind_speed = self.ancillary.get('wind_speed', self.date)
+            self.surf_press = self.ancillary.get('surf_press', self.date)
+
+            self.ancillary_initialized = True
 
     def init_latlon(self):
 
@@ -196,6 +208,7 @@ class Level1_MSI(object):
         return data
 
     def read_block(self, size, offset, bands):
+        self.init_ancillary()
 
         (ysize, xsize) = size
         nbands = len(bands)
@@ -218,8 +231,8 @@ class Level1_MSI(object):
         block.vza = self.vza[SY, SX, band_id]
         block.vaa = self.vaa[SY, SX, band_id]
 
-        block.jday = 1    # FIXME
-        block.month = 1   # FIXME
+        block.jday = self.date.timetuple().tm_yday
+        block.month = self.date.timetuple().tm_mon
 
         # read RTOA
         block.Rtoa = np.zeros((ysize,xsize,nbands)) + np.NaN
@@ -234,9 +247,9 @@ class Level1_MSI(object):
                 # resolution='f').astype('uint16')
         block.bitmask += L2FLAGS['L1_INVALID']*(np.isnan(block.muv).astype('uint16'))
 
-        block.ozone = np.zeros(size, dtype='float32') + 300.  # FIXME
-        block.wind_speed = np.zeros(size, dtype='float32') + 5.  # FIXME
-        block.surf_press = np.zeros(size, dtype='float32') + 1013.   # FIXME
+        block.ozone = self.ozone[block.latitude, block.longitude]
+        block.wind_speed = self.wind_speed[block.latitude, block.longitude]
+        block.surf_press = self.surf_press[block.latitude, block.longitude]
 
         block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
