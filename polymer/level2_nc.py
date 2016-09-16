@@ -1,4 +1,4 @@
-from level2 import Level2_file
+from polymer.level2 import Level2_file
 from netCDF4 import Dataset
 import tempfile
 from utils import safemove

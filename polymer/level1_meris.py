@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 import epr
-from block import Block
+from polymer.block import Block
 import numpy as np
 from datetime import datetime
-from common import L2FLAGS
+from polymer.common import L2FLAGS
 import sys
 from os.path import basename, join
 from os import getcwd

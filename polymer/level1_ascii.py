@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 import numpy as np
 import pandas as pd
-from block import Block
+from polymer.block import Block
 from datetime import datetime
 from os.path import join
 from os import getcwd
-from level1_meris import BANDS_MERIS
-from common import L2FLAGS
+from polymer.level1_meris import BANDS_MERIS
+from polymer.common import L2FLAGS
 
 # bands stored in the ASCII extractions
 BANDS_MODIS = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240]

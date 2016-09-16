@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 
 
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 from glymur import Jp2k
 from glob import glob
 from lxml import objectify
 from os.path import join
 from datetime import datetime
 import numpy as np
-from block import Block
-from utils import rectBivariateSpline, landmask
+from polymer.block import Block
+from polymer.utils import rectBivariateSpline, landmask
 import pyproj
-from ancillary import Ancillary_NASA
-from common import L2FLAGS
+from polymer.ancillary import Ancillary_NASA
+from polymer.common import L2FLAGS
 
 '''
 List of MSI bands:

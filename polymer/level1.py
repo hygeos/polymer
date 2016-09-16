@@ -66,27 +66,27 @@ class Level1(object):
 
         assert self.level1 is None
         if self.sensor == 'meris':
-            from level1_meris import Level1_MERIS
+            from polymer.level1_meris import Level1_MERIS
             L1 = Level1_MERIS
 
         elif self.sensor == 'olci':
-            from level1_olci import Level1_OLCI
+            from polymer.level1_olci import Level1_OLCI
             L1 = Level1_OLCI
 
         elif self.sensor == 'viirs':
-            from level1_nasa import Level1_VIIRS
+            from polymer.level1_nasa import Level1_VIIRS
             L1 = Level1_VIIRS
 
         elif self.sensor == 'modis':
-            from level1_nasa import Level1_MODIS
+            from polymer.level1_nasa import Level1_MODIS
             L1 = Level1_MODIS
 
         elif self.sensor == 'seawifs':
-            from level1_nasa import Level1_SeaWiFS
+            from polymer.level1_nasa import Level1_SeaWiFS
             L1 = Level1_SeaWiFS
 
         elif self.sensor == 'msi':
-            from level1_msi import Level1_MSI
+            from polymer.level1_msi import Level1_MSI
             L1 = Level1_MSI
 
         else:

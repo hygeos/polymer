@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 import numpy as np
-from block import Block
-from common import L2FLAGS
+from polymer.block import Block
+from polymer.common import L2FLAGS
 from netCDF4 import Dataset
 from scipy.ndimage import map_coordinates
 from datetime import datetime
-from ancillary import Ancillary_NASA
+from polymer.ancillary import Ancillary_NASA
 import os
 
 

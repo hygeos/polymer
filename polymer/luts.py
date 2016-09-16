@@ -14,7 +14,7 @@ Provides:
     - merge: MLUT merging
 '''
 
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 import sys
 import numpy as np
 from scipy.interpolate import interp1d

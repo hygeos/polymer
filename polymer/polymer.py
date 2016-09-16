@@ -2,22 +2,22 @@
 # encoding: utf-8
 
 
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 
 import numpy as np
-from luts import read_mlut_hdf, Idx
-from utils import stdNxN
-from common import BITMASK_INVALID, L2FLAGS
+from polymer.luts import read_mlut_hdf, Idx
+from polymer.utils import stdNxN
+from polymer.common import BITMASK_INVALID, L2FLAGS
 from pyhdf.SD import SD
 from multiprocessing import Pool
 from datetime import datetime
-from utils import coeff_sun_earth_distance
-from params import Params
-from level1 import Level1
-from level2 import Level2
+from polymer.utils import coeff_sun_earth_distance
+from polymer.params import Params
+from polymer.level1 import Level1
+from polymer.level2 import Level2
 
-from polymer_main import PolymerMinimizer
-from water import ParkRuddick, MorelMaritorena
+from polymer.polymer_main import PolymerMinimizer
+from polymer.water import ParkRuddick, MorelMaritorena
 from warnings import warn
 
 import sys

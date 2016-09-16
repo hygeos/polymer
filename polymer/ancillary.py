@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 from os.path import isdir
 import requests
 from datetime import datetime, timedelta
@@ -9,7 +9,7 @@ from pyhdf.SD import SD
 import numpy as np
 from os import makedirs, system, remove
 from os.path import join, exists, dirname, basename
-from luts import LUT, Idx
+from polymer.luts import LUT, Idx
 
 
 class LUT_LatLon(object):

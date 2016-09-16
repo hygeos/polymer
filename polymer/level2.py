@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-from __future__ import print_function
+from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from os import remove
@@ -40,13 +40,13 @@ class Level2(object):
         self.l2 = None
 
         if fmt == 'hdf4':
-            from level2_hdf import Level2_HDF
+            from polymer.level2_hdf import Level2_HDF
             self.Level2 = Level2_HDF
         elif fmt == 'netcdf4':
-            from level2_nc import Level2_NETCDF
+            from polymer.level2_nc import Level2_NETCDF
             self.Level2 = Level2_NETCDF
         elif fmt == 'memory':
-            from level2 import Level2_base
+            from polymer.level2 import Level2_base
             self.Level2 = Level2_base
         else:
             raise Exception('Invalid format "{}"'.format(fmt))

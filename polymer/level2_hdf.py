@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-from level2 import Level2_file
+from __future__ import print_function, division, absolute_import
+from polymer.level2 import Level2_file
 from pyhdf.SD import SD, SDC
 import numpy as np
 from os import remove
 from os.path import exists, dirname, join, basename
 import tempfile
-from utils import safemove
+from polymer.utils import safemove
 from shutil import rmtree
-from utils import pstr
+from polymer.utils import pstr
 from warnings import warn
 
 

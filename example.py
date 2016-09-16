@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from polymer import polymer, Level1, Level2
-from level2_hdf import Level2_HDF
-from level1_ascii import Level1_ASCII
-from level1_nasa import Level1_NASA
+from polymer.polymer import polymer, Level1, Level2
+from polymer.level2_hdf import Level2_HDF
+from polymer.level1_ascii import Level1_ASCII
+from polymer.level1_nasa import Level1_NASA
 from pylab import plot
 
 

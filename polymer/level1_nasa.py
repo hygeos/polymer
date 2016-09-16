@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, division
+from __future__ import print_function, division, absolute_import
 from netCDF4 import Dataset
 import numpy as np
 from itertools import product
-from block import Block
+from polymer.block import Block
 from datetime import datetime
-from ancillary import Ancillary_NASA
-from common import L2FLAGS
+from polymer.ancillary import Ancillary_NASA
+from polymer.common import L2FLAGS
 
 
 class Level1_NASA(object):
