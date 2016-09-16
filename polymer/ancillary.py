@@ -124,7 +124,7 @@ class Ancillary_NASA(object):
 
         assert basename(url) == basename(target)
 
-        with LockFile(lock), open(target, 'w') as t:
+        with LockFile(lock), open(target, 'wb') as t:
 
             content = requests.get(url).content
             t.write(content)

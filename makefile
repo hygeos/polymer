@@ -2,10 +2,10 @@
 URL = http://download.hygeos.com/POLYMER/auxdata
 WGET = @wget -q -c -P
 
-all: auxdata_all polymer
-
-polymer:
+main:
 	python setup.py build_ext --inplace
+
+all: auxdata_all main
 
 rebuild: clean all
 
