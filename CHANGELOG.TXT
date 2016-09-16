@@ -6,6 +6,17 @@
                            #####################
 
 
+v4.0beta4
+---------
+
+* fix a memory leak in multiprocessing mode
+* generalization of level1_ascii
+* Improved level1_msi
+* python3 fixes
+* packaging improvements (sources in the polymer/ directory).
+* Various fixes
+
+
 v4.0beta3
 ---------
 

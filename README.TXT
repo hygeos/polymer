@@ -46,13 +46,11 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
 
 
 
-1.2 Uncompressing
+1.2 AUXILIARY DATA
     -------------
 
-Uncompress the "SRC" and "DATA" packages in POLYMER's root directory
-$ tar xzvf polymer-src-v$VERSION.tar.gz
-$ tar xzvf polymer-data-v$VERSION.tar.gz
-
+The auxiliary data can be downloaded through the following command:
+$ make auxdata_all
 
 
 1.3 COMPILATION
@@ -62,6 +60,7 @@ The pyx files are cython files which need to be converted to C, then compiled.
 A makefile is provided, so just type:
 $ make
 
+NOTE: the command 'make all' will download the auxiliary files and proceed to the compilation.
 
 
 2) USAGE
