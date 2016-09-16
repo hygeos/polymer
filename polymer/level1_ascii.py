@@ -75,7 +75,7 @@ class Level1_ASCII(object):
                     'VIIRS': BANDS_VIIRS,
                     }[sensor]
 
-        self.band_names = dict(map(lambda (i,b): (b, self.headers['TOA'].format(i+1)),
+        self.band_names = dict(map(lambda b: (b[1], self.headers['TOA'].format(b[0]+1)),
                                    enumerate(BANDS)))
 
         if sensor in ['MERIS', 'MERIS_RR', 'MERIS_FR']:
@@ -89,9 +89,9 @@ class Level1_ASCII(object):
                 self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_rr.txt'), names=True)
                 self.detector_wavelength = np.genfromtxt(join(dir_smile, 'central_wavelen_rr.txt'), names=True)
 
-            self.F0_band_names = dict(map(lambda (i,b): (b, 'E0_band{:d}'.format(i)),
+            self.F0_band_names = dict(map(lambda b: (b[1], 'E0_band{:d}'.format(b[0])),
                                           enumerate(BANDS)))
-            self.wav_band_names = dict(map(lambda (i,b): (b, 'lam_band{:d}'.format(i)),
+            self.wav_band_names = dict(map(lambda b: (b[1], 'lam_band{:d}'.format(b[0])),
                                            enumerate(BANDS)))
 
         #
@@ -119,7 +119,7 @@ class Level1_ASCII(object):
         if sensor in ['MERIS', 'MERIS_RR', 'MERIS_FR']:
             columns.append(self.headers['DETECTOR_INDEX'])
         if 'F0' in self.headers:
-            columns += map(lambda (i, b): self.headers['F0'].format(i+1), enumerate(BANDS))
+            columns += map(lambda b: self.headers['F0'].format(b[0]+1), enumerate(BANDS))
 
         columns += additional_headers
         columns += self.band_names.values()

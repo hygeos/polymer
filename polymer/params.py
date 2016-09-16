@@ -530,7 +530,7 @@ class Params(object):
 
     def print_info(self):
         print(self.__class__)
-        for k, v in self.__dict__.iteritems():
+        for k, v in self.__dict__.items():
             print('*', k,':', v)
 
     def update(self, **kwargs):

@@ -157,7 +157,7 @@ class Level2_HDF(Level2_file):
             sds.endaccess()
 
         # write attributes
-        for k, v in params.__dict__.iteritems():
+        for k, v in params.__dict__.items():
             if params.verbose:
                 print(str(k), pstr(v))
             setattr(hdf, str(k), pstr(v))

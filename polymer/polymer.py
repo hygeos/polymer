@@ -359,7 +359,7 @@ def blockiterator(level1, params, multi=False):
     for block in level1.blocks(params.bands_read()):
 
         if params.verbose:
-            print('Processing block', block)
+            print('Processing', block)
 
         yield (block, c, opt)
 

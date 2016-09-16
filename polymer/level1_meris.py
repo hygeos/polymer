@@ -46,7 +46,7 @@ class Level1_MERIS(object):
             self.height = eline-sline
 
         self.shape = (self.height, self.width)
-        self.band_names = dict(map(lambda (i,b): (b, 'Radiance_{:d}'.format(i+1)),
+        self.band_names = dict(map(lambda b: (b[1], 'Radiance_{:d}'.format(b[0]+1)),
                                    enumerate(BANDS_MERIS)))
 
         # initialize solar irradiance
@@ -54,10 +54,10 @@ class Level1_MERIS(object):
             self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_fr.txt'), names=True)
         else:
             self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_rr.txt'), names=True)
-        self.F0_band_names = dict(map(lambda (i,b): (b, 'E0_band{:d}'.format(i)),
+        self.F0_band_names = dict(map(lambda b: (b[1], 'E0_band{:d}'.format(b[0])),
                                       enumerate(BANDS_MERIS)))
 
-        self.wav_band_names = dict(map(lambda (i,b): (b, 'lam_band{:d}'.format(i)),
+        self.wav_band_names = dict(map(lambda b: (b[1], 'lam_band{:d}'.format(b[0])),
                                        enumerate(BANDS_MERIS)))
 
         # initialize detector wavelength
