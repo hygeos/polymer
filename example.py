@@ -8,21 +8,29 @@ from polymer.level1_nasa import Level1_NASA
 from pylab import plot
 
 
-if __name__ == "__main__":
-
+def example_meris():
     # Process a MERIS file
     # using the generic (autodetecting) Level1 class
     # and the generic level2 class (hdf4 by default)
-    polymer(Level1('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1'),
-            Level2(filename='output.hdf'))
+
+    # input file can be obtained with:
+    # wget https://earth.esa.int/c/document_library/get_file?folderId=23684&name=DLFE-450.zip -O meris_sample.zip
+    # unzip meris_sample.zip
+    polymer(Level1('MER_FRS_1PNPDE20060816_090929_000001972050_00222_23322_0058.N1'),
+            Level2(filename='output.hdf'),
+            multiprocessing=0,   # activate multiprocessing
+            )
 
     # NOTES:
     # * netcdf4 output can be selected with
     #   Level2(filename='output.nc', fmt='netcdf4')
     # * instead of the generic Level1 and Level2 you can use directly
-    #   the appropriate Level1 and Level2 classes (see next example)
+    #   the appropriate Level1 and Level2 classes (see other examples)
 
-    # A more advanced example:
+def example_modis():
+
+    # MODIS processing
+    # including some
     polymer(Level1_NASA('A2004181120500.L1C', sensor='MODIS',
                          sline=1500, eline=2000, scol=100, ecol=500),
             Level2_HDF(outdir='/data/',    # directory for result
@@ -36,9 +44,10 @@ if __name__ == "__main__":
             # see params.py for exhaustive options
             force_initialization=True,
             normalize=False,
-            water_model='MM01',
-            multiprocessing=0,   # activate multiprocessing
+            water_model='PR05',
             )
+
+def example_ascii():
 
     # Process an ASCII file (MERIS)
     # using custom calibration coefficients
@@ -60,4 +69,9 @@ if __name__ == "__main__":
                        #  param.py)
                  )
     plot(l2.bands, l2.Rw[0,0,:])  # plot spectrum of pixel at (0,0)
+
+
+
+if __name__ == "__main__":
+    example_meris()
 
