@@ -2,11 +2,14 @@ from distutils.core import setup
 from Cython.Build import cythonize
 
 
-debug=False
-annotate=False
+NAME = "Polymer"
+DESC = "Polymer atmospheric correction algorithm (http://dx.doi.org/10.1364/OE.19.009783)"
+SRC_DIR = 'polymer'
+DEBUG=False
+ANNOTATE=False
 
 
-if debug:
+if DEBUG:
     compiler_directives = {
             'profile': True,
             'embedsignature': True,
@@ -19,12 +22,14 @@ else:
             'embedsignature': True,
             }
 
+EXTENSIONS = cythonize([SRC_DIR + '/*.pyx'],
+            compiler_directives=compiler_directives,
+            annotate=ANNOTATE,
+            )
 
 setup(
-    name = 'Polymer',
-    ext_modules = cythonize(['polymer/*.pyx'],
-            compiler_directives=compiler_directives,
-            annotate=annotate,
-        )
+    name = NAME,
+    description = DESC,
+    ext_modules = EXTENSIONS,
     )
 
