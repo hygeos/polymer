@@ -170,7 +170,7 @@ class Params(object):
         self.bands_oc =   [412,443,490,510,560,620,665,        754,    779,865]
         self.bands_rw =   [412,443,490,510,560,620,665,        754,    779,865]
 
-        self.lut_file = join(self.dir_base, 'LUTS/MERIS/LUTB.hdf')
+        self.lut_file = join(self.dir_base, 'auxdata/meris/LUTB.hdf')
         self.bands_lut = [412,443,490,510,560,620,665,681,709,754,760,779,865,885,900]
 
         self.band_cloudmask = 865
@@ -232,7 +232,7 @@ class Params(object):
                           709,754,760,764,767,779,865,885,900,940,
                           1020,1375,1610,2250]
 
-        self.lut_file = join(self.dir_base, 'LUTS/OLCI/LUT.hdf')
+        self.lut_file = join(self.dir_base, 'auxdata/olci/LUT.hdf')
 
         self.band_cloudmask = 865
 
@@ -300,7 +300,7 @@ class Params(object):
                 }
 
     def defaults_msi(self):
-        self.lut_file = join(self.dir_base, 'LUTS/MSI/LUT.hdf')
+        self.lut_file = join(self.dir_base, 'auxdata/msi/LUT.hdf')
 
         self.bands_corr = [443,490,560,665,705,740,783,    865,                  ]
         self.bands_oc   = [443,490,560,665,705,740,783,    865,                  ]
@@ -363,7 +363,7 @@ class Params(object):
 
     def defaults_viirs(self):
 
-        self.lut_file = join(self.dir_base, 'LUTS/VIIRS/LUT.hdf')
+        self.lut_file = join(self.dir_base, 'auxdata/viirs/LUT.hdf')
 
         self.bands_corr = [410,443,486,551,671,745,862]
         self.bands_oc   = [410,443,486,551,671,745,862]
@@ -453,7 +453,7 @@ class Params(object):
                 865: 1.942E-21,
                 }
 
-        self.lut_file = join(self.dir_base, 'LUTS/SEAWIFS/LUT.hdf')
+        self.lut_file = join(self.dir_base, 'auxdata/seawifs/LUT.hdf')
 
     def defaults_modis(self):
         self.bands_corr = [412,443,    488,531,547,        667,678,748,    869,    ]
@@ -516,7 +516,7 @@ class Params(object):
                 1240:0.000E+00,
                 }
 
-        self.lut_file = join(self.dir_base, 'LUTS/MODIS/LUTB.hdf')
+        self.lut_file = join(self.dir_base, 'auxdata/modisa/LUTB.hdf')
 
 
     def bands_read(self):

@@ -34,7 +34,7 @@ class Level1(object):
 
         b = self.basename
 
-        if (b.startswith('MER_RR__1') or b.startswith('MER_FRS_1')) and b.endswith('.N1'):
+        if (b.startswith('MER_RR') or b.startswith('MER_FR')) and b.endswith('.N1'):
             self.sensor = 'meris'
 
         elif b.startswith('S3A_OL_1') and b.endswith('.SEN3'):

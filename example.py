@@ -14,9 +14,9 @@ def example_meris():
     # and the generic level2 class (hdf4 by default)
 
     # input file can be obtained with:
-    # wget https://earth.esa.int/c/document_library/get_file?folderId=23684&name=DLFE-450.zip -O meris_sample.zip
-    # unzip meris_sample.zip
-    polymer(Level1('MER_FRS_1PNPDE20060816_090929_000001972050_00222_23322_0058.N1'),
+    # wget http://www.brockmann-consult.de/beam/tutorials/BeamJavaWS/data/MERIS-Test-Data.zip
+    # unzip MERIS-Test-Data.zip
+    polymer(Level1('MER_RR__1P_TEST.N1'),
             Level2(filename='output.hdf'),
             multiprocessing=0,   # activate multiprocessing
             )

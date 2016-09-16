@@ -29,7 +29,7 @@ class Level1_MERIS(object):
         self.width = self.prod.get_scene_width()
         self.totalheight = self.prod.get_scene_height()
         self.blocksize = blocksize
-        self.full_res = basename(filename).startswith('MER_FRS_1')
+        self.full_res = basename(filename).startswith('MER_FR')
         self.ancillary = ancillary
         self.ancillary_initialized = False
 
