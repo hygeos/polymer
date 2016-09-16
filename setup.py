@@ -21,7 +21,8 @@ else:
 
 
 setup(
-    ext_modules = cythonize(['*.pyx'],
+    name = 'Polymer',
+    ext_modules = cythonize(['polymer/*.pyx'],
             compiler_directives=compiler_directives,
             annotate=annotate,
         )
