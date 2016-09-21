@@ -28,8 +28,8 @@ class Block(object):
         ''' relative azimuth angle, in degrees '''
         if '_raa' not in self.datasets():
             raa = self.saa - self.vaa
-            raa[raa<0.] += 360;
-            raa[raa>360.] -= 360;
+            raa[raa<0.] += 360
+            raa[raa>360.] -= 360
             raa[raa>180.] = 360. - raa[raa>180.]
             self._raa = raa
         return self._raa
@@ -58,7 +58,7 @@ class Block(object):
             mu_s = self.mus
             mu_v = self.muv
             phi = self.raa
-            sa = -mu_s*mu_v - sqrt( (1.-mu_s*mu_s)*(1.-mu_v*mu_v) ) * cos(phi*pi/180.);
+            sa = -mu_s*mu_v - sqrt( (1.-mu_s*mu_s)*(1.-mu_v*mu_v) ) * cos(phi*pi/180.)
             self._scat_angle = arccos(sa)*180./pi
         return self._scat_angle
 
