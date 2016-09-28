@@ -100,7 +100,9 @@ class Params(object):
 
             # PR05 model only
             self.alt_gamma_bb = False  # alternate bb spec. dep.
-            self.min_abs = False    # include mineral absorption
+            self.min_abs = 0           # 0: don't include particle absorption
+                                       # 1: include mineral absorption (data from HZG)
+                                       # 2: include NAP absorption (Babin2003)
 
         elif self.water_model == 'MM01':
             self.initial_point_1 = [-1, 0]

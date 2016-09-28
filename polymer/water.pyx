@@ -51,7 +51,7 @@ cdef class ParkRuddick(WaterModel):
 
     cdef int[:] index  # multi-purpose vector
 
-    def __init__(self, directory, alt_gamma_bb=False, min_abs=False, debug=False):
+    def __init__(self, directory, alt_gamma_bb=False, min_abs=0, debug=False):
 
         self.Rw = None
         self.index = np.zeros(2, dtype='int32')
@@ -318,7 +318,7 @@ cdef class ParkRuddick(WaterModel):
             if gamma < 0: gamma = 0
 
         bbp650 = bbp550 * (650./550.)**(-gamma)
-        SPM = 100.*bbp650  # Neukermans, log10(bbp) = 1.03*log10(SPM)
+        SPM = 100.*bbp650  # Neukermans, log10(bbp) = 1.03*log10(SPM) - 2.06
 
         # CDM absorption central value
         # from Bricaud et al GBC, 2012 (data from nov 2007)
@@ -357,10 +357,16 @@ cdef class ParkRuddick(WaterModel):
             aCDM = aCDM443 * exp(-S*(lam - 443))
 
             # mineral absorption
-            if self.min_abs:
+            if self.min_abs == 0:
+                aNAP = 0.
+            elif self.min_abs == 1:
                 aNAP = self.a_star[i]*SPM
             else:
-                aNAP = 0.
+                # Babin 2003
+                # Variations in the light absorption coefficients of phytoplankton,
+                # nonalgal particles, and dissolved organic matter
+                # in coastal waters around Europe
+                aNAP = 0.031*SPM*0.75*exp(-0.0123*(lam - 443.))
 
             # total absorption
             a = aw + aphy + aCDM + aNAP
