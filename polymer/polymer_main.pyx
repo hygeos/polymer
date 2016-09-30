@@ -21,6 +21,7 @@ cdef enum METRICS:
     W_absdR2_Rprime2 = 5
     W_dR2_Rprime_noglint2 = 6
     polymer_3_5 = 7
+    W_dR2_Rprime_noglint2_norm = 8
 
 metrics_names = {
         'W_dR2_norm': W_dR2_norm,
@@ -29,6 +30,7 @@ metrics_names = {
         'W_absdR_Rprime': W_absdR_Rprime,
         'W_absdR2_Rprime2': W_absdR2_Rprime2,
         'W_dR2_Rprime_noglint2': W_dR2_Rprime_noglint2,
+        'W_dR2_Rprime_noglint2_norm': W_dR2_Rprime_noglint2_norm,
         'polymer_3_5': polymer_3_5,
         }
 
@@ -179,23 +181,31 @@ cdef class F(NelderMeadMinimizer):
 
             if (self.metrics == W_dR2_norm) or (self.metrics == polymer_3_5):
                 sumsq += self.weights_oc[ioc]*dR*dR/norm
+                sumw += self.weights_oc[ioc]
 
             elif self.metrics == W_absdR:
                 sumsq += self.weights_oc[ioc]*abs(dR)
+                sumw += self.weights_oc[ioc]
 
             elif self.metrics == W_absdR_norm:
                 sumsq += self.weights_oc[ioc]*abs(dR)/norm
+                sumw += self.weights_oc[ioc]
 
             elif self.metrics == W_absdR_Rprime:
                 sumsq += self.weights_oc[ioc]*abs(dR/self.Rprime[ioc_read])
+                sumw += self.weights_oc[ioc]
 
             elif self.metrics == W_absdR2_Rprime2:
                 sumsq += self.weights_oc[ioc]*(dR/self.Rprime[ioc_read])**2
+                sumw += self.weights_oc[ioc]
 
             elif self.metrics == W_dR2_Rprime_noglint2:
                 sumsq += self.weights_oc[ioc]*(dR/self.Rprime_noglint[ioc_read])**2
+                sumw += self.weights_oc[ioc]
 
-            sumw += self.weights_oc[ioc]
+            elif self.metrics ==  W_dR2_Rprime_noglint2_norm:
+                sumsq += self.weights_oc[ioc]*(dR/self.Rprime_noglint[ioc_read])**2
+                sumw += self.weights_oc[ioc]*(0.001/self.Rprime_noglint[ioc_read])**2
 
         if self.metrics != polymer_3_5:
             sumsq = sumsq/sumw

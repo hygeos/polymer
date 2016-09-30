@@ -99,7 +99,7 @@ class Params(object):
             self.constraint_bbs = [1e-4, 0.2258, 0.9233]
 
             # PR05 model only
-            self.alt_gamma_bb = False  # alternate bb spec. dep.
+            self.bbopt = 0      # particle backscattering model
             self.min_abs = 0           # 0: don't include particle absorption
                                        # 1: include mineral absorption (data from HZG)
                                        # 2: include NAP absorption (Babin2003)

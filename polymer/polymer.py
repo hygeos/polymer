@@ -51,7 +51,7 @@ class InitCorr(object):
         if self.params.water_model == 'PR05':
             watermodel = ParkRuddick(
                             self.params.dir_common,
-                            alt_gamma_bb=self.params.alt_gamma_bb,
+                            bbopt=self.params.bbopt,
                             min_abs=self.params.min_abs)
         elif self.params.water_model == 'MM01':
             watermodel = MorelMaritorena()

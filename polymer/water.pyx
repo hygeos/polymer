@@ -8,6 +8,18 @@ from libc.math cimport exp, M_PI, isnan, log
 from warnings import warn
 
 
+cdef float bbp_huot08(float chl, float lam):
+    '''
+    Particle backscattering coefficient from Huot et al, 2008
+    Huot, Y, Morel A, Twardowski MS, Stramski D, Reynolds RA.  2008.  Particle
+    optical backscattering along a chlorophyll gradient in the upper layer of
+    the eastern South Pacific Ocean. Biogeosciences. 5:495-507.
+    http://www.biogeosciences.net/5/495/2008/bg-5-495-2008.pdf
+    '''
+    cdef float alpha1 = 2.267e-3 - 5.058e-6*(lam - 550.)
+    cdef float beta1 = 0.565 + 0.000486*(lam - 550.)
+    return alpha1 * chl**beta1
+
 
 cdef class WaterModel:
     '''
@@ -43,7 +55,7 @@ cdef class ParkRuddick(WaterModel):
     cdef float mus
     cdef int Nwav
     cdef int debug
-    cdef int alt_gamma_bb
+    cdef int bbopt
     cdef int min_abs
     cdef float[:] atot, bbtot, btot, aphy, aCDM, aNAP
     cdef float gamma
@@ -51,12 +63,12 @@ cdef class ParkRuddick(WaterModel):
 
     cdef int[:] index  # multi-purpose vector
 
-    def __init__(self, directory, alt_gamma_bb=False, min_abs=0, debug=False):
+    def __init__(self, directory, bbopt=0, min_abs=0, debug=False):
 
         self.Rw = None
         self.index = np.zeros(2, dtype='int32')
         self.debug = debug
-        self.alt_gamma_bb = alt_gamma_bb
+        self.bbopt = bbopt
         self.min_abs = min_abs  # activate mineral absorption
 
         self.read_iop(directory)
@@ -265,7 +277,11 @@ cdef class ParkRuddick(WaterModel):
         cdef float fa, fb
         cdef float logchl = x[0]
         cdef float chl = 10**logchl
-        cdef float bbw, gamma, bp550, bbp550, bb, bbp, bbp650
+        cdef float bbw, bb, bbp
+        cdef float bbp550 = -999.
+        cdef float bbp650 = -999.
+        cdef float gamma = -999.
+        cdef float bp550 = -999.
         cdef float SPM
         cdef float aw, aphy, aCDM, a, aCDM443, S, aNAP
         cdef float lam
@@ -290,39 +306,47 @@ cdef class ParkRuddick(WaterModel):
         #
 
         # phytoplankton scattering
-        bp550 = 0.416 * (chl**0.766) * fb
-        if (logchl < 2):
-            bbp550 = (0.002 + 0.01*(0.5 - 0.25*logchl)) * bp550
-        else:
-            bbp550 = (0.002 + 0.01*(0.5 - 0.25*2.    )) * bp550
-
-        # spectral dependency
-        if self.alt_gamma_bb:
-            # alternate version (H. Loisel), improved in turbid waters
-            # phytoplankton + other particles
-            # dependency function of bbp550
-            # - high values: personal comm. Loisel
-            # - low bbp values: slope from Antoine LO (2011)
-            #   offset adjusted for tangency to Loisel
-            if bbp550 < 0.00227:
-                gamma = -0.845 * log(bbp550) - 3.13
+        # and spectral dependency
+        if (self.bbopt <= 1):
+            bp550 = 0.416 * (chl**0.766) * fb
+            if (logchl < 2):
+                bbp550 = (0.002 + 0.01*(0.5 - 0.25*logchl)) * bp550
             else:
-                gamma = 0.156 * bbp550**(-0.42)
+                bbp550 = (0.002 + 0.01*(0.5 - 0.25*2.    )) * bp550
 
-            if gamma > 4:
-                gamma = 4.
-        else:
-            # phytoplankton + other particles
-            # spectral dependency (from Antoine LO (2011))
-            gamma = -0.733 * log(chl) + 1.499   # /!\ log is ln
-            if gamma < 0: gamma = 0
+            if self.bbopt == 0:
+                # phytoplankton + other particles
+                # spectral dependency (from Antoine LO (2011))
+                gamma = -0.733 * log(chl) + 1.499   # /!\ log is ln
+                if gamma < 0: gamma = 0
 
-        bbp650 = bbp550 * (650./550.)**(-gamma)
+                bbp650 = bbp550 * (650./550.)**(-gamma)
+
+            elif self.bbopt == 1:
+                # alternate version (H. Loisel), improved in turbid waters
+                # phytoplankton + other particles
+                # dependency function of bbp550
+                # - high values: personal comm. Loisel
+                # - low bbp values: slope from Antoine LO (2011)
+                #   offset adjusted for tangency to Loisel
+                if bbp550 < 0.00227:
+                    gamma = -0.845 * log(bbp550) - 3.13
+                else:
+                    gamma = 0.156 * bbp550**(-0.42)
+
+                if gamma > 4:
+                    gamma = 4.
+
+                bbp650 = bbp550 * (650./550.)**(-gamma)
+
+        elif self.bbopt == 2:
+            bbp650 = bbp_huot08(chl, 650) * fb
+
         SPM = 100.*bbp650  # Neukermans, log10(bbp) = 1.03*log10(SPM) - 2.06
 
         # CDM absorption central value
         # from Bricaud et al GBC, 2012 (data from nov 2007)
-        aCDM443 = fa * 0.069 * (chl**1.070)   # Bricaud et al, GBC, 2012
+        aCDM443 = fa * 0.069 * (chl**1.070)
 
         S = 0.00262*(aCDM443**(-0.448))
         if (S > 0.025): S=0.025
@@ -339,10 +363,12 @@ cdef class ParkRuddick(WaterModel):
             # pure water scattering
             bbw = 0.5*self.bw[i]
 
-            bbp = bbp550 * (lam/550)**(-gamma)
+            if self.bbopt <= 1:
+                bbp = bbp550 * (lam/550)**(-gamma)
+            else:
+                bbp = bbp_huot08(chl, lam) * fb
 
             bb = bbw + bbp
-
 
             #
             # 2) absorption parameters
