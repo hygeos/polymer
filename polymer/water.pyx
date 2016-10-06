@@ -38,8 +38,8 @@ cdef class ParkRuddick(WaterModel):
     cdef float[:] Rw   # water reflectance (0+)
     cdef float[:] bw   # pure water scattering coefficient
     cdef float[:] aw   # pure water absorption coefficient
-    cdef float[:] a_bric    # absorption parameters A and B (Bricaud)
-    cdef float[:] b_bric    # absorption parameters A and B (Bricaud)
+    cdef float[:] a_bric    # absorption parameters A (Bricaud)
+    cdef float[:] e_bric    # absorption parameters E=1-B (Bricaud)
     cdef float[:] a_star    # mineral absorption coefficient
 
     cdef CLUT BW
@@ -62,14 +62,31 @@ cdef class ParkRuddick(WaterModel):
     cdef object out_type
 
     cdef int[:] index  # multi-purpose vector
+    cdef int absorption
 
-    def __init__(self, directory, bbopt=0, min_abs=0, debug=False):
+    def __init__(self, directory, absorption='bricaud95_aphy', bbopt=0, min_abs=0, debug=False):
+        '''
+        Water reflectance model based on:
+        Park, Y.-J. & Ruddick, K. Model of remote-sensing reflectance including
+        bidirectional effects for case 1 and case 2 waters Appl. Opt., OSA,
+        2005, 44, 1236-1249
+
+        Arguments:
+            absorption: absorption option
+                'bricaud95_aphy': aphy from [Bricaud, 95]
+                'bricaud98_aphy': aphy from [Bricaud, 98]
+            bbopt: particle backscattering option
+            min_abs: mineral absorption option
+        '''
 
         self.Rw = None
         self.index = np.zeros(2, dtype='int32')
         self.debug = debug
         self.bbopt = bbopt
         self.min_abs = min_abs  # activate mineral absorption
+        self.absorption = {'bricaud95_aphy': 1,
+                           'bricaud98_aphy': 2,
+                          }[absorption]
 
         self.read_iop(directory)
         self.read_gi(directory)
@@ -99,11 +116,20 @@ cdef class ParkRuddick(WaterModel):
         #
         # read phytoplankton absorption
         #
-        ap_bricaud = np.loadtxt(join(directory, 'aph_bricaud_1995.txt'), delimiter=',')
-        lambda_bric95 = ap_bricaud[:, 0]
-        self.AB_BRIC = CLUT(ap_bricaud[:,1:], axes=[lambda_bric95, None])
-        assert lambda_bric95[-1] == 700
-        self.a700 = ap_bricaud[-1,1]
+        if (self.absorption == 1):
+            ap_bricaud = np.loadtxt(join(directory, 'aph_bricaud_1995.txt'), delimiter=',')
+            lambda_bric95 = ap_bricaud[:, 0]
+            ap_bricaud[:,2] = 1-ap_bricaud[:,2]   # convert B to exponent E=1-B
+            self.AB_BRIC = CLUT(ap_bricaud[:,1:], axes=[lambda_bric95, None])
+            assert lambda_bric95[-1] == 700
+            self.a700 = ap_bricaud[-1,1]
+
+        else:
+            ap_bricaud = np.genfromtxt(join(directory, 'aph_bricaud_1998.txt'),
+                                    delimiter=',', skip_header=12)  # header is lambda,Ap,Ep,Aphi,Ephi
+            assert ap_bricaud[-1,0] == 700
+            # Aphi, Ephi
+            self.AB_BRIC = CLUT(ap_bricaud[:,3:], axes=[ap_bricaud[:,0], None])
 
         #
         # read mineral absorption
@@ -185,7 +211,7 @@ cdef class ParkRuddick(WaterModel):
             self.bw = np.zeros(len(wav), dtype='float32') + np.NaN
             self.aw = np.zeros(len(wav), dtype='float32') + np.NaN
             self.a_bric = np.zeros(len(wav), dtype='float32') + np.NaN
-            self.b_bric = np.zeros(len(wav), dtype='float32') + np.NaN
+            self.e_bric = np.zeros(len(wav), dtype='float32') + np.NaN
             self.a_star = np.zeros(len(wav), dtype='float32') + np.NaN
 
             if self.debug:
@@ -234,10 +260,10 @@ cdef class ParkRuddick(WaterModel):
                 self.AB_BRIC.index(1, 0)
                 self.a_bric[i] = self.AB_BRIC.interp()
                 self.AB_BRIC.index(1, 1)
-                self.b_bric[i] = self.AB_BRIC.interp()
+                self.e_bric[i] = self.AB_BRIC.interp()
             elif ret > 0:  # above axis
                 self.a_bric[i] = self.a700 * (w/700.)**(-80.)
-                self.b_bric[i] = 0
+                self.e_bric[i] = 0
             else:
                 raise Exception('Error in AB_BRIC lookup (lambda={})'.format(w))
 
@@ -380,7 +406,7 @@ cdef class ParkRuddick(WaterModel):
             aw = self.aw[i]
 
             # phytoplankton absorption
-            aphy = self.a_bric[i] * chl**(1-self.b_bric[i])
+            aphy = self.a_bric[i] * (chl**self.e_bric[i])
 
             aCDM = aCDM443 * exp(-S*(lam - 443))
 

@@ -103,6 +103,7 @@ class Params(object):
             self.min_abs = 0           # 0: don't include particle absorption
                                        # 1: include mineral absorption (data from HZG)
                                        # 2: include NAP absorption (Babin2003)
+            self.absorption = 'bricaud98_aphy'
 
         elif self.water_model == 'MM01':
             self.initial_point_1 = [-1, 0]
