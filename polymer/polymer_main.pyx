@@ -366,7 +366,7 @@ cdef class PolymerMinimizer:
 
     def __init__(self, watermodel, params):
 
-        self.Nparams = 2
+        self.Nparams = len(params.initial_step)
         Ncoef = params.Ncoef   # number of atmospheric coefficients
         self.f = F(Ncoef, watermodel, params, self.Nparams)
         self.BITMASK_INVALID = BITMASK_INVALID
@@ -423,6 +423,8 @@ cdef class PolymerMinimizer:
         # create the output datasets
         block.logchl = np.zeros(block.size, dtype='float32')
         cdef float[:,:] logchl = block.logchl
+        block.fa = np.zeros(block.size, dtype='float32')
+        cdef float[:,:] fa = block.fa
         block.bbs = np.zeros(block.size, dtype='float32')
         cdef float[:,:] bbs = block.bbs
         block.SPM = np.zeros(block.size, dtype='float32')
@@ -449,6 +451,7 @@ cdef class PolymerMinimizer:
 
                 if (bitmask[i,j] & self.BITMASK_INVALID) != 0:
                     logchl[i,j] = self.NaN
+                    fa[i,j] = self.NaN
                     SPM[i,j] = self.NaN
                     bbs[i,j] = self.NaN
                     Rw[i,j,:] = self.NaN
@@ -503,7 +506,10 @@ cdef class PolymerMinimizer:
 
                 logchl[i,j] = self.f.xmin[0]
                 eps[i,j] = self.f.fsim[0]
-                bbs[i,j] = self.f.xmin[1]
+                if self.Nparams >= 2:
+                    bbs[i,j] = self.f.xmin[1]
+                if self.Nparams >= 3:
+                    fa[i,j] = self.f.xmin[2]
                 niter[i,j] = self.f.niter
                 SPM[i,j] = self.f.w.SPM
 
