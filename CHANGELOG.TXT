@@ -6,6 +6,22 @@
                            #####################
 
 
+v4.0beta5
+---------
+
+* VIIRS: don't use band 412 by default
+  'Solves' problem of stability over clear waters (MOBY)
+* Use by default Rprime_consistency:
+  Check for inconsistent results (t*Rw or atmospheric signal Ratm exceeds TOA
+  corrected for Rayleigh only - at any band), triggers reinitialization.
+  Raises flag 2048.
+  Significant stability improvement for SeaWiFS - minor changes for other sensors.
+* Phytoplankton absorption: use Bricaud98 instead of Bricaud95
+* Add options to water model
+* Allow for 3 parameters inversion (chl, backscattering, absorption)
+  (not used by default)
+
+
 v4.0beta4
 ---------
 
