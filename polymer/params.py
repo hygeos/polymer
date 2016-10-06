@@ -12,6 +12,8 @@ params_v3_5 = {
     'reinit_rw_neg': True,
     'constraint_bbs': [1e-3, 0.2258, 0.9233],
     'metrics': 'polymer_3_5',
+    'Rprime_consistency': False,
+    'absorption': 'bricaud95_aphy',
     }
 
 class Params(object):
@@ -79,7 +81,7 @@ class Params(object):
         self.atm_model = 'T0,-1,Rmol'
         self.normalize = True
 
-        self.Rprime_consistency = False
+        self.Rprime_consistency = True
 
         if 'water_model' in kwargs:
             self.water_model = kwargs['water_model']
