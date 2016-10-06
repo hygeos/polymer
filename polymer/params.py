@@ -367,9 +367,9 @@ class Params(object):
 
         self.lut_file = join(self.dir_base, 'auxdata/viirs/LUT.hdf')
 
-        self.bands_corr = [410,443,486,551,671,745,862]
-        self.bands_oc   = [410,443,486,551,671,745,862]
-        self.bands_rw   = [410,443,486,551,671,745,862]
+        self.bands_corr = [    443,486,551,671,745,862               ]
+        self.bands_oc   = [    443,486,551,671,745,862               ]
+        self.bands_rw   = [410,443,486,551,671,745,862               ]
         self.bands_lut  = [410,443,486,551,671,745,862,1238,1601,2257]
 
         self.band_cloudmask = 862
