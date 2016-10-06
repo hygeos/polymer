@@ -29,6 +29,7 @@ auxdata_common:
 	$(WGET) auxdata/common/ $(URL)/common/AboveRrs_gCoef_w10.dat
 	$(WGET) auxdata/common/ $(URL)/common/AboveRrs_gCoef_w5.dat
 	$(WGET) auxdata/common/ $(URL)/common/aph_bricaud_1995.txt
+	$(WGET) auxdata/common/ $(URL)/common/aph_bricaud_1998.txt
 	$(WGET) auxdata/common/ $(URL)/common/morel_buiteveld_bsw.txt
 	$(WGET) auxdata/common/ $(URL)/common/palmer74.dat
 	$(WGET) auxdata/common/ $(URL)/common/pope97.dat
@@ -42,6 +43,7 @@ auxdata_common:
 	@echo 5f1eea393b1fda6d25f54ad34f93c450 auxdata/common/AboveRrs_gCoef_w10.dat         |md5sum -c -
 	@echo f86841556820841ed0d623a69cbc9984 auxdata/common/AboveRrs_gCoef_w5.dat          |md5sum -c -
 	@echo 6ae4d62a28140e7221ad615ef4a59e8f auxdata/common/aph_bricaud_1995.txt           |md5sum -c -
+	@echo c998374a93b993123d6f85e9f627787d auxdata/common/aph_bricaud_1998.txt           |md5sum -c -
 	@echo 7f178e809c8b8d4f379a26df7d258640 auxdata/common/morel_buiteveld_bsw.txt        |md5sum -c -
 	@echo a7896ee2b35e09cacbeb96be69883026 auxdata/common/palmer74.dat                   |md5sum -c -
 	@echo ba868100590c3248e14892c32b18955d auxdata/common/pope97.dat                     |md5sum -c -
