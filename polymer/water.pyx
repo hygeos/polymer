@@ -108,9 +108,10 @@ cdef class ParkRuddick(WaterModel):
         #
         # read mineral absorption
         #
-        astar_ = np.genfromtxt(join(directory, 'astarmin_average_2015_SLSTR.txt'), comments='%')
-        self.ASTAR = CLUT(astar_[:-1,1],
-                          axes=[astar_[:-1,0]])
+        if self.min_abs == 1:
+            astar_ = np.genfromtxt(join(directory, 'astarmin_average_2015_SLSTR.txt'), comments='%')
+            self.ASTAR = CLUT(astar_[:-1,1],
+                              axes=[astar_[:-1,0]])
 
         #
         # read Raman correction
@@ -240,11 +241,12 @@ cdef class ParkRuddick(WaterModel):
             else:
                 raise Exception('Error in AB_BRIC lookup (lambda={})'.format(w))
 
-            ret = self.ASTAR.lookup(0, w)
-            if ret != 0:
-                raise Exception('Error on A_STAR lookup (wavelength={})'.format(w))
-            else:
-                self.a_star[i] = self.ASTAR.interp()
+            if self.min_abs == 1:
+                ret = self.ASTAR.lookup(0, w)
+                if ret != 0:
+                    raise Exception('Error on A_STAR lookup (wavelength={})'.format(w))
+                else:
+                    self.a_star[i] = self.ASTAR.interp()
 
 
         #
