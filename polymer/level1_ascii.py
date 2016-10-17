@@ -245,7 +245,7 @@ class Level1_ASCII(object):
     def blocks(self, bands_read):
 
         nblocks = int(np.ceil(float(self.height)/self.blocksize))
-        for iblock in xrange(nblocks):
+        for iblock in range(nblocks):
 
             # determine block size
             xsize = self.width
