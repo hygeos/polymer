@@ -353,6 +353,7 @@ cdef class PolymerMinimizer:
     cdef int max_iter
     cdef int L2_FLAG_CASE2
     cdef int L2_FLAG_INCONSISTENCY
+    cdef int L2_FLAG_THICK_AEROSOL
     cdef int L2_FLAG_OUT_OF_BOUNDS
     cdef object params
     cdef int normalize
@@ -380,6 +381,7 @@ cdef class PolymerMinimizer:
         self.max_iter = params.max_iter
         self.L2_FLAG_CASE2 = L2FLAGS['CASE2']
         self.L2_FLAG_INCONSISTENCY = L2FLAGS['INCONSISTENCY']
+        self.L2_FLAG_THICK_AEROSOL = L2FLAGS['THICK_AEROSOL']
         self.L2_FLAG_OUT_OF_BOUNDS = L2FLAGS['OUT_OF_BOUNDS']
         self.params = params
         self.normalize = params.normalize
@@ -405,6 +407,7 @@ cdef class PolymerMinimizer:
 
         cdef float[:,:,:] Rprime = block.Rprime
         cdef float[:,:,:] Rprime_noglint = block.Rprime_noglint
+        cdef float[:,:] Rnir = block.Rnir
         cdef float[:,:,:] Tmol = block.Tmol
         cdef float[:,:,:] wav = block.wavelen
         cdef float[:,:] sza = block.sza
@@ -442,6 +445,7 @@ cdef class PolymerMinimizer:
 
         cdef int i, j, ib, ioc
         cdef int flag_reinit
+        cdef float Rw_max
 
         #
         # pixel loop
@@ -554,6 +558,16 @@ cdef class PolymerMinimizer:
 
                     for ib in range(self.N_bands_read):
                         Rw[i,j,ib] *= self.f.Rwmod[ib]
+
+                # thick aerosol flag
+                # Rnir/max(Rw) > 10 - 1.5*logchl
+                # avoid erroneous retrieval in case of very thick aerosol plumes
+                Rw_max = 0.
+                for ib in range(self.N_bands_read):
+                    if Rw[i,j,ib] > Rw_max:
+                        Rw_max = Rw[i,j,ib]
+                if (Rnir[i,j]/Rw_max > 10 - 1.5*logchl[i,j]):
+                    raiseflag(bitmask, i, j, self.L2_FLAG_THICK_AEROSOL)
 
                 # initialization of next pixel
                 if (self.force_initialization

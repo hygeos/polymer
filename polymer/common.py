@@ -9,11 +9,12 @@ L2FLAGS = {
         'NEGATIVE_BB'   : 8,
         'OUT_OF_BOUNDS' : 16,
         'EXCEPTION'     : 32,
+        'THICK_AEROSOL' : 64,
         'EXTERNAL_MASK' : 512,
         'CASE2'         : 1024,
         'INCONSISTENCY' : 2048,
         }
 
-# no product in case of...
+# no product (NaN) in case of...
 BITMASK_INVALID = 1+2+4+32+512
 
