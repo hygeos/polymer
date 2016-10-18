@@ -1,10 +1,10 @@
 #!/bin/bash
 
 
-VERSION='4.0beta5'
+VERSION='4.0'
 
 BASE=`pwd`
-SRC=polymer-src-v$VERSION.tar.gz
+SRC=polymer-v$VERSION.tar.gz
 TARGET='RELEASE/TARGET/'
 DIR='POLYMER/'
 TEMP=$TARGET$DIR

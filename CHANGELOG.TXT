@@ -6,6 +6,15 @@
                            #####################
 
 
+v4.0
+----
+
+* Updated vicarious calibration coefficients (oct 2016)
+* Implemented the "thick aerosol" flag (problem detected for CCI QA, for
+  example MERIS orbit 14935)
+  Flag value is 64, applied by removing pixels such that bitmask & 1023 != 0
+
+
 v4.0beta5
 ---------
 
