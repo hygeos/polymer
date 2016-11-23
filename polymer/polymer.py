@@ -384,7 +384,7 @@ def polymer(level1, level2, **kwargs):
 
     level2: level2 instance
         argument fmt determines the level2 class to use
-        ('hdf4, 'netcdf')
+        ('hdf4, 'netcdf4')
         See appropriate Level2_* class for argument list (the additional
         arguments kwargs are passed directly to this class)
 
