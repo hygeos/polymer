@@ -140,18 +140,20 @@ class Ancillary_NASA(object):
             if exists(target):
                 return target
 
-        # then try to download
-        for pattern in patterns:
-            url = date.strftime(self.url+pattern)
-            target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
+        # then try to download if requested
+        if not self.offline:  # If offline flag set, don't download
+            for pattern in patterns:
+                url = date.strftime(self.url+pattern)
+                target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
 
-            print('Trying to download', url)
-            if self.download(url, target) == 0:
-                print('...success!')
-                return target
-            else:
-                print('...failure')
-
+                print('Trying to download', url)
+                if self.download(url, target) == 0:
+                    print('...success!')
+                    return target
+                else:
+                    print('...failure')
+        elif self.offline:
+            print('Offline ancillary data requested but not available in {}'.format(self.directory))
         return None
 
     def find_meteo(self, date):
