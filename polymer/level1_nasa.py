@@ -124,10 +124,18 @@ class Level1_NASA(object):
         try:
             return self.__date
         except:
-            dstart = datetime.strptime(self.root.getncattr('time_coverage_start'),
+            try:
+                dstart = datetime.strptime(self.root.getncattr('time_coverage_start'),
                                       '%Y-%m-%dT%H:%M:%S.%fZ')
-            dstop = datetime.strptime(self.root.getncattr('time_coverage_end'),
+            except ValueError: # try again without decimal part
+                dstart = datetime.strptime(self.root.getncattr('time_coverage_start'),
+                                      '%Y-%m-%dT%H:%M:%S')
+            try:
+                dstop = datetime.strptime(self.root.getncattr('time_coverage_end'),
                                       '%Y-%m-%dT%H:%M:%S.%fZ')
+            except ValueError: # try again without decimal part
+                dstop = datetime.strptime(self.root.getncattr('time_coverage_end'),
+                                      '%Y-%m-%dT%H:%M:%S')
 
             self.__date = dstart + (dstop - dstart)//2
 
