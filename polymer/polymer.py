@@ -6,12 +6,11 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from polymer.luts import read_mlut_hdf, Idx
-from polymer.utils import stdNxN
+from polymer.utils import stdNxN, raiseflag, coeff_sun_earth_distance
 from polymer.common import BITMASK_INVALID, L2FLAGS
 from pyhdf.SD import SD
 from multiprocessing import Pool
 from datetime import datetime
-from polymer.utils import coeff_sun_earth_distance
 from polymer.params import Params
 from polymer.level1 import Level1
 from polymer.level2 import Level2
@@ -227,6 +226,12 @@ class InitCorr(object):
         params = self.params
         ok = (block.bitmask & BITMASK_INVALID) == 0
 
+        # flag out night pixels
+        musmin = self.mlut.axis('dim_mu')[-1]
+        nightpixel = block.mus <= musmin
+        ok &= ~nightpixel
+        raiseflag(block.bitmask, L2FLAGS['EXCEPTION'], nightpixel)
+
         inir_block = block.bands.index(params.band_cloudmask)
         inir_lut = params.bands_lut.index(params.band_cloudmask)
 
@@ -244,7 +249,7 @@ class InitCorr(object):
         if params.thres_Rcloud_std >= 0:
             cloudmask |= stdNxN(block.Rnir, 3, ok, fillv=0.) > params.thres_Rcloud_std
 
-        block.bitmask += L2FLAGS['CLOUD_BASE'] * cloudmask.astype('uint8')
+        raiseflag(block.bitmask, L2FLAGS['CLOUD_BASE'], cloudmask)
 
 
     def rayleigh_correction(self, block):

@@ -5,6 +5,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 from polymer.block import Block
 from polymer.common import L2FLAGS
+from polymer.utils import raiseflag
 from netCDF4 import Dataset
 from scipy.ndimage import map_coordinates
 from datetime import datetime
@@ -215,7 +216,8 @@ class Level1_OLCI(object):
         # quality flags
         bitmask = self.read_band('quality_flags', size, offset)
         block.bitmask = np.zeros(size, dtype='uint16')
-        block.bitmask += L2FLAGS['LAND']*(bitmask & self.quality_flags['land'] != 0).astype('uint16')
+        raiseflag(block.bitmask, L2FLAGS['LAND'],
+                  bitmask & self.quality_flags['land'] != 0)
 
         return block
 

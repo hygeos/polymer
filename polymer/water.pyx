@@ -286,8 +286,12 @@ cdef class ParkRuddick(WaterModel):
         #
         # lookup the ths, thv and phi axes
         #
-        ret = self.GI_PR.lookup(2, sza)
-        if ret != 0: raise Exception('Error in GI_PR sza lookup')
+        if (sza > 85) and (sza < 90):
+            ret = self.GI_PR.lookup(2, 85.)
+        else:
+            ret = self.GI_PR.lookup(2, sza)
+        if ret != 0:
+            raise Exception('Error in GI_PR sza lookup (sza={})'.format(sza))
         ret = self.GI_PR.lookup(3, vza)
         if ret != 0: raise Exception('Error in GI_PR vza lookup')
         ret = self.GI_PR.lookup(4, raa)

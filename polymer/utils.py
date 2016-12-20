@@ -127,3 +127,16 @@ def pstr(x):
     else:
         return str(x)
 
+
+def raiseflag(bitmask, flag_value, condition):
+    '''
+    raise a flag 'flag_value' in binary flags array 'bitmask' where 'condition' is met
+
+    Arguments:
+        * bitmask: array to fill
+        * flag_value: flag value (should be a power of 2)
+        * condition: where to raise the flag
+    '''
+    notraised = (bitmask & flag_value) == 0
+    bitmask[condition & notraised] += flag_value
+
