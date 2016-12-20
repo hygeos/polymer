@@ -1,9 +1,14 @@
-from level2 import Level2_file
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import print_function, division, absolute_import
+from polymer.level2 import Level2_file
+from polymer.utils import safemove
 from netCDF4 import Dataset
 import tempfile
-from utils import safemove
 from os.path import exists, dirname, join, basename
 from shutil import rmtree
+
 
 class Level2_NETCDF(Level2_file):
     def __init__(self,
