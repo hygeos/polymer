@@ -4,12 +4,14 @@
 from __future__ import print_function, division, absolute_import
 from os.path import isdir
 import requests
+import sys
 from datetime import datetime, timedelta
 from pyhdf.SD import SD
 import numpy as np
 from os import makedirs, system, remove
 from os.path import join, exists, dirname, basename
 from polymer.luts import LUT, Idx
+from warnings import warn
 
 
 class LUT_LatLon(object):
@@ -19,7 +21,7 @@ class LUT_LatLon(object):
 
     Exemple:
     Ancillary(wind_speed)[lat, lon]
-    reprojects wind_wind speed over grid (lat, lon)
+    reprojects wind_speed over grid (lat, lon)
     '''
     def __init__(self, A):
 
@@ -27,7 +29,7 @@ class LUT_LatLon(object):
         assert w/h > 1
         data = np.append(A, A[:, 0, None], axis=1)
 
-        self.A = LUT(data, names=['latitude', 'longitude'],
+        self.data = LUT(data, names=['latitude', 'longitude'],
                 axes=[np.linspace(90, -90, h),
                       np.linspace(-180, 180, w+1)]
                 )
@@ -39,7 +41,7 @@ class LUT_LatLon(object):
 
         lat, lon = coords
 
-        return self.A[Idx(lat), Idx(lon)]
+        return self.data[Idx(lat), Idx(lon)]
 
 class LockFile(object):
     '''
@@ -60,10 +62,15 @@ class Ancillary_NASA(object):
     Ancillary data provider using NASA data
 
     Arguments:
-    meteo: NCEP filename
-    ozone: ozone filename
-    if any filename is None, finds the closest data online or in
-    directory
+    * meteo: NCEP filename              (without interpolation)
+             or tuple (meteo1, meteo1)  (with interpolation)
+             if None, search for the two closest and activate interpolation
+    * ozone: ozone filename             (without interpolation)
+             or tuple (ozone1, ozone2)  (with interpolation)
+             if None, search for the two closest (first offline, then online)
+             and activate interpolation
+    * directory: local directory for ancillary data storage
+    * offline: boolean. If offline, does not try to download
     '''
     def __init__(self, meteo=None, ozone=None,
                  directory='ANCILLARY/METEO/', offline=False):
@@ -75,36 +82,85 @@ class Ancillary_NASA(object):
 
         assert isdir(directory), '{} does not exist'.format(directory)
 
-    def get(self, param, date):
-        # TODO
-        # interpolate between 2 bracketing datasets
 
+    def read(self, param, filename):
+        '''
+        Read ancillary data from filename
+
+        returns LUT_LatLon and date
+        '''
+        hdf = SD(filename)
+
+        assert isinstance(filename, str)
         if param == 'wind_speed':
-            if self.meteo is None:
-                self.meteo = self.find_meteo(date)
             # read m_wind and z_wind
-            zwind = SD(self.meteo).select('z_wind').get()
-            mwind = SD(self.meteo).select('m_wind').get()
+            zwind = hdf.select('z_wind').get()
+            mwind = hdf.select('m_wind').get()
             wind = np.sqrt(zwind*zwind + mwind*mwind)
-            return LUT_LatLon(wind)
+            D = LUT_LatLon(wind)
 
         elif param == 'surf_press':
-            if self.meteo is None:
-                self.meteo = self.find_meteo(date)
-            press = SD(self.meteo).select('press').get()
-            return LUT_LatLon(press)
+            press = hdf.select('press').get()
+            D = LUT_LatLon(press)
 
         elif param == 'ozone':
-            if self.ozone is None:
-                self.ozone = self.find_ozone(date)
-
-            sds = SD(self.ozone).select('ozone')
+            sds = hdf.select('ozone')
             assert 'Dobson units' in sds.attributes()['units']
             ozone = sds.get()
-            return LUT_LatLon(ozone)
+            D = LUT_LatLon(ozone)
 
         else:
             raise Exception('Invalid parameter "{}"'.format(param))
+
+        D.date = datetime.strptime(hdf.attributes()['Start Time'][:13],
+                                   '%Y%j%H%M%S')
+
+        return D
+
+
+    def get(self, param, date):
+        '''
+        Retrieve ancillary parameter at given date
+
+        param:
+            'wind_speed': surface wind speed in m/s
+            'surf_press': sea-level pressure in HPa
+            'ozone': ozone total column in Dobson Units
+        '''
+        if param in ['wind_speed', 'surf_press']:
+            if self.meteo is None:
+                self.meteo = self.find_meteo(date)
+            res = self.meteo
+
+        if param in ['ozone']:
+            if self.ozone is None:
+                self.ozone = self.find_ozone(date)
+            res = self.ozone
+
+        if isinstance(res, tuple):
+            # interpolation
+            D1 = self.read(param, res[0])
+            D2 = self.read(param, res[1])
+
+            x = (date - D1.date)/(D2.date - D1.date)
+
+            if D1.data.shape == D2.data.shape:
+                D = LUT_LatLon((1-x)*D1.data[:,:] + x*D2.data[:,:])
+                D.date = date
+                return D
+            else:
+                warn('Incompatible auxiliary data "{}" {} and "{}" {}'.format(
+                    basename(res[0]), D1.data.shape, basename(res[1]), D2.data.shape))
+                if x < 0.5:
+                    warn('Using "{}"'.format(basename(res[0])))
+                    return D1
+                else:
+                    warn('Using "{}"'.format(basename(res[1])))
+                    return D2
+        else:
+            # res is a single file name (string)
+            # disactivate interpolation
+            return self.read(param, res)
 
 
     def download(self, url, target):
@@ -146,44 +202,46 @@ class Ancillary_NASA(object):
                 url = date.strftime(self.url+pattern)
                 target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
 
-                print('Trying to download', url)
+                print('Trying to download', url, '... ', end='')
+                sys.stdout.flush()
                 if self.download(url, target) == 0:
-                    print('...success!')
+                    print('success!')
                     return target
                 else:
-                    print('...failure')
+                    print('failure')
         elif self.offline:
             print('Offline ancillary data requested but not available in {}'.format(self.directory))
         return None
 
     def find_meteo(self, date):
 
-        d0 = datetime(date.year, date.month, date.day,
-                       6*int(date.hour/6.))
-        filename = self.try_resources([
-                'N%Y%j%H_MET_NCEP_6h.hdf',
-                'S%Y%j%H_NCEP.MET',
-                ], d0)
+        # bracketing dates
+        day = datetime(date.year, date.month, date.day)
+        d0 = day + timedelta(hours=6*int(date.hour/6.))
+        d1 = day + timedelta(hours=6*(int(date.hour/6.)+1))
+        patterns = ['N%Y%j%H_MET_NCEP_6h.hdf',
+                    'S%Y%j%H_NCEP.MET']
+        f1 = self.try_resources(patterns, d0)
+        f2 = self.try_resources(patterns, d1)
 
-        if filename is None:
-            raise Exception('Could not find any valid meteo file for {}'.format(d0))
+        if None in [f1, f2]:
+            raise Exception('Could not find meteo files for {}'.format(date))
 
-        return filename
+        return (f1, f2)
 
     def find_ozone(self, date):
 
+        # bracketing dates
         d0 = datetime(date.year, date.month, date.day)
-        for i in range(10):
-            filename = self.try_resources([
-                'N%Y%j00_O3_AURAOMI_24h.hdf',
-                'S%Y%j00%j23_TOAST.OZONE',
-                'N%Y%j00_O3_EPTOMS_24h.hdf',
-                ], d0 - timedelta(days=i))
-            if filename is not None:
-                break
-        if filename is None:
-            raise Exception('Could not find any valid ozone file')
+        d1 = d0 + timedelta(days=1)
+        patterns = ['N%Y%j00_O3_AURAOMI_24h.hdf',
+                    'S%Y%j00%j23_TOAST.OZONE',
+                    'N%Y%j00_O3_EPTOMS_24h.hdf']
+        f1 = self.try_resources(patterns, d0)
+        f2 = self.try_resources(patterns, d1)
+        if None in [f1, f2]:
+            raise Exception('Could not find any valid ozone file for {}'.format(date))
 
-        return filename
+        return (f1, f2)
 
 
