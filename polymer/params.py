@@ -5,6 +5,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 import os
 from os.path import join
+from collections import OrderedDict
 
 # pass these parameters to polymer to obtain the quasi-same results as polymer v3.5
 # polymer(<level>, <level2>, **params_v3_5)
@@ -21,6 +22,9 @@ class Params(object):
     A class to store the processing parameters
     '''
     def __init__(self, sensor, **kwargs):
+
+        # store attributes in an OrderedDict
+        self.__dict__['_odict'] = OrderedDict()
 
         if 'dir_base' in kwargs:
             self.dir_base = kwargs['dir_base']
@@ -555,18 +559,34 @@ class Params(object):
 
     def print_info(self):
         print(self.__class__)
-        for k, v in self.__dict__.items():
+        for k, v in self.items():
             print('*', k,':', v)
 
     def update(self, **kwargs):
 
         # don't allow for 'new' attributes
         for k in kwargs:
-            if k not in self.__dict__:
+            if k not in self.__dict__['_odict']:
                 raise Exception('{}: attribute "{}" is unknown'.format(self.__class__, k))
 
-        self.__dict__.update(kwargs)
+        self.__dict__['_odict'].update(kwargs)
 
+    def __getattr__(self, value):
+        return self.__dict__['_odict'][value]
+
+    def __setattr__(self, key, value):
+        self.__dict__['_odict'][key] = value
+
+    def items(self):
+        return self.__dict__['_odict'].items()
+
+    def __getstate__(self):
+        # make this class picklable
+        return dict(self.__dict__['_odict'])
+
+    def __setstate__(self, state):
+        # make this class picklable
+        self.__dict__['_odict'] = state
 
     def finalize(self):
 

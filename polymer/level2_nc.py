@@ -87,7 +87,7 @@ class Level2_NETCDF(Level2_file):
                 raise Exception('Error ndim')
 
     def finish(self, params):
-        for k, v in params.__dict__.items():
+        for k, v in params.items():
             self.root.setncatts({k: str(v)})
         self.root.close()
 
