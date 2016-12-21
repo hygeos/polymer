@@ -10,7 +10,7 @@ from os.path import join
 from datetime import datetime
 import numpy as np
 from polymer.block import Block
-from polymer.utils import rectBivariateSpline, landmask
+from polymer.utils import rectBivariateSpline
 import pyproj
 from polymer.ancillary import Ancillary_NASA
 from polymer.common import L2FLAGS
@@ -277,6 +277,9 @@ class Level1_MSI(object):
             offset = (yoffset, xoffset)
 
             yield self.read_block(size, offset, bands_read)
+
+    def attributes(self, datefmt):
+        return {}
 
     def __enter__(self):
         return self

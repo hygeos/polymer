@@ -10,6 +10,7 @@ from polymer.common import L2FLAGS
 import sys
 from os.path import basename, join
 from os import getcwd
+from collections import OrderedDict
 if sys.version_info[:2] >= (3, 0):
     xrange = range
 
@@ -66,9 +67,17 @@ class Level1_MERIS(object):
         else:
             self.detector_wavelength = np.genfromtxt(join(dir_smile, 'central_wavelen_rr.txt'), names=True)
 
-        # read the file date
+        # dates initialization
+        self.dstart = self.read_date('SENSING_START')
+        self.dstop = self.read_date('SENSING_STOP')
+        self.date = self.dstart + (self.dstop - self.dstart)//2
+
+        print('Opened "{}", ({}x{})'.format(filename, self.width, self.height))
+
+
+    def read_date(self, field):
         mph = self.prod.get_mph()
-        dat = mph.get_field('SENSING_START').get_elem(0)
+        dat = mph.get_field(field).get_elem(0)
         dat = dat.decode('utf-8')
         dat = dat.replace('-JAN-', '-01-')  # NOTE:
         dat = dat.replace('-FEB-', '-02-')  # parsing with '%d-%b-%Y...' may be
@@ -82,10 +91,7 @@ class Level1_MERIS(object):
         dat = dat.replace('-OCT-', '-10-')
         dat = dat.replace('-NOV-', '-11-')
         dat = dat.replace('-DEC-', '-12-')
-        self.date = datetime.strptime(dat, '%d-%m-%Y %H:%M:%S.%f')
-
-
-        print('Opened "{}", ({}x{})'.format(filename, self.width, self.height))
+        return datetime.strptime(dat, '%d-%m-%Y %H:%M:%S.%f')
 
 
     def init_ancillary(self):
@@ -215,6 +221,30 @@ class Level1_MERIS(object):
             offset = (yoffset, xoffset)
 
             yield self.read_block(size, offset, bands_read)
+
+    def attributes(self, datefmt):
+        attr = OrderedDict()
+        attr['l1_filename'] = self.filename
+        attr['start_time'] = self.dstart.strftime(datefmt)
+        attr['stop_time'] = self.dstop.strftime(datefmt)
+
+        if self.ancillary is not None:
+            if isinstance(self.ancillary.meteo, tuple):
+                attr['meteo1'] = self.ancillary.meteo[0]
+                attr['meteo2'] = self.ancillary.meteo[1]
+            else:
+                attr['meteo1'] = self.ancillary.meteo
+                attr['meteo2'] = '<none>'
+
+            if isinstance(self.ancillary.ozone, tuple):
+                attr['ozone1'] = self.ancillary.ozone[0]
+                attr['ozone2'] = self.ancillary.ozone[1]
+            else:
+                attr['ozone1'] = self.ancillary.ozone
+                attr['ozone2'] = '<none>'
+
+        return attr
+
 
     def __enter__(self):
         return self

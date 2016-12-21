@@ -9,6 +9,7 @@ from polymer.block import Block
 from datetime import datetime
 from polymer.ancillary import Ancillary_NASA
 from polymer.common import L2FLAGS
+from collections import OrderedDict
 
 
 class Level1_NASA(object):
@@ -58,6 +59,9 @@ class Level1_NASA(object):
         flags = list(var.getncattr('flag_masks'))
         meanings = str(var.getncattr('flag_meanings')).split()
         self.flag_meanings = dict(zip(meanings, flags))
+
+        # init dates
+        self.__read_date()
 
 
     def init_ancillary(self):
@@ -120,27 +124,25 @@ class Level1_NASA(object):
 
         return block
 
-    def date(self):
+    def __read_date(self):
         try:
-            return self.__date
-        except:
-            try:
-                dstart = datetime.strptime(self.root.getncattr('time_coverage_start'),
-                                      '%Y-%m-%dT%H:%M:%S.%fZ')
-            except ValueError: # try again without decimal part
-                dstart = datetime.strptime(self.root.getncattr('time_coverage_start'),
-                                      '%Y-%m-%dT%H:%M:%S')
-            try:
-                dstop = datetime.strptime(self.root.getncattr('time_coverage_end'),
-                                      '%Y-%m-%dT%H:%M:%S.%fZ')
-            except ValueError: # try again without decimal part
-                dstop = datetime.strptime(self.root.getncattr('time_coverage_end'),
-                                      '%Y-%m-%dT%H:%M:%S')
+            dstart = datetime.strptime(self.root.getncattr('time_coverage_start'),
+                                  '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError: # try again without decimal part
+            dstart = datetime.strptime(self.root.getncattr('time_coverage_start'),
+                                  '%Y-%m-%dT%H:%M:%S')
+        try:
+            dstop = datetime.strptime(self.root.getncattr('time_coverage_end'),
+                                  '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError: # try again without decimal part
+            dstop = datetime.strptime(self.root.getncattr('time_coverage_end'),
+                                  '%Y-%m-%dT%H:%M:%S')
 
-            self.__date = dstart + (dstop - dstart)//2
+        self.dstart = dstart
+        self.dstop = dstop
 
-            return self.__date
-
+    def date(self):
+        return self.dstart + (self.dstop - self.dstart)//2
 
     def blocks(self, bands_read):
 
@@ -166,6 +168,33 @@ class Level1_NASA(object):
             offset = (yoffset, xoffset)
 
             yield self.read_block(size, offset, bands_read)
+
+    def attributes(self, datefmt):
+        '''
+        Returns level1 attributes
+
+        dates are formatted to string using datefmt
+        '''
+        attr = OrderedDict()
+        attr['l1_filename'] = self.filename
+        attr['start_time'] = self.dstart.strftime(datefmt)
+        attr['stop_time'] = self.dstop.strftime(datefmt)
+
+        if isinstance(self.ancillary.meteo, tuple):
+            attr['meteo1'] = self.ancillary.meteo[0]
+            attr['meteo2'] = self.ancillary.meteo[1]
+        else:
+            attr['meteo1'] = self.ancillary.meteo
+            attr['meteo2'] = '<none>'
+
+        if isinstance(self.ancillary.ozone, tuple):
+            attr['ozone1'] = self.ancillary.ozone[0]
+            attr['ozone2'] = self.ancillary.ozone[1]
+        else:
+            attr['ozone1'] = self.ancillary.ozone
+            attr['ozone2'] = '<none>'
+
+        return attr
 
     def __enter__(self):
         return self

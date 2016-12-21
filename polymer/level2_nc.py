@@ -113,12 +113,19 @@ class Level2_NETCDF(Level2_file):
                 raise Exception('Error ndim')
 
     def finish(self, params):
+        # write attributes
         for k, v in params.items():
             self.root.setncatts({k: str(v)})
         self.root.close()
 
         # move to destination
         safemove(self.tmpfilename, self.filename)
+
+    def attributes(self):
+        attrs = {}
+        attrs['l2_filename'] = self.filename
+        attrs['l2_format'] = self.format
+        return attrs
 
     def __enter__(self):
         return self

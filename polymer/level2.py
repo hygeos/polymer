@@ -103,6 +103,9 @@ class Level2_base(object):
             else:
                 raise Exception('Error')
 
+    def attributes(self):
+        return {}
+
     def finish(self, params):
         self.attrs = params.items()
 

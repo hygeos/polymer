@@ -172,6 +172,11 @@ class Level2_HDF(Level2_file):
         # move to destination
         safemove(self.tmpfilename, self.filename)
 
+    def attributes(self):
+        attrs = {}
+        attrs['l2_filename'] = self.filename
+        return attrs
+
     def cleanup(self):
         if (self.__tmpdir is not None) and (self.tmpdir is not None):
             rmtree(self.tmpdir)

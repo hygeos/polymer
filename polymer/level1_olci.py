@@ -11,6 +11,7 @@ from scipy.ndimage import map_coordinates
 from datetime import datetime
 from polymer.ancillary import Ancillary_NASA
 import os
+from collections import OrderedDict
 
 
 class Level1_OLCI(object):
@@ -88,6 +89,13 @@ class Level1_OLCI(object):
         for i in range(len(fmeaning)):
             self.quality_flags[fmeaning[i]] = fmask[i]
 
+        # date initialization
+        self.read_date()
+
+    def read_date(self):
+        var = self.get_ncroot('Oa01_radiance.nc')
+        self.dstart = datetime.strptime(var.getncattr('start_time'), '%Y-%m-%dT%H:%M:%S.%fZ')
+        self.dstop  = datetime.strptime(var.getncattr('stop_time'), '%Y-%m-%dT%H:%M:%S.%fZ')
 
 
     def init_ancillary(self):
@@ -151,16 +159,8 @@ class Level1_OLCI(object):
 
 
     def date(self):
-        try:
-            return self.__date
-        except:
-            var = self.get_ncroot('Oa01_radiance.nc')
-            dstart = datetime.strptime(var.getncattr('start_time'), '%Y-%m-%dT%H:%M:%S.%fZ')
-            dstop  = datetime.strptime(var.getncattr('stop_time'), '%Y-%m-%dT%H:%M:%S.%fZ')
+        return self.dstart + (self.dstop - self.dstart)//2
 
-            self.__date = dstart + (dstop - dstart)//2
-
-            return self.__date
 
     def read_block(self, size, offset, bands):
         self.init_ancillary()
@@ -240,6 +240,29 @@ class Level1_OLCI(object):
             offset = (yoffset, xoffset)
 
             yield self.read_block(size, offset, bands_read)
+
+    def attributes(self, datefmt):
+        attr = OrderedDict()
+        attr['l1_filename'] = self.filename
+        attr['start_time'] = self.dstart.strftime(datefmt)    # FIXME
+        attr['stop_time'] = self.dstop.strftime(datefmt)
+
+        if isinstance(self.ancillary.meteo, tuple):
+            attr['meteo1'] = self.ancillary.meteo[0]
+            attr['meteo2'] = self.ancillary.meteo[1]
+        else:
+            attr['meteo1'] = self.ancillary.meteo
+            attr['meteo2'] = '<none>'
+
+        if isinstance(self.ancillary.ozone, tuple):
+            attr['ozone1'] = self.ancillary.ozone[0]
+            attr['ozone2'] = self.ancillary.ozone[1]
+        else:
+            attr['ozone1'] = self.ancillary.ozone
+            attr['ozone2'] = '<none>'
+
+
+        return attr
 
     def __enter__(self):
         return self

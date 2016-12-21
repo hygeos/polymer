@@ -563,12 +563,6 @@ class Params(object):
             print('*', k,':', v)
 
     def update(self, **kwargs):
-
-        # don't allow for 'new' attributes
-        for k in kwargs:
-            if k not in self.__dict__['_odict']:
-                raise Exception('{}: attribute "{}" is unknown'.format(self.__class__, k))
-
         self.__dict__['_odict'].update(kwargs)
 
     def __getattr__(self, value):

@@ -142,9 +142,7 @@ class Level1_ASCII(object):
         if self.verbose:
             print('Shape is', self.shape)
 
-        self.dates = map(
-                lambda x: datetime.strptime(x, datetime_fmt),
-                self.csv[self.headers['DATETIME']])
+        self.dates = [datetime.strptime(x, datetime_fmt) for x in self.csv[self.headers['DATETIME']]]
 
     def get_field(self, fname, sl, size):
         cname = self.headers[fname]
@@ -212,11 +210,9 @@ class Level1_ASCII(object):
                     name = self.headers['F0'].format(iband+1)
                     block.F0[:,:,iband] = self.csv[name][sl].reshape(size)
 
-        block.jday = np.array(map(lambda x: x.timetuple().tm_yday,
-                                  self.dates[sl])).reshape(size)
+        block.jday = np.array([x.timetuple().tm_yday for x in self.dates[sl]]).reshape(size)
 
-        block.month = np.array(map(lambda x: x.timetuple().tm_mon,
-                                  self.dates[sl])).reshape(size)
+        block.month = np.array([x.timetuple().tm_mon for x in self.dates[sl]]).reshape(size)
 
         block.bitmask = np.zeros(size, dtype='uint16')
         invalid = np.isnan(block.raa)
@@ -262,6 +258,11 @@ class Level1_ASCII(object):
 
             yield self.read_block(size, offset, bands_read)
 
+
+    def attributes(self, datefmt):
+        attr = {}
+        attr['l1_filename'] = self.filename
+        return attr
 
     def __enter__(self):
         return self

@@ -443,7 +443,10 @@ def polymer(level1, level2, **kwargs):
         for block in block_iter:
             l2.write(block)
 
+        # finalize level2 file and include global attributes
         params.processing_duration = datetime.now()-t0
+        params.update(**l1.attributes('%Y-%m-%d %H:%M:%S'))
+        params.update(**l2.attributes())
         l2.finish(params)
 
         if params.multiprocessing != 1:
