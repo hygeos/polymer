@@ -6,11 +6,30 @@ from polymer.level2 import Level2_file
 from polymer.utils import safemove
 from netCDF4 import Dataset
 import tempfile
+import numpy as np
 from os.path import exists, dirname, join, basename
 from shutil import rmtree
 
 
 class Level2_NETCDF(Level2_file):
+    '''
+    Level2 in netCDF format
+
+    filename: string
+        if None, determine filename from level1 by using output directory
+        outdir and extension ext
+    outdir: output directory
+    ext: output file extension
+    overwrite: boolean
+        overwrite existing file
+    datasets: list or None
+        list of datasets to include in level 2
+        if None (default), use default_datasets defined in level2 module
+    compress: activate compression
+    tmpdir: path of temporary directory
+    format: underlying file format as specified in netcdf's Dataset:
+            one of 'NETCDF4', 'NETCDF4_CLASSIC', 'NETCDF3_CLASSIC' or 'NETCDF3_64BIT'
+    '''
     def __init__(self,
                  filename=None,
                  ext='.nc',
@@ -18,7 +37,9 @@ class Level2_NETCDF(Level2_file):
                  outdir=None,
                  overwrite=False,
                  datasets=None,
-                 compress=True):
+                 compress=True,
+                 format='NETCDF4_CLASSIC',
+                 ):
         self.filename = filename
         self.overwrite = overwrite
         self.datasets = datasets
@@ -30,6 +51,7 @@ class Level2_NETCDF(Level2_file):
         self.__tmpdir = tmpdir   # base tmp dir
         self.tmpdir = None       # sub dir, should be removed
         self.tmpfilename = None
+        self.format=format
 
     def init(self, level1):
         super(self.__class__, self).init(level1)
@@ -42,7 +64,7 @@ class Level2_NETCDF(Level2_file):
 
         self.tmpfilename = join(tmpdir, basename(self.filename) + '.tmp')
 
-        self.root = Dataset(self.tmpfilename, 'w', format='NETCDF4')
+        self.root = Dataset(self.tmpfilename, 'w', format=self.format)
 
 
     def write_block(self, name, data, S):
@@ -50,9 +72,13 @@ class Level2_NETCDF(Level2_file):
         write data into sds name with slice S
         '''
         assert data.ndim == 2
+        if (data.dtype == np.uint16) and self.format == 'NETCDF4_CLASSIC':
+            typ = np.int16
+        else:
+            typ = data.dtype
         if name not in self.varlist:
             self.varlist[name] = self.root.createVariable(
-                    name, data.dtype,
+                    name, typ,
                     ['height', 'width'],
                     zlib=self.compress)
 
