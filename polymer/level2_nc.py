@@ -87,7 +87,8 @@ class Level2_NETCDF(Level2_file):
                 raise Exception('Error ndim')
 
     def finish(self, params):
-        # TODO: write attributes
+        for k, v in params.__dict__.items():
+            self.root.setncatts({k: str(v)})
         self.root.close()
 
         # move to destination
