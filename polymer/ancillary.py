@@ -78,7 +78,7 @@ class Ancillary_NASA(object):
         self.ozone = ozone
         self.directory = directory
         self.offline = offline
-        self.url = 'http://oceandata.sci.gsfc.nasa.gov/cgi/getfile/'
+        self.url = 'https://oceandata.sci.gsfc.nasa.gov/cgi/getfile/'
 
         assert isdir(directory), '{} does not exist'.format(directory)
 
@@ -142,7 +142,7 @@ class Ancillary_NASA(object):
             D1 = self.read(param, res[0])
             D2 = self.read(param, res[1])
 
-            x = (date - D1.date)/(D2.date - D1.date)
+            x = (date - D1.date).total_seconds()/(D2.date - D1.date).total_seconds()
 
             if D1.data.shape == D2.data.shape:
                 D = LUT_LatLon((1-x)*D1.data[:,:] + x*D2.data[:,:])
