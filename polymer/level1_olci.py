@@ -103,6 +103,9 @@ class Level1_OLCI(object):
     def init_ancillary(self):
         self.wind_speed = self.ancillary.get('wind_speed', self.date())
 
+        self.ancillary_files = OrderedDict()
+        self.ancillary_files.update(self.wind_speed.filename)
+
     def get_ncroot(self, filename):
         if filename in self.nc_datasets:
             return self.nc_datasets[filename]
@@ -242,23 +245,10 @@ class Level1_OLCI(object):
     def attributes(self, datefmt):
         attr = OrderedDict()
         attr['l1_filename'] = self.filename
-        attr['start_time'] = self.dstart.strftime(datefmt)    # FIXME
+        attr['start_time'] = self.dstart.strftime(datefmt)
         attr['stop_time'] = self.dstop.strftime(datefmt)
 
-        if isinstance(self.ancillary.meteo, tuple):
-            attr['meteo1'] = self.ancillary.meteo[0]
-            attr['meteo2'] = self.ancillary.meteo[1]
-        else:
-            attr['meteo1'] = self.ancillary.meteo
-            attr['meteo2'] = '<none>'
-
-        if isinstance(self.ancillary.ozone, tuple):
-            attr['ozone1'] = self.ancillary.ozone[0]
-            attr['ozone2'] = self.ancillary.ozone[1]
-        else:
-            attr['ozone1'] = self.ancillary.ozone
-            attr['ozone2'] = '<none>'
-
+        attr.update(self.ancillary_files)
 
         return attr
 
