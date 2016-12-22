@@ -262,6 +262,11 @@ class InitCorr(object):
         if params.partial >= 2:
             return
 
+        # flag high air mass
+        # (air_mass > 5)
+        raiseflag(block.bitmask, L2FLAGS['HIGH_AIR_MASS'],
+                  block.air_mass > 5.)
+
         block.Rprime = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
         block.Rprime_noglint = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
         block.Rmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN

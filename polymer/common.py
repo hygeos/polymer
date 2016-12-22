@@ -10,6 +10,7 @@ L2FLAGS = {
         'OUT_OF_BOUNDS' : 16,
         'EXCEPTION'     : 32,
         'THICK_AEROSOL' : 64,
+        'HIGH_AIR_MASS' : 128,
         'EXTERNAL_MASK' : 512,
         'CASE2'         : 1024,
         'INCONSISTENCY' : 2048,
