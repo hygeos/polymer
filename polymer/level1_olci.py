@@ -32,7 +32,6 @@ class Level1_OLCI(object):
             self.ancillary = Ancillary_NASA()
         else:
             self.ancillary = ancillary
-        self.ancillary_initialized = False
         self.nc_datasets = {}
 
         # get product shape
@@ -92,6 +91,9 @@ class Level1_OLCI(object):
         # date initialization
         self.read_date()
 
+        # ancillary data initialization
+        self.init_ancillary()
+
     def read_date(self):
         var = self.get_ncroot('Oa01_radiance.nc')
         self.dstart = datetime.strptime(var.getncattr('start_time'), '%Y-%m-%dT%H:%M:%S.%fZ')
@@ -99,10 +101,7 @@ class Level1_OLCI(object):
 
 
     def init_ancillary(self):
-        if not self.ancillary_initialized:
-            self.wind_speed = self.ancillary.get('wind_speed', self.date())
-            self.ancillary_initialized = True
-
+        self.wind_speed = self.ancillary.get('wind_speed', self.date())
 
     def get_ncroot(self, filename):
         if filename in self.nc_datasets:
@@ -163,7 +162,6 @@ class Level1_OLCI(object):
 
 
     def read_block(self, size, offset, bands):
-        self.init_ancillary()
 
         (ysize, xsize) = size
         nbands = len(bands)

@@ -32,7 +32,6 @@ class Level1_MERIS(object):
         self.blocksize = blocksize
         self.full_res = basename(filename).startswith('MER_FR')
         self.ancillary = ancillary
-        self.ancillary_initialized = False
 
         if dir_smile is None:
             dir_smile = join(getcwd(), 'auxdata/meris/smile/v2/')
@@ -74,6 +73,10 @@ class Level1_MERIS(object):
 
         print('Opened "{}", ({}x{})'.format(filename, self.width, self.height))
 
+        # ancillary data initialization
+        if self.ancillary is not None:
+            self.init_ancillary()
+
 
     def read_date(self, field):
         mph = self.prod.get_mph()
@@ -95,16 +98,10 @@ class Level1_MERIS(object):
 
 
     def init_ancillary(self):
-        if self.ancillary is None:
-            return
-        if self.ancillary_initialized:
-            return
-
         self.ozone = self.ancillary.get('ozone', self.date)
         self.wind_speed = self.ancillary.get('wind_speed', self.date)
         self.surf_press = self.ancillary.get('surf_press', self.date)
 
-        self.ancillary_initialized = True
 
     def read_band(self, band_name, size, offset):
         '''
@@ -133,7 +130,6 @@ class Level1_MERIS(object):
         bands: list of bands identifiers
         req: list of identifiers of required datasets
         '''
-        self.init_ancillary()
 
         (ysize, xsize) = size
         nbands = len(bands)

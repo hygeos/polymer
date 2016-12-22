@@ -30,7 +30,6 @@ class Level1_NASA(object):
         self.sline = sline
         self.scol = scol
         self.blocksize = blocksize
-        self.ancillary_initialized = False
         if ancillary is None:
             self.ancillary = Ancillary_NASA()
         else:
@@ -63,17 +62,17 @@ class Level1_NASA(object):
         # init dates
         self.__read_date()
 
+        # initialize ancillary data
+        self.init_ancillary()
+
 
     def init_ancillary(self):
-        if not self.ancillary_initialized:
-            self.ozone = self.ancillary.get('ozone', self.date())
-            self.wind_speed = self.ancillary.get('wind_speed', self.date())
-            self.surf_press = self.ancillary.get('surf_press', self.date())
+        self.ozone = self.ancillary.get('ozone', self.date())
+        self.wind_speed = self.ancillary.get('wind_speed', self.date())
+        self.surf_press = self.ancillary.get('surf_press', self.date())
 
-            self.ancillary_initialized = True
 
     def read_block(self, size, offset, bands):
-        self.init_ancillary()
 
         nbands = len(bands)
         size3 = size + (nbands,)

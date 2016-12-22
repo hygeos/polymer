@@ -53,7 +53,6 @@ class Level1_MSI(object):
         assert isinstance(resolution, str)
         self.sline = sline
         self.eline = eline
-        self.ancillary_initialized = False
 
         if ancillary is None:
             self.ancillary = Ancillary_NASA()
@@ -97,14 +96,13 @@ class Level1_MSI(object):
 
         self.init_latlon()
         self.init_geometry()
+        self.init_ancillary()
 
     def init_ancillary(self):
-        if not self.ancillary_initialized:
-            self.ozone = self.ancillary.get('ozone', self.date)
-            self.wind_speed = self.ancillary.get('wind_speed', self.date)
-            self.surf_press = self.ancillary.get('surf_press', self.date)
+        self.ozone = self.ancillary.get('ozone', self.date)
+        self.wind_speed = self.ancillary.get('wind_speed', self.date)
+        self.surf_press = self.ancillary.get('surf_press', self.date)
 
-            self.ancillary_initialized = True
 
     def init_latlon(self):
 
@@ -208,7 +206,6 @@ class Level1_MSI(object):
         return data
 
     def read_block(self, size, offset, bands):
-        self.init_ancillary()
 
         (ysize, xsize) = size
         nbands = len(bands)
