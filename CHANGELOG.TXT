@@ -6,6 +6,34 @@
                            #####################
 
 
+v4.1
+----
+
+* Updated SVC coefficients for using NCEP data instead of ERA
+* Improved netCDF4 support:
+    - support NETCDF_CLASSIC format (activated by default in netcdf output)
+      added keyword to switch to standard netcdf output
+    - write attributes in netCDF4 files
+* Improved attributes in output:
+    - write bitmask description
+    - write scene start and end times
+* Improved meteo and ozone files support
+    - support meteo interpolation in ancillary.py
+    - improved ancillary file search
+    - allow to provide explicitly couples of meteo files for interpolation
+    - interpolation is not activated for ozone files as NASA files are not
+      provided at a fixed date
+    - write names of ancillary files in the output attributes
+    - added offline mode to ancillary.py
+* MODIS: don't fail on grazing angles/night pixels
+  Flag such pixels as 'EXCEPTION', as was done before v4
+* Add a flag HIGH_AIR_MASS to flag air masses higher than 5
+  (rejects pixels when applying rejection bitmask expression "bitmask & 1023")
+* Embed rejection bitmask in bitmask attributes
+* Improvement in makefile
+* Various fixes, including python2/3 compatibility
+
+
 v4.0
 ----
 
