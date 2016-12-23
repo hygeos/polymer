@@ -19,3 +19,6 @@ L2FLAGS = {
 # no product (NaN) in case of...
 BITMASK_INVALID = 1+2+4+32+512
 
+# recommended pixek rejection test: (bitmask & BITMASK_REJECT) != 0
+BITMASK_REJECT = 1023
+

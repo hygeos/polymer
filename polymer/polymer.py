@@ -7,7 +7,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 from polymer.luts import read_mlut_hdf, Idx
 from polymer.utils import stdNxN, raiseflag, coeff_sun_earth_distance
-from polymer.common import BITMASK_INVALID, L2FLAGS
+from polymer.common import BITMASK_INVALID, L2FLAGS, BITMASK_REJECT
 from pyhdf.SD import SD
 from multiprocessing import Pool
 from datetime import datetime
@@ -325,6 +325,19 @@ class InitCorr(object):
             taumol = 0.00877*((block.wavelen[ok,i]/1000.)**-4.05)
             block.Tmol[ok,i] *= np.exp(-taumol/2. * (block.surf_press[ok]/1013. - 1.) * block.air_mass[ok])
 
+    def set_attributes(self, block):
+        flag_meanings = ', '.join(['{}:{}'.format(x[0], x[1]) for x in sorted(L2FLAGS.items(), key=lambda x: x[1])])
+        block.attributes['bitmask'] = {
+                'description': flag_meanings,
+                'bitmask_reject': 'bitmask & {} != 0'.format(BITMASK_REJECT),
+                }
+        block.attributes['Rw'] = {
+                'description': 'water reflectance (dimensionless ; fully normalized)'
+                }
+        block.attributes['logchl'] = {
+                'description': 'log10 of the chl-a concentration in mg/m3',
+                }
+
 
 def process_block(args):
     '''
@@ -347,6 +360,8 @@ def process_block(args):
     c.rayleigh_correction(block)
 
     opt.minimize(block)
+
+    c.set_attributes(block)
 
     return block
 

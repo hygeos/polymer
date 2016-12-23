@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+from __future__ import print_function, division, absolute_import
 from numpy import cos, sqrt, pi, arccos
+from collections import OrderedDict
 
 class Block(object):
 
@@ -10,6 +12,7 @@ class Block(object):
         self.size = size
         self.offset = offset
         self.bands = bands
+        self.attributes = OrderedDict()
 
     def datasets(self):
         '''

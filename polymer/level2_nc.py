@@ -67,20 +67,30 @@ class Level2_NETCDF(Level2_file):
         self.root = Dataset(self.tmpfilename, 'w', format=self.format)
 
 
-    def write_block(self, name, data, S):
+    def write_block(self, name, data, S, attrs={}):
         '''
         write data into sds name with slice S
         '''
         assert data.ndim == 2
-        if (data.dtype == np.uint16) and self.format == 'NETCDF4_CLASSIC':
-            typ = np.int16
+        if self.format == 'NETCDF4_CLASSIC':
+            # data type conversion
+            if data.dtype == np.uint16:
+                typ = np.int16
+            elif data.dtype == np.uint32:
+                typ = np.int32
+            else:
+                typ = data.dtype
         else:
             typ = data.dtype
+
         if name not in self.varlist:
+            # create variable
             self.varlist[name] = self.root.createVariable(
                     name, typ,
                     ['height', 'width'],
                     zlib=self.compress)
+            # set attributes
+            self.varlist[name].setncatts(attrs)
 
         self.varlist[name][S[0], S[1]] = data
 
@@ -103,12 +113,14 @@ class Level2_NETCDF(Level2_file):
                 continue
 
             if block[d].ndim == 2:
-                self.write_block(d, block[d], S)
+                self.write_block(d, block[d], S,
+                                 block.attributes.get(d, {}))
 
             elif block[d].ndim == 3:
                 for i, b in enumerate(block.bands):
                     sdsname = '{}{}'.format(d, b)
-                    self.write_block(sdsname, block[d][:,:,i], S)
+                    self.write_block(sdsname, block[d][:,:,i], S,
+                                     block.attributes.get(d, {}))
             else:
                 raise Exception('Error ndim')
 

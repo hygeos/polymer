@@ -565,8 +565,8 @@ class Params(object):
     def update(self, **kwargs):
         self.__dict__['_odict'].update(kwargs)
 
-    def __getattr__(self, value):
-        return self.__dict__['_odict'][value]
+    def __getattr__(self, key):
+        return self.__dict__['_odict'][key]
 
     def __setattr__(self, key, value):
         self.__dict__['_odict'][key] = value

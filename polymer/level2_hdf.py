@@ -95,7 +95,7 @@ class Level2_HDF(Level2_file):
             return self.__hdf[name]
 
 
-    def write_block(self, name, data, S):
+    def write_block(self, name, data, S, attrs):
         '''
         write data into sds name with slice S
         '''
@@ -106,6 +106,10 @@ class Level2_HDF(Level2_file):
             self.sdslist[name] = self.hdf(name).create(name, dtype, self.shape)
             if dtype in [SDC.FLOAT32, SDC.FLOAT64]:
                 self.sdslist[name].setfillvalue(np.NaN)
+
+            # set attributes
+            for k, v in attrs.items():
+                setattr(self.sdslist[name], k, v)
 
         # write
         self.sdslist[name][S] = data[:,:]
@@ -125,12 +129,14 @@ class Level2_HDF(Level2_file):
                 continue
 
             if block[d].ndim == 2:
-                self.write_block(d, block[d], S)
+                self.write_block(d, block[d], S,
+                                 block.attributes.get(d, {}))
 
             elif block[d].ndim == 3:
                 for i, b in enumerate(block.bands):
                     sdsname = '{}{}'.format(d, b)
-                    self.write_block(sdsname, block[d][:,:,i], S)
+                    self.write_block(sdsname, block[d][:,:,i], S,
+                                     block.attributes.get(d, {}))
             else:
                 raise Exception('Error ndim')
 
