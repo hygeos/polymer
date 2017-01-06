@@ -4,7 +4,7 @@
 from __future__ import print_function, division, absolute_import
 from polymer.level2 import Level2_file
 from polymer.utils import safemove
-from netCDF4 import Dataset
+from netCDF4 import Dataset, default_fillvals
 import tempfile
 import numpy as np
 from os.path import exists, dirname, join, basename
@@ -83,15 +83,22 @@ class Level2_NETCDF(Level2_file):
         else:
             typ = data.dtype
 
+        fill_value = default_fillvals[np.dtype(typ).kind+str(np.dtype(typ).itemsize)]
+
         if name not in self.varlist:
             # create variable
             self.varlist[name] = self.root.createVariable(
                     name, typ,
                     ['height', 'width'],
+                    fill_value=fill_value,
                     zlib=self.compress)
             # set attributes
             self.varlist[name].setncatts(attrs)
 
+        # deplace NaNs by default_fillvals
+        data[np.isnan(data)] = fill_value
+
+        # write block
         self.varlist[name][S[0], S[1]] = data
 
 
