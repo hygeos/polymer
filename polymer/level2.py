@@ -34,7 +34,10 @@ class Level2(object):
     '''
     def __init__(self, fmt='hdf4', **kwargs):
         if not 'ext' in kwargs:
-            kwargs['ext'] = '.polymer.hdf'
+            if fmt == 'hdf4':
+                kwargs['ext'] = '.polymer.hdf'
+            else:
+                kwargs['ext'] = '.polymer.nc'
 
         self.kwargs = kwargs
         self.l2 = None
