@@ -425,9 +425,9 @@ def polymer(level1, level2, **kwargs):
     see attributes defined in Params class
     Examples:
     - multiprocessing: number of threads to use for processing (int)
-        N = 1: single thread
-        N > 1: multiple threads
-        N < 1: use as many threads as there are CPUs on local machine
+        N = 0: single thread (multiprocessing disactivated)
+        N != 0: use multiple threads, with
+        N < 0: use as many threads as there are CPUs on local machine
     - dir_base: location of base directory to locate auxiliary data
     - calib: a dictionary for applying calibration coefficients
     - normalize: if True (default), apply normalization of the water reflectance at nadir-nadir
@@ -447,8 +447,8 @@ def polymer(level1, level2, **kwargs):
         l2.init(l1)
 
         # initialize the block iterator
-        if params.multiprocessing != 1:
-            if params.multiprocessing <= 0:
+        if params.multiprocessing != 0:
+            if params.multiprocessing < 0:
                 nproc = None  # use as many processes as there are CPUs
             else:
                 nproc = params.multiprocessing
@@ -469,7 +469,7 @@ def polymer(level1, level2, **kwargs):
         params.update(**l2.attributes())
         l2.finish(params)
 
-        if params.multiprocessing != 1:
+        if params.multiprocessing != 0:
             pool.terminate()
 
         if params.verbose:

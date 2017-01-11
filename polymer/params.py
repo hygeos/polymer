@@ -126,9 +126,9 @@ class Params(object):
         self.no2_climatology = join(self.dir_base, 'auxdata/common/no2_climatology.hdf')
         self.no2_frac200m  = join(self.dir_base, 'auxdata/common/trop_f_no2_200m.hdf')
 
-        self.multiprocessing = 1 # 1: single thread
-                                 # N > 1: use N threads
-                                 # N < 1: use as many threads as there are CPUs
+        self.multiprocessing = 0 # 0: single thread
+                                 # N != 0: multiprocessing, with:
+                                 # N < 0: use as many threads as there are CPUs
         self.verbose = True
 
         self.dbg_pt = [-1, -1]
