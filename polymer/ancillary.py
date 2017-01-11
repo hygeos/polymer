@@ -92,7 +92,8 @@ def perdelta(start, end, delta):
 
 class Ancillary_NASA(object):
     '''
-    Ancillary data provider using NASA data
+    Ancillary data provider using NASA data.
+    See https://oceancolor.gsfc.nasa.gov/cms/ancillary for details
 
     Arguments:
     * meteo: NCEP filename              (without interpolation)
@@ -105,11 +106,28 @@ class Ancillary_NASA(object):
     * offline (bool):  If offline, does not try to download
     * delta (float): number of acceptable days before and after scene date, for
                      ancillary data searching.
+    * met_patterns (list): patterns for meteorological data.  Will be checked
+                           in order.  strftime compatible placeholders will be
+                           substituted.
+    * ozone_patterns (list): patterns for meteorological data.  Will be checked
+                             in order.  strftime compatible placeholders will be
+                             substituted
     '''
     def __init__(self, meteo=None, ozone=None,
-                 directory='ANCILLARY/METEO/', offline=False, delta=0.):
+                 directory='ANCILLARY/METEO/', offline=False, delta=0.,
+                 met_patterns=['N%Y%j%H_MET_NCEPR2_6h.hdf', # reanalysis 2 (best)
+                               'N%Y%j%H_MET_NCEP_6h.hdf', # NRT
+                               'N%Y%j%H_MET_NCEP_1440x720_f12.hdf', # 12hr forecast
+                              ],
+                 ozone_patterns = ['N%Y%j00_O3_AURAOMI_24h.hdf',
+                                   'N%Y%j00_O3_TOMSOMI_24h.hdf',
+                                   'S%Y%j00%j23_TOAST.OZONE',
+                                   'S%Y%j00%j23_TOVS.OZONE',
+                                  ]):
         self.meteo = meteo
+        self.met_patterns = met_patterns
         self.ozone = ozone
+        self.ozone_patterns = ozone_patterns
         self.directory = directory
         self.offline = offline
         self.delta = timedelta(days=delta)
@@ -270,10 +288,8 @@ class Ancillary_NASA(object):
         day = datetime(date.year, date.month, date.day)
         t0 = day + timedelta(hours=6*int(date.hour/6.))
         t1 = day + timedelta(hours=6*(int(date.hour/6.)+1))
-        patterns = ['N%Y%j%H_MET_NCEP_6h.hdf',
-                    'S%Y%j%H_NCEP.MET']
-        f1 = self.try_resources(patterns, perdelta(t0, t0-self.delta, -timedelta(hours=6)))
-        f2 = self.try_resources(patterns, perdelta(t1, t1+self.delta,  timedelta(hours=6)))
+        f1 = self.try_resources(self.met_patterns, perdelta(t0, t0-self.delta, -timedelta(hours=6)))
+        f2 = self.try_resources(self.met_patterns, perdelta(t1, t1+self.delta,  timedelta(hours=6)))
 
         if None in [f1, f2]:
             raise Exception('Could not find meteo files for {}'.format(date))
@@ -284,12 +300,7 @@ class Ancillary_NASA(object):
         # find the matching date or the closest possible, before or after
 
         t0 = datetime(date.year, date.month, date.day)
-        patterns = ['N%Y%j00_O3_AURAOMI_24h.hdf',
-                    'N%Y%j00_O3_TOMSOMI_24h.hdf',
-                    'S%Y%j00%j23_TOAST.OZONE',
-                    'S%Y%j00%j23_TOVS.OZONE',
-                    ]
-        f1 = self.try_resources(patterns, rolling(t0, self.delta, timedelta(days=1)))
+        f1 = self.try_resources(self.ozone_patterns, rolling(t0, self.delta, timedelta(days=1)))
         if f1 is None:
             raise Exception('Could not find any valid ozone file for {}'.format(date))
 
