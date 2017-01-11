@@ -173,8 +173,11 @@ class InitCorr(object):
             return
 
         block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.NaN
+        nightpixel = block.sza >= 90
 
         ok = (block.bitmask & BITMASK_INVALID) == 0
+        ok &= ~nightpixel
+        raiseflag(block.bitmask, L2FLAGS['EXCEPTION'], nightpixel)
 
         #
         # ozone correction
