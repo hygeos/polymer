@@ -11,6 +11,8 @@ from os.path import join, exists, dirname, basename
 from polymer.luts import LUT, Idx
 from warnings import warn
 import sys
+import bz2
+import tempfile
 
 
 class LUT_LatLon(object):
@@ -115,8 +117,8 @@ class Ancillary_NASA(object):
     '''
     def __init__(self, meteo=None, ozone=None,
                  directory='ANCILLARY/METEO/', offline=False, delta=0.,
-                 met_patterns=['N%Y%j%H_MET_NCEPR2_6h.hdf', # reanalysis 2 (best)
-                               'N%Y%j%H_MET_NCEP_6h.hdf', # NRT
+                 met_patterns=['N%Y%j%H_MET_NCEPR2_6h.hdf.bz2', # reanalysis 2 (best)
+                               'N%Y%j%H_MET_NCEP_6h.hdf.bz2', # NRT
                                'N%Y%j%H_MET_NCEP_1440x720_f12.hdf', # 12hr forecast
                               ],
                  ozone_patterns = ['N%Y%j00_O3_AURAOMI_24h.hdf',
@@ -142,7 +144,14 @@ class Ancillary_NASA(object):
 
         returns LUT_LatLon and date
         '''
-        hdf = SD(filename)
+        if filename.endswith(".bz2"):
+            decomp_file=tempfile.NamedTemporaryFile(delete=False)
+            compdata = open(filename, 'r').read()
+            decomp_file.write( bz2.decompress(compdata) )
+            decomp_file.close()
+            hdf = SD(decomp_file.name)
+        else:
+            hdf = SD(filename)
 
         assert isinstance(filename, str)
         if param == 'wind_speed':
@@ -170,6 +179,10 @@ class Ancillary_NASA(object):
 
         D.date = datetime.strptime(hdf.attributes()['Start Time'][:13],
                                    '%Y%j%H%M%S')
+
+        hdf.end()
+        if filename.endswith(".bz2"):
+            remove(decomp_file.name)
 
         return D
 
