@@ -25,7 +25,7 @@ cdef class WaterModel:
     '''
     Base class for water reflectance models
     '''
-    cdef init(self, float[:] wav, float sza, float vza, float raa):
+    cdef int init(self, float[:] wav, float sza, float vza, float raa):
         raise Exception('WaterModel.init(...) shall be implemented')
 
     cdef float[:] calc_rho(self, float[:] x):
@@ -193,7 +193,7 @@ cdef class ParkRuddick(WaterModel):
         self.GII_PR = CLUT(np.zeros((ngb, 4)), axes=[gb, None])
 
 
-    cdef init(self, float[:] wav, float sza, float vza, float raa):
+    cdef int init(self, float[:] wav, float sza, float vza, float raa):
         '''
         initialize the model parameters for current pixel
         '''
@@ -286,16 +286,17 @@ cdef class ParkRuddick(WaterModel):
         #
         # lookup the ths, thv and phi axes
         #
-        if (sza > 85) and (sza < 90):
-            ret = self.GI_PR.lookup(2, 85.)
-        else:
-            ret = self.GI_PR.lookup(2, sza)
-        if ret != 0:
-            raise Exception('Error in GI_PR sza lookup (sza={})'.format(sza))
-        ret = self.GI_PR.lookup(3, vza)
-        if ret != 0: raise Exception('Error in GI_PR vza lookup')
-        ret = self.GI_PR.lookup(4, raa)
-        if ret != 0: raise Exception('Error in GI_PR raa lookup')
+        if self.GI_PR.lookup(2, sza) != 0:
+            # raise Exception('Error in GI_PR sza lookup (sza={})'.format(sza))
+            return 1
+        if self.GI_PR.lookup(3, vza) != 0:
+            # raise Exception('Error in GI_PR vza lookup (vza={})'.format(vza))
+            return 1
+        if self.GI_PR.lookup(4, raa) != 0:
+            # raise Exception('Error in GI_PR raa lookup (raa={})'.format(raa))
+            return 1
+
+        return 0
 
 
     cdef float[:] calc_rho(self, float[:] x):
@@ -613,7 +614,7 @@ cdef class MorelMaritorena(WaterModel):
         self.lam_join = 690.
 
 
-    cdef init(self, float[:] wav, float sza, float vza, float raa):
+    cdef int init(self, float[:] wav, float sza, float vza, float raa):
         self.Nwav = len(wav)
         cdef int i
         cdef float lam
@@ -657,6 +658,8 @@ cdef class MorelMaritorena(WaterModel):
 
             if self.simspec.lookup(0, lam) == 0:
                 self.simspec_i[i] = self.simspec.interp()
+
+        return 0
 
 
     cdef float[:] calc_rho(self, float[:] x):

@@ -102,12 +102,14 @@ cdef class F(NelderMeadMinimizer):
             raise Exception('Invalid metrics "{}"'.format(params.metrics))
 
 
-    cdef init_pixel(self, float[:] Rprime, float[:] Rprime_noglint,
+    cdef int init_pixel(self, float[:] Rprime, float[:] Rprime_noglint,
                    float[:,:] A, float[:,:] pA,
                    float[:] Tmol,
                    float[:] wav, float sza, float vza, float raa):
         '''
         set the input parameters for the current pixel
+
+        return 1 on error, 0 on success
         '''
         self.Rprime = Rprime
         self.Rprime_noglint = Rprime_noglint
@@ -116,7 +118,7 @@ cdef class F(NelderMeadMinimizer):
         self.A = A
         self.Tmol = Tmol
 
-        self.w.init(wav, sza, vza, raa)
+        return self.w.init(wav, sza, vza, raa)
 
 
     cdef float eval(self, float[:] x) except? -999:
@@ -355,6 +357,7 @@ cdef class PolymerMinimizer:
     cdef int L2_FLAG_INCONSISTENCY
     cdef int L2_FLAG_THICK_AEROSOL
     cdef int L2_FLAG_OUT_OF_BOUNDS
+    cdef int L2_FLAG_EXCEPTION
     cdef object params
     cdef int normalize
     cdef int force_initialization
@@ -383,6 +386,7 @@ cdef class PolymerMinimizer:
         self.L2_FLAG_INCONSISTENCY = L2FLAGS['INCONSISTENCY']
         self.L2_FLAG_THICK_AEROSOL = L2FLAGS['THICK_AEROSOL']
         self.L2_FLAG_OUT_OF_BOUNDS = L2FLAGS['OUT_OF_BOUNDS']
+        self.L2_FLAG_EXCEPTION = L2FLAGS['EXCEPTION']
         self.params = params
         self.normalize = params.normalize
         self.force_initialization = params.force_initialization
@@ -461,13 +465,15 @@ cdef class PolymerMinimizer:
                     Rw[i,j,:] = self.NaN
                     continue
 
-                self.f.init_pixel(
+                if self.f.init_pixel(
                         Rprime[i,j,:],
                         Rprime_noglint[i,j,:],
                         A[i,j,:,:], pA[i,j,:,:],
                         Tmol[i,j,:],
                         wav[i,j,:],
-                        sza[i,j], vza[i,j], raa[i,j])
+                        sza[i,j], vza[i,j], raa[i,j]):
+                    raiseflag(bitmask, i, j, self.L2_FLAG_EXCEPTION)
+                    continue
 
                 self.f.init(x0, self.initial_step)
 
