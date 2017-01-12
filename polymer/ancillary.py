@@ -138,20 +138,25 @@ class Ancillary_NASA(object):
         assert isdir(directory), '{} does not exist'.format(directory)
 
 
-    def read(self, param, filename):
+    def read(self, param, filename, uncompress='auto'):
         '''
         Read ancillary data from filename
 
         returns LUT_LatLon and date
         '''
-        if filename.endswith(".bz2"):
-            decomp_file=tempfile.NamedTemporaryFile(delete=False)
-            compdata = open(filename, 'rb').read()
-            decomp_file.write( bz2.decompress(compdata) )
-            decomp_file.close()
-            hdf = SD(decomp_file.name)
-        else:
-            hdf = SD(filename)
+        if uncompress == 'auto':
+            uncompress = filename.endswith(".bz2")
+        if uncompress:
+            with tempfile.NamedTemporaryFile() as decomp_file:
+                compdata = open(filename, 'rb').read()
+                decomp_file.write(bz2.decompress(compdata))
+                decomp_file.flush()
+
+                D = self.read(param, decomp_file.name, uncompress=False)
+
+                return D
+
+        hdf = SD(filename)
 
         assert isinstance(filename, str)
         if param == 'wind_speed':
@@ -181,8 +186,6 @@ class Ancillary_NASA(object):
                                    '%Y%j%H%M%S')
 
         hdf.end()
-        if filename.endswith(".bz2"):
-            remove(decomp_file.name)
 
         return D
 
