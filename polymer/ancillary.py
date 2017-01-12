@@ -146,7 +146,7 @@ class Ancillary_NASA(object):
         '''
         if filename.endswith(".bz2"):
             decomp_file=tempfile.NamedTemporaryFile(delete=False)
-            compdata = open(filename, 'r').read()
+            compdata = open(filename, 'rb').read()
             decomp_file.write( bz2.decompress(compdata) )
             decomp_file.close()
             hdf = SD(decomp_file.name)
