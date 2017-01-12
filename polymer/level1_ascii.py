@@ -10,6 +10,7 @@ from os.path import join
 from os import getcwd
 from polymer.level1_meris import BANDS_MERIS
 from polymer.common import L2FLAGS
+from polymer.utils import raiseflag
 
 # bands stored in the ASCII extractions
 BANDS_MODIS = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240]
@@ -217,7 +218,7 @@ class Level1_ASCII(object):
         block.bitmask = np.zeros(size, dtype='uint16')
         invalid = np.isnan(block.raa)
         invalid |= TOA[:,:,0] < 0
-        block.bitmask += L2FLAGS['L1_INVALID']*invalid.astype('uint16')
+        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], invalid)
 
         # ozone
         block.ozone = self.csv[self.headers['OZONE']][sl].reshape(size)

@@ -132,6 +132,7 @@ class InitCorr(object):
         '''
         returns no2_frac, no2_tropo, no2_strat at the pixels coordinates
         '''
+        ok = (block.bitmask & BITMASK_INVALID) == 0
 
         # get month
         if isinstance(block.month, np.ndarray):
@@ -150,6 +151,8 @@ class InitCorr(object):
         ilat = (4*(90 - block.latitude)).astype('int')
         ilon = (4*block.longitude).astype('int')
         ilon[ilon<0] += 4*360
+        ilat[~ok] = 0
+        ilon[~ok] = 0
 
         no2_tropo = self.no2_tropo_data[imon,ilat,ilon]*1e15
         no2_strat = (self.no2_total_data[imon,ilat,ilon]
@@ -159,6 +162,8 @@ class InitCorr(object):
         ilat = (0.5*(90 - block.latitude)).astype('int')
         ilon = (0.5*(block.longitude)).astype('int')
         ilon[ilon<0] += 180
+        ilat[~ok] = 0
+        ilon[~ok] = 0
         no2_frac = self.no2_frac200m_data[ilat,ilon]
 
         return no2_frac, no2_tropo, no2_strat

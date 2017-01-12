@@ -10,6 +10,7 @@ from datetime import datetime
 from polymer.ancillary import Ancillary_NASA
 from polymer.common import L2FLAGS
 from collections import OrderedDict
+from polymer.utils import raiseflag
 
 
 class Level1_NASA(object):
@@ -113,11 +114,18 @@ class Level1_NASA(object):
         # bitmask
         block.bitmask = np.zeros(size, dtype='uint16')
         flags = self.root.groups['geophysical_data'].variables['l2_flags'][SY, SX]
-        block.bitmask += L2FLAGS['LAND']*(flags & self.flag_meanings['LAND'] != 0).astype('uint16')
+        raiseflag(block.bitmask, L2FLAGS['LAND'],
+                  flags & self.flag_meanings['LAND'] != 0)
 
-        block.ozone = self.ozone[block.latitude, block.longitude]
-        block.wind_speed = self.wind_speed[block.latitude, block.longitude]
-        block.surf_press = self.surf_press[block.latitude, block.longitude]
+        ok = block.latitude > -90.
+        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], ~ok)
+
+        block.ozone = np.zeros_like(ok, dtype='float32')
+        block.ozone[ok] = self.ozone[block.latitude[ok], block.longitude[ok]]
+        block.wind_speed = np.zeros_like(ok, dtype='float32')
+        block.wind_speed[ok] = self.wind_speed[block.latitude[ok], block.longitude[ok]]
+        block.surf_press = np.zeros_like(ok, dtype='float32')
+        block.surf_press[ok] = self.surf_press[block.latitude[ok], block.longitude[ok]]
 
         block.jday = self.date().timetuple().tm_yday
         block.month = self.date().timetuple().tm_mon

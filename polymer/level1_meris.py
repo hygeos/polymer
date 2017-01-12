@@ -11,6 +11,7 @@ import sys
 from os.path import basename, join
 from os import getcwd
 from collections import OrderedDict
+from polymer.utils import raiseflag
 if sys.version_info[:2] >= (3, 0):
     xrange = range
 
@@ -194,10 +195,12 @@ class Level1_MERIS(object):
         block.month = self.date.timetuple().tm_mon
 
         # read bitmask
-        block.bitmask = L2FLAGS['LAND']*self.read_bitmask(size, offset,
-                'l1_flags.LAND_OCEAN').astype('uint16')
-        block.bitmask += L2FLAGS['L1_INVALID']*self.read_bitmask(size, offset,
-                '(l1_flags.INVALID) OR (l1_flags.SUSPECT) OR (l1_flags.COSMETIC)')
+        block.bitmask = np.zeros(size, dtype='uint16')
+        raiseflag(block.bitmask, L2FLAGS['LAND'],
+                  self.read_bitmask(size, offset, 'l1_flags.LAND_OCEAN') != 0)
+        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'],
+                  self.read_bitmask(size, offset,
+                                    '(l1_flags.INVALID) OR (l1_flags.SUSPECT) OR (l1_flags.COSMETIC)') != 0)
 
         return block
 
