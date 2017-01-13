@@ -138,11 +138,12 @@ class Ancillary_NASA(object):
         assert isdir(directory), '{} does not exist'.format(directory)
 
 
-    def read(self, param, filename, uncompress='auto'):
+    def read(self, param, filename,
+             uncompress='auto', orig_filename=None):
         '''
         Read ancillary data from filename
 
-        returns LUT_LatLon and date
+        returns LUT_LatLon object
         '''
         if uncompress == 'auto':
             uncompress = filename.endswith(".bz2")
@@ -152,12 +153,13 @@ class Ancillary_NASA(object):
                 decomp_file.write(bz2.decompress(compdata))
                 decomp_file.flush()
 
-                D = self.read(param, decomp_file.name, uncompress=False)
-
-                # use original filename for metadata
-                D.filename = {'meteo': filename}
+                D = self.read(param, decomp_file.name,
+                              uncompress=False, orig_filename=filename)
 
                 return D
+
+        if orig_filename is None:
+            orig_filename = filename
 
         hdf = SD(filename)
 
@@ -168,19 +170,19 @@ class Ancillary_NASA(object):
             mwind = hdf.select('m_wind').get()
             wind = np.sqrt(zwind*zwind + mwind*mwind)
             D = LUT_LatLon(wind)
-            D.filename = {'meteo': filename}
+            D.filename = {'meteo': orig_filename}
 
         elif param == 'surf_press':
             press = hdf.select('press').get()
             D = LUT_LatLon(press)
-            D.filename = {'meteo': filename}
+            D.filename = {'meteo': orig_filename}
 
         elif param == 'ozone':
             sds = hdf.select('ozone')
             assert 'Dobson units' in sds.attributes()['units']
             ozone = sds.get()
             D = LUT_LatLon(ozone)
-            D.filename = {'ozone': filename}
+            D.filename = {'ozone': orig_filename}
 
         else:
             raise Exception('Invalid parameter "{}"'.format(param))
