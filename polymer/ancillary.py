@@ -154,6 +154,9 @@ class Ancillary_NASA(object):
 
                 D = self.read(param, decomp_file.name, uncompress=False)
 
+                # use original filename for metadata
+                D.filename = {'meteo': filename}
+
                 return D
 
         hdf = SD(filename)
