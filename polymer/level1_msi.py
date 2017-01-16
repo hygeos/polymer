@@ -159,14 +159,14 @@ class Level1_MSI(object):
                ok = ~np.isnan(data)
                vaa[bandid][ok] = data[ok]
 
-        self.vza = np.zeros(self.shape+(len(self.band_names),),
-                dtype='float32')
-        self.vaa = np.zeros(self.shape+(len(self.band_names),),
-                dtype='float32')
-        for i in range(len(self.band_names)):
-            self.vza[:,:,i] = rectBivariateSpline(vza[i], self.shape)
-            self.vaa[:,:,i] = rectBivariateSpline(vaa[i], self.shape)
+        self.vza = np.zeros(self.shape, dtype='float32')
+        self.vaa = np.zeros(self.shape, dtype='float32')
 
+        # use the first band as vza and vaa
+        k = sorted(vza.keys())[0]
+        assert k in vaa
+        self.vza[:,:] = rectBivariateSpline(vza[k], self.shape)
+        self.vaa[:,:] = rectBivariateSpline(vaa[k], self.shape)
 
     def get_filename(self, band):
         '''
@@ -223,10 +223,8 @@ class Level1_MSI(object):
         block.sza = self.sza[SY, SX]
         block.saa = self.saa[SY, SX]
 
-        # for the view angles we select that of band 0
-        band_id = 0
-        block.vza = self.vza[SY, SX, band_id]
-        block.vaa = self.vaa[SY, SX, band_id]
+        block.vza = self.vza[SY, SX]
+        block.vaa = self.vaa[SY, SX]
 
         block.jday = self.date.timetuple().tm_yday
         block.month = self.date.timetuple().tm_mon
@@ -282,7 +280,7 @@ class Level1_MSI(object):
         return self
 
     def __exit__(self, *args):
-        self.cleanup()
+        pass
 
 
 def read_xml_block(item):
