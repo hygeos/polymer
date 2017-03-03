@@ -8,8 +8,7 @@ import numpy as np
 from datetime import datetime
 from polymer.common import L2FLAGS
 import sys
-from os.path import basename, join
-from os import getcwd
+from os.path import basename, join, dirname
 from collections import OrderedDict
 from polymer.utils import raiseflag
 if sys.version_info[:2] >= (3, 0):
@@ -35,7 +34,7 @@ class Level1_MERIS(object):
         self.ancillary = ancillary
 
         if dir_smile is None:
-            dir_smile = join(getcwd(), 'auxdata/meris/smile/v2/')
+            dir_smile = join(dirname(dirname(__file__)), 'auxdata/meris/smile/v2/')
 
         self.sline = sline
         self.eline = eline

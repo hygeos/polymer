@@ -3,8 +3,7 @@
 
 from __future__ import print_function, division, absolute_import
 import numpy as np
-import os
-from os.path import join
+from os.path import join, dirname
 from collections import OrderedDict
 
 # pass these parameters to polymer to obtain the quasi-same results as polymer v3.5
@@ -29,7 +28,7 @@ class Params(object):
         if 'dir_base' in kwargs:
             self.dir_base = kwargs['dir_base']
         else:
-            self.dir_base = os.getcwd()
+            self.dir_base = dirname(dirname(__file__))
         self.sensor = sensor
 
         self.dir_common = join(self.dir_base, 'auxdata/common/')

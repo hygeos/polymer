@@ -18,7 +18,7 @@ def example_meris():
     # unzip MERIS-Test-Data.zip
     polymer(Level1('MER_RR__1P_TEST.N1'),
             Level2(filename='output.hdf'),
-            multiprocessing=0,   # activate multiprocessing
+            multiprocessing=-1,   # activate multiprocessing
             )
 
     # NOTES:

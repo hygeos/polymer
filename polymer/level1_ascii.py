@@ -6,8 +6,7 @@ import numpy as np
 import pandas as pd
 from polymer.block import Block
 from datetime import datetime
-from os.path import join
-from os import getcwd
+from os.path import join, dirname
 from polymer.level1_meris import BANDS_MERIS
 from polymer.common import L2FLAGS
 from polymer.utils import raiseflag
@@ -81,7 +80,7 @@ class Level1_ASCII(object):
 
         if sensor in ['MERIS', 'MERIS_RR', 'MERIS_FR']:
             if dir_smile is None:
-                dir_smile = join(getcwd(), 'auxdata/meris/smile/v2/')
+                dir_smile = join(dirname(dirname(__file__)), 'auxdata/meris/smile/v2/')
 
             if sensor == 'MERIS_FR':
                 self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_fr.txt'), names=True)
