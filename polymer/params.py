@@ -128,6 +128,15 @@ class Params(object):
         self.multiprocessing = 0 # 0: single thread
                                  # N != 0: multiprocessing, with:
                                  # N < 0: use as many threads as there are CPUs
+
+        # BITMASK
+        # (see common.py for bitmask definition)
+        # no product (NaN) in case of...
+        self.BITMASK_INVALID = 1+2+4+32+512
+
+        # recommended pixek rejection test: (bitmask & BITMASK_REJECT) != 0
+        self.BITMASK_REJECT = 1023
+
         self.verbose = True
 
         self.dbg_pt = [-1, -1]

@@ -7,7 +7,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 from polymer.luts import read_mlut_hdf, Idx
 from polymer.utils import stdNxN, raiseflag, coeff_sun_earth_distance
-from polymer.common import BITMASK_INVALID, L2FLAGS, BITMASK_REJECT
+from polymer.common import L2FLAGS
 from pyhdf.SD import SD
 from multiprocessing import Pool
 from datetime import datetime
@@ -73,7 +73,7 @@ class InitCorr(object):
 
         coef = coeff_sun_earth_distance(block.jday)
 
-        ok = (block.bitmask & BITMASK_INVALID) == 0
+        ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
 
         if isinstance(coef, np.ndarray):
             coef = coef[ok]
@@ -89,7 +89,7 @@ class InitCorr(object):
         if self.params.calib is None:
             return
 
-        ok = (block.bitmask & BITMASK_INVALID) == 0
+        ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
         for i, b in enumerate(block.bands):
             block.Rtoa[ok,i] *= self.params.calib[b]
 
@@ -132,7 +132,7 @@ class InitCorr(object):
         '''
         returns no2_frac, no2_tropo, no2_strat at the pixels coordinates
         '''
-        ok = (block.bitmask & BITMASK_INVALID) == 0
+        ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
 
         # get month
         if isinstance(block.month, np.ndarray):
@@ -180,7 +180,7 @@ class InitCorr(object):
         block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.NaN
         nightpixel = block.sza >= 90
 
-        ok = (block.bitmask & BITMASK_INVALID) == 0
+        ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
         ok &= ~nightpixel
         raiseflag(block.bitmask, L2FLAGS['EXCEPTION'], nightpixel)
 
@@ -232,7 +232,7 @@ class InitCorr(object):
             return
 
         params = self.params
-        ok = (block.bitmask & BITMASK_INVALID) == 0
+        ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
 
         # flag out night pixels
         musmin = self.mlut.axis('dim_mu')[-1]
@@ -281,7 +281,7 @@ class InitCorr(object):
         block.Rmolgli = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
         block.Tmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
 
-        ok = (block.bitmask & BITMASK_INVALID) == 0
+        ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
 
         for i in xrange(block.nbands):
             ilut = params.bands_lut.index(block.bands[i])
@@ -334,10 +334,12 @@ class InitCorr(object):
             block.Tmol[ok,i] *= np.exp(-taumol/2. * (block.surf_press[ok]/1013. - 1.) * block.air_mass[ok])
 
     def set_attributes(self, block):
-        flag_meanings = ', '.join(['{}:{}'.format(x[0], x[1]) for x in sorted(L2FLAGS.items(), key=lambda x: x[1])])
+        flag_meanings = ', '.join(['{}:{}'.format(x[0], x[1])
+                                   for x in sorted(L2FLAGS.items(),
+                                                   key=lambda x: x[1])])
         block.attributes['bitmask'] = {
                 'description': flag_meanings,
-                'bitmask_reject': 'bitmask & {} != 0'.format(BITMASK_REJECT),
+                'bitmask_reject': 'bitmask & {} != 0'.format(self.params.BITMASK_REJECT),
                 }
         block.attributes['Rw'] = {
                 'description': 'water reflectance (dimensionless ; fully normalized)'

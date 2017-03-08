@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 from numpy.linalg import inv
-from common import BITMASK_INVALID, L2FLAGS
+from common import L2FLAGS
 from libc.math cimport nan, exp, log, abs, sqrt
 from cpython.exc cimport PyErr_CheckSignals
 
@@ -373,7 +373,7 @@ cdef class PolymerMinimizer:
         self.Nparams = len(params.initial_step)
         Ncoef = params.Ncoef   # number of atmospheric coefficients
         self.f = F(Ncoef, watermodel, params, self.Nparams)
-        self.BITMASK_INVALID = BITMASK_INVALID
+        self.BITMASK_INVALID = params.BITMASK_INVALID
         self.NaN = np.NaN
 
         self.bounds = np.array(params.bounds, dtype='float32')
@@ -605,7 +605,7 @@ cdef class PolymerMinimizer:
             return
 
         # calculate glint reflectance from wind speed
-        ok = (block.bitmask & BITMASK_INVALID) == 0
+        ok = (block.bitmask & self.BITMASK_INVALID) == 0
         block.Rgli = np.zeros_like(block.wind_speed) + np.NaN
         block.Rgli[ok] = glitter(block.wind_speed[ok],
                                  block.mus[ok], block.muv[ok],
