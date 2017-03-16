@@ -6,6 +6,7 @@ from scipy.ndimage import convolve
 from numpy import ones, sqrt, zeros_like, NaN, isnan
 from os import system
 from scipy.interpolate import RectBivariateSpline
+from scipy.ndimage import distance_transform_edt
 
 def coeff_sun_earth_distance(jday):
     jday -= 1
@@ -104,12 +105,21 @@ def rectBivariateSpline(A, shp):
     '''
     Bivariate spline interpolation of array A to shape shp.
 
+    Fill NaNs with closest values, otherwise RectBivariateSpline gives no
+    result.
     '''
     xin = np.arange(shp[0], dtype='float32') / (shp[0]-1) * A.shape[0]
     yin = np.arange(shp[1], dtype='float32') / (shp[1]-1) * A.shape[1]
 
     x = np.arange(A.shape[0], dtype='float32')
     y = np.arange(A.shape[1], dtype='float32')
+
+    invalid = isnan(A)
+    if invalid.any():
+        # fill nans
+        # see http://stackoverflow.com/questions/3662361/
+        ind = distance_transform_edt(invalid, return_distances=False, return_indices=True)
+        A = A[tuple(ind)]
 
     f = RectBivariateSpline(x, y, A)
 
