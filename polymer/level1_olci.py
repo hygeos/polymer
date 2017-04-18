@@ -256,5 +256,5 @@ class Level1_OLCI(object):
         return self
 
     def __exit__(self, *args):
-        self.cleanup()
+        pass
 
