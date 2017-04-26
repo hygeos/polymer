@@ -487,20 +487,3 @@ def run_atm_corr(level1, level2, **kwargs):
 
         return l2
 
-
-if __name__ == "__main__":
-
-    from sys import argv
-
-    if len(argv) != 3:
-        print('Usage: polymer.py <level1> <level2>')
-        print('       minimal code to run polymer on the command line')
-        print('       NOTE: to pass additional parameters, it is advised')
-        print('       to run it directly as a python function')
-        exit(1)
-
-    file_in = argv[1]
-    file_out = argv[2]
-
-    polymer(Level1(file_in), Level2(filename=file_out))
-
