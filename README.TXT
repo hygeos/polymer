@@ -45,6 +45,8 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
   glymur          MSI            https://pypi.python.org/pypi/Glymur/
 
 
+NOTE: python2 and python3 are both supported.
+
 
 1.2 AUXILIARY DATA
     -------------
@@ -99,18 +101,86 @@ Level1(<filename>, ancillary=Ancillary_NASA(
                         meteo='S201303118_NCEP.MET',
                         ozone='N201303100_O3_AURAOMI_24h.hdf'))
 
-NOTE: the class Ancillary_NASA has default options to automatically download
-the closest available dataset.
+NOTE: the class Ancillary_NASA has default options to automatically download and select
+the closest available dataset, in the folder ANCILLARY/METEO/
+This folder is initialized with the command 'make ancillary' or 'make all'.
 
 
-2.2 Output
+2.3 Input data
+    ----------
+
+This section provided information about the supported file formats and sensors.
+
+2.3.1 MERIS/Envisat
+
+    Both FF (reduced resolution) and FR (full resolution) are supported.
+
+    Example:
+    from polymer.level1_meris import Level1_MERIS
+    Level1_MERIS('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1')
+        # optional arguments: sline, eline, ancillary
+
+
+2.3.2 OLCI/Sentinel3
+
+    Both RR and FR are supported.
+    The name of the Level1 product is the name of the directory.
+
+    Example:
+    from polymer.level1_olci import Level1_OLCI
+    Level1_OLCI('S3A_OL_1_EFR____20170123T102747_20170123T103047_20170124T155459_0179_013_279_2160_LN1_O_NT_002.SEN3')
+        # optional arguments: sline, eline, ancillary
+
+
+2.3.3 MODIS/Aqua, SeaWiFS, VIIRS
+
+    MODIS, SeaWiFS and VIIRS requires Level1C files as input.
+    See next section about Level 1C files for more information.
+    Example:
+    from polymer.level1_nasa import *
+    Level1_MODIS('A2010120124000.L1C')
+    Level1_SeaWiFS('S2000116121145.L1C')
+    Level1_VIIRS('V2013339115400.L1C')
+        # optional arguments: sline, eline, scol, ecol, ancillary
+
+
+2.3.4 MSI/Sentinel-2
+
+    The name of the level1 product is the name of the granule directory.
+    Warning: MSI data processing is in development.
+
+    Example:
+    from polymer.level1_msi import Level1_MSI
+    Level1_MSI('S2A_OPER_PRD_MSIL1C_PDMC_20160504T225644_R094_V20160504T105917_20160504T105917.SAFE/GRANULE/S2A_OPER_MSI_L1C_TL_SGS__20160504T163055_A004524_T30TXR_N02.02')
+        # optional arguments: sline, eline, ancillary
+
+
+2.3.5 Ascii input
+
+    Polymer supports ascii (CSV) data input from multiple sensors through the level1 class Level1_ASCII.
+
+
+2.4 Level 1C files
+    --------------
+
+    NASA OBPG L1A and L1B don't include all necessary radiometric corrections.
+    Thus it is necessary to apply l2gen with custom options to write the TOA
+    reflectances into what we call "Level1C" product.
+
+    The command line is typically:
+    l2gen ifile=<level1a> ofile=<level1c> gain="1 1 1 1 1 1 1 1" oformat="netcdf4" l2prod="rhot_nnn polcor_nnn sena senz sola solz latitude longitude"
+
+    See tools/make_L1C.py, which is a helper script to generate level 1c products.
+
+
+2.5 Output
     ------
 
 The output files can be in format hdf4 or netcdf.
 They contain the water reflectance (dimensionless, fully-normalized for sun and
 sensor at nadir) and other self-explanatory parameters.
 
-2.3 Flagging
+2.6 Flagging
     --------
 
 The recommended flagging of output pixels is the following:
