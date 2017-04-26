@@ -6,6 +6,23 @@
                            #####################
 
 
+v4.2
+----
+
+* Fixes to Sentinel-2 processing
+* Some functions are modules renaming.
+  previous import: from polymer.polymer import polymer
+  new import: from polymer.main import run_atm_corr
+  (previous import kept for backward compatibility)
+* Improved command line interface.
+* README update
+* Various cleanup and fixes
+    - netcdf output format improvements
+    - ancillary data handling
+    - python3 compatibility
+    - add script make_L1C.py
+
+
 v4.1
 ----
 
