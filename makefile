@@ -8,7 +8,7 @@ WGET = @wget -q -c -P
 main:
 	python setup.py build_ext --inplace
 
-all: auxdata_all main
+all: auxdata_all main ancillary
 
 rebuild: clean all
 
@@ -20,6 +20,10 @@ clean:
 
 test: all
 	nosetests -v
+
+ancillary:
+	mkdir -p ANCILLARY/METEO/
+
 
 auxdata_all: auxdata_common auxdata_meris auxdata_olci auxdata_modisa auxdata_seawifs auxdata_viirs auxdata_msi
 
