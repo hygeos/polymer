@@ -6,6 +6,7 @@ import numpy as np
 from os.path import join, dirname
 from collections import OrderedDict
 from pyhdf.SD import SD
+from polymer.level1_hico import bands_hico, K_OZ_HICO, K_NO2_HICO, wav_hico
 
 # pass these parameters to polymer to obtain the quasi-same results as polymer v3.5
 # polymer(<level>, <level2>, **params_v3_5)
@@ -221,6 +222,8 @@ class Params(object):
             self.defaults_modis()
         elif sensor == 'SeaWiFS':
             self.defaults_seawifs()
+        elif sensor == 'HICO':
+            self.defaults_hico()
         elif sensor == 'GENERIC':
             self.defaults_generic()
         else:
@@ -563,6 +566,51 @@ class Params(object):
                 869 :7.872E-23,
                 1240:0.000E+00,
                 }
+
+
+    def defaults_hico(self):
+        self.bands_lut = bands_hico
+        bands_to_use = [
+                                                                        410,
+            416,  421,  427,  433,  438,  444,  450,  456,  461,  467,  473,
+            479,  484,  490,  496,  501,  507,  513,  519,  524,  530,  536,
+            542,  547,  553,  559,  564,  570,  576,  582,  587,  593,  599,
+            605,  610,  616,  622,  627,  633,  639,  645,  650,  656,  662,
+                        742,  748,  753,              771,  776,
+            ]
+        self.bands_corr = bands_to_use
+        self.bands_oc = bands_to_use
+        self.bands_rw = [                                               410,
+            416,  421,  427,  433,  438,  444,  450,  456,  461,  467,  473,
+            479,  484,  490,  496,  501,  507,  513,  519,  524,  530,  536,
+            542,  547,  553,  559,  564,  570,  576,  582,  587,  593,  599,
+            605,  610,  616,  622,  627,  633,  639,  645,  650,  656,  662,
+            668,  673,  679,  685,  690,  696,  702,  708,  713,  719,  725,
+            731,  736,  742,  748,  753,  759,  765,  771,  776,  782,  788,
+            794,  799,  805,  811,  816,  822,  828,  834,  839,  845,  851,
+            857,  862,  868,
+            ]
+
+        self.calib = {   # from Ibrahim et al, 2017,
+                         # Atmospheric correction for hyperspectral ocean color retrieval with
+                         # application to the Hyperspectral Imager for the Coastal Ocean (HICO)
+            404: 1.042, 410: 1.012, 416: 1.009, 421: 1.025, 427: 1.034, 433: 1.017, 438: 1.019, 444: 1.028,
+            450: 1.035, 456: 1.046, 461: 1.051, 467: 1.044, 473: 1.041, 479: 1.041, 484: 1.023, 490: 1.013,
+            496: 1.020, 501: 1.013, 507: 1.013, 513: 1.000, 519: 0.991, 524: 0.993, 530: 0.998, 536: 1.006,
+            542: 1.014, 547: 1.020, 553: 1.021, 559: 1.015, 564: 1.016, 570: 1.028, 576: 1.038, 582: 1.039,
+            587: 1.036, 593: 1.033, 599: 1.038, 605: 1.038, 610: 1.038, 616: 1.038, 622: 1.050, 627: 1.060,
+            633: 1.063, 639: 1.063, 645: 1.058, 650: 1.057, 656: 1.046, 662: 1.044, 668: 1.043, 673: 1.041,
+            679: 1.041, 685: 1.023, 690: 1.026, 696: 1.063, 702: 1.076, 708: 1.072, 713: 1.069, 719: 1.058,
+            725: 1.059, 731: 1.066, 736: 1.059, 742: 1.052, 748: 1.038, 753: 1.022, 759: 0.986, 765: 0.973,
+            771: 0.995, 776: 1.000, 782: 1.005, 788: 1.000, 794: 0.992, 799: 0.981,
+            # complete with ones
+            805: 1.,811: 1.,816: 1.,822: 1.,828: 1.,834: 1.,839: 1.,845: 1.,851: 1., 857: 1.,862: 1.,868: 1.,
+            }
+
+        self.K_OZ = K_OZ_HICO
+        self.K_NO2 = K_NO2_HICO
+
+        self.band_cloudmask = 862
 
 
     def bands_read(self):
