@@ -87,6 +87,7 @@ def rolling(t0, deltamax,  delta):
         i+= 1
     return L
 
+
 def perdelta(start, end, delta):
     '''
     An equivalent of range, working for dates
@@ -147,18 +148,22 @@ class Ancillary_NASA(object):
 
 
     def read(self, param, filename,
-             uncompress='auto', orig_filename=None):
+             uncompress=None, orig_filename=None):
         '''
         Read ancillary data from filename
 
         returns LUT_LatLon object
         '''
-        if uncompress == 'auto':
+        if uncompress is None:
             uncompress = filename.endswith(".bz2")
         if uncompress:
             with tempfile.NamedTemporaryFile() as decomp_file:
                 compdata = open(filename, 'rb').read()
-                decomp_file.write(bz2.decompress(compdata))
+                try:
+                    decompdata = bz2.decompress(compdata)
+                except OSError:
+                    raise Exception('Error decompressing {}'.format(filename))
+                decomp_file.write(decompdata)
                 decomp_file.flush()
 
                 D = self.read(param, decomp_file.name,
@@ -208,9 +213,9 @@ class Ancillary_NASA(object):
         Retrieve ancillary parameter at given date
 
         param:
-            'wind_speed': surface wind speed in m/s
-            'surf_press': sea-level pressure in HPa
-            'ozone': ozone total column in Dobson Units
+            * 'wind_speed': surface wind speed in m/s
+            * 'surf_press': sea-level pressure in HPa
+            * 'ozone': ozone total column in Dobson Units
         '''
         if param in ['wind_speed', 'surf_press']:
             if self.meteo is None:
@@ -218,16 +223,22 @@ class Ancillary_NASA(object):
             else:
                 res = self.meteo
 
-        if param in ['ozone']:
+        elif param in ['ozone']:
             if self.ozone is None:
                 res = self.find_ozone(date)
             else:
                 res = self.ozone
 
+        else:
+            raise Exception('Invalid parameter "{}"'.format(param))
+
         if isinstance(res, tuple):
             # interpolation
             D1 = self.read(param, res[0])
             D2 = self.read(param, res[1])
+
+            if D1.date == D2.date:
+                return D1
 
             x = (date - D1.date).total_seconds()/(D2.date - D1.date).total_seconds()
 
@@ -249,7 +260,7 @@ class Ancillary_NASA(object):
                     return D2
         else:
             # res is a single file name (string)
-            # disactivate interpolation
+            # deactivate interpolation
             return self.read(param, res)
 
 
@@ -307,8 +318,6 @@ class Ancillary_NASA(object):
                         return target
                     else:
                         print('failure ({})'.format(ret))
-        else:
-            print('Offline ancillary data requested but not available in {}'.format(self.directory))
 
         return None
 
