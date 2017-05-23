@@ -15,6 +15,19 @@ import bz2
 import tempfile
 
 
+default_met_patterns = ['N%Y%j%H_MET_NCEPR2_6h.hdf.bz2', # reanalysis 2 (best)
+                        'N%Y%j%H_MET_NCEP_6h.hdf.bz2', # NRT
+                        'N%Y%j%H_MET_NCEP_6h.hdf', # NRT
+                        'N%Y%j%H_MET_NCEP_1440x720_f12.hdf', # 12hr forecast
+                         ]
+
+default_oz_patterns = ['N%Y%j00_O3_AURAOMI_24h.hdf',
+                       'N%Y%j00_O3_TOMSOMI_24h.hdf',
+                       'S%Y%j00%j23_TOAST.OZONE',
+                       'S%Y%j00%j23_TOVS.OZONE',
+                       ]
+
+
 class LUT_LatLon(object):
     '''
     wrapper around a 2D LUT Lat/Lon
@@ -98,6 +111,7 @@ class Ancillary_NASA(object):
     See https://oceancolor.gsfc.nasa.gov/cms/ancillary for details
 
     Arguments:
+        
     * meteo: NCEP filename              (without interpolation)
              or tuple (meteo1, meteo1)  (with interpolation)
              if None, search for the two closest and activate interpolation
@@ -109,27 +123,21 @@ class Ancillary_NASA(object):
     * delta (float): number of acceptable days before and after scene date, for
                      ancillary data searching.
     * met_patterns (list): patterns for meteorological data.  Will be checked
-                           in order.  strftime compatible placeholders will be
+                           in order. strftime compatible placeholders will be
                            substituted.
+                           if None (default), use default patterns
     * ozone_patterns (list): patterns for meteorological data.  Will be checked
-                             in order.  strftime compatible placeholders will be
+                             in order. strftime compatible placeholders will be
                              substituted
+                           if None (default), use default patterns
     '''
     def __init__(self, meteo=None, ozone=None,
                  directory='ANCILLARY/METEO/', offline=False, delta=0.,
-                 met_patterns=['N%Y%j%H_MET_NCEPR2_6h.hdf.bz2', # reanalysis 2 (best)
-                               'N%Y%j%H_MET_NCEP_6h.hdf.bz2', # NRT
-                               'N%Y%j%H_MET_NCEP_1440x720_f12.hdf', # 12hr forecast
-                              ],
-                 ozone_patterns = ['N%Y%j00_O3_AURAOMI_24h.hdf',
-                                   'N%Y%j00_O3_TOMSOMI_24h.hdf',
-                                   'S%Y%j00%j23_TOAST.OZONE',
-                                   'S%Y%j00%j23_TOVS.OZONE',
-                                  ]):
+                 met_patterns=None, ozone_patterns=None):
         self.meteo = meteo
-        self.met_patterns = met_patterns
+        self.met_patterns = default_met_patterns if (met_patterns is None) else met_patterns
         self.ozone = ozone
-        self.ozone_patterns = ozone_patterns
+        self.ozone_patterns = default_oz_patterns if (ozone_patterns is None) else ozone_patterns
         self.directory = directory
         self.offline = offline
         self.delta = timedelta(days=delta)
@@ -278,16 +286,16 @@ class Ancillary_NASA(object):
         '''
 
         # first, try local files
-        for pattern in patterns:
-            for date in dates:
+        for date in dates:
+            for pattern in patterns:
                 target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
                 if exists(target):
                     return target
 
         # then try to download if requested
         if not self.offline:  # If offline flag set, don't download
-            for pattern in patterns:
-                for date in dates:
+            for date in dates:
+                for pattern in patterns:
                     url = date.strftime(self.url+pattern)
                     target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
 
@@ -299,7 +307,7 @@ class Ancillary_NASA(object):
                         return target
                     else:
                         print('failure ({})'.format(ret))
-        elif self.offline:
+        else:
             print('Offline ancillary data requested but not available in {}'.format(self.directory))
 
         return None
@@ -312,6 +320,9 @@ class Ancillary_NASA(object):
         f1 = self.try_resources(self.met_patterns, perdelta(t0, t0-self.delta, -timedelta(hours=6)))
         f2 = self.try_resources(self.met_patterns, perdelta(t1, t1+self.delta,  timedelta(hours=6)))
 
+        # if file after acquisition is not present, use only file before the acquisition
+        if (f2 is None) and (f1 is not None):
+            f2 = f1
         if None in [f1, f2]:
             raise Exception('Could not find meteo files for {}'.format(date))
 
