@@ -72,10 +72,12 @@ NOTE: the command 'make all' will download the auxiliary files and proceed to th
     ------------------------
 
 There is a minimalistic command line interface polymer_cli.py
-See ./polymer_cli.py -h for more help
+./polymer_cli.py <level1> <level2>
 
 Where <level1> is a level1 file or directory for any of the supported sensors,
 and <level2> is the result to be generated.
+
+See ./polymer_cli.py -h for more help
 
 
 More options are available by running polymer directly from your own python script.
