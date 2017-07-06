@@ -53,8 +53,10 @@ class InitCorr(object):
                             bbopt=self.params.bbopt,
                             min_abs=self.params.min_abs,
                             absorption=self.params.absorption)
-        elif self.params.water_model == 'MM01':
-            watermodel = MorelMaritorena()
+        elif self.params.water_model.startswith('MM01'):
+            directional = {'MM01': False,
+                           'MM01_FOQ': True}[self.params.water_model]
+            watermodel = MorelMaritorena(self.params.dir_common, directional=directional)
         else:
             raise Exception('Invalid water model "{}"'.format(self.params.water_model))
 

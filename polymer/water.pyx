@@ -4,9 +4,16 @@ cimport numpy as np
 from os.path import join
 
 from clut cimport CLUT
-from libc.math cimport exp, M_PI, isnan, log
+from libc.math cimport exp, M_PI, isnan, log, sin, asin, log10, cos
 from warnings import warn
 
+
+cdef extern from "fresnel.c":
+    void fresnel_sol(float wave[],np.int32_t nwave,float solz,float ws,float brdf[],int return_tf)
+
+
+# water refractive index
+cdef float nw = 1.33
 
 cdef float bbp_huot08(float chl, float lam):
     '''
@@ -25,8 +32,8 @@ cdef class WaterModel:
     '''
     Base class for water reflectance models
     '''
-    cdef int init(self, float[:] wav, float sza, float vza, float raa):
-        raise Exception('WaterModel.init(...) shall be implemented')
+    cdef int init_pixel(self, float[:] wav, float sza, float vza, float raa, float ws) except -1:
+        raise Exception('WaterModel.init_pixel(...) shall be implemented')
 
     cdef float[:] calc_rho(self, float[:] x):
         raise Exception('WaterModel.calc_rho(...) shall be implemented')
@@ -193,7 +200,7 @@ cdef class ParkRuddick(WaterModel):
         self.GII_PR = CLUT(np.zeros((ngb, 4)), axes=[gb, None])
 
 
-    cdef int init(self, float[:] wav, float sza, float vza, float raa):
+    cdef int init_pixel(self, float[:] wav, float sza, float vza, float raa, float ws) except -1:
         '''
         initialize the model parameters for current pixel
         '''
@@ -447,7 +454,7 @@ cdef class ParkRuddick(WaterModel):
                 self.index[1] = 0
                 if isnan(self.GII_PR.get(self.index)):
                     self.GI_PR.index(0, igb)
-                    # NOTE: axes ths, thv and phi have already been lookedup on init()
+                    # NOTE: axes ths, thv and phi have already been lookedup on init_pixel()
                     for j in range(4):
                         self.GI_PR.index(1, j)
                         self.index[1] = j
@@ -489,7 +496,7 @@ cdef class ParkRuddick(WaterModel):
 
         return self.Rw
 
-    def calc(self, w, logchl, logfb=0., logfa=0., sza=0., vza=0., raa=0.):
+    def calc(self, w, logchl, logfb=0., logfa=0., sza=0., vza=0., raa=0., ws=5.):
         '''
         water reflectance calculation (python interface)
         w: wavelength (nm) [float, list or array]
@@ -505,7 +512,7 @@ cdef class ParkRuddick(WaterModel):
             self.out_type = lambda x: x[0]
             wav = np.array([w], dtype='float32')
 
-        self.init(wav.astype('float32'), float(sza), float(vza), float(raa))
+        self.init_pixel(wav.astype('float32'), float(sza), float(vza), float(raa), float(ws))
         params = np.zeros(3, dtype='float32')
         params[0] = logchl
         params[1] = logfb
@@ -533,9 +540,135 @@ cdef class ParkRuddick(WaterModel):
                 }
 
 
+cdef class BRDF:
+
+    cdef int n_wav
+    cdef CLUT foqtab, foqtab_chl
+    cdef int[:] x  # for indexing
+    cdef float[::1] Tfresnel
+
+    def __init__(self, file_morel_foq):
+        #
+        # Read f/Q table
+        #
+        bands = [412.5,442.5,490.0,510.0,560.0,620.0,660.0]
+        sza = [0.,15.,30.,45.,60.,75.]
+        chl = [log10(x) for x in [0.03,0.1,0.3,1.0,3.0,10.0]]
+        vza = [1.078,3.411,6.289,9.278,12.300,15.330,18.370,21.410,24.450,
+               27.500,30.540,33.590,36.640,39.690,42.730,45.780,48.830]
+        raa = [0.,15.,30.,45.,60.,75.,90.,105.,120.,135.,150.,165.,180.]
+        shp = (len(bands), len(sza), len(chl), len(vza), len(raa))
+
+        # read f/Q data
+        foq = np.genfromtxt(file_morel_foq).reshape(shp)
+
+        self.foqtab = CLUT(foq,
+                           axes=[bands, sza, chl, vza, raa])
+        self.n_wav = -1
+        self.x = np.zeros(2, dtype='int32')
+
+    cdef int init_pixel(self, float[:] lam,
+                  float ths, float thv, float phi, float ws) except -1:
+        '''
+        Pixel initialization for wavelengths lam, angles
+        ths, thv, phi and wind speed ws
+        '''
+        cdef int ichl, iband
+        cdef float wav
+        cdef int n_chl = self.foqtab.shape[2]
+
+        if self.n_wav < 0:
+            # init wavelength dependent arrays (once)
+
+            self.n_wav = len(lam)
+            n_chl = self.foqtab.shape[2]
+            self.foqtab_chl = CLUT(np.zeros((self.n_wav, n_chl)) - 999.,
+                                   axes = [list(lam),
+                                           [log10(x) for x in [0.03,0.1,0.3,1.0,3.0,10.0]]],
+                                   )
+
+            # init also the Fresnel transmission
+            self.Tfresnel = np.zeros(self.n_wav, dtype='float32') - 999.
+
+        # calculate the angles below the surface
+        thv_ = 180./M_PI * asin(sin(thv*M_PI/180.)/nw);
+        ths_ = 180./M_PI * asin(sin(ths*M_PI/180.)/nw);
+
+        # bracket ths (dim #1)
+        ret = self.foqtab.lookup(1, ths)
+        if (ret != 0) and ((ths < 0) or (ths > 90)):
+            raise Exception('Error in ths bracketing ({})'.format(ths))
+
+        # bracket thv (dim #3)
+        ret = self.foqtab.lookup(3, thv_)
+        if ret != 0 and ((thv_ < 0) or (thv_ > 90)):
+            raise Exception('Error in thv_ bracketing ({})'.format(thv_))
+
+        # bracket phi (dim #4)
+        # NOTE: phi in the BRDF table is defined as (phi_v - phi_s)
+        if self.foqtab.lookup(4, 180. - phi) != 0:
+            raise Exception('Error in phi bracketing ({})'.format(180-phi))
+
+        # interpolate foqtab -> foqtab_chl
+        for iband, wav in enumerate(lam):
+
+            # bracket wavelength (dim #0)
+            self.foqtab.lookup(0, wav)  # ignore interpolation errors
+
+            self.x[0] = iband
+
+            for ichl in range(n_chl):
+                # no interpolation along the chl dimensions (dim #2)
+                self.foqtab.index(2, ichl)
+
+                self.x[1] = ichl
+
+                self.foqtab_chl.set(self.foqtab.interp(), self.x)
+
+        # calculate Fresnel transmission for current pixel
+        self.calc_Tfresnel(ths, ths_, thv, thv_, ws, lam)
+
+
+    cdef float foq(self, int iband, float logchl) except -999.:
+        '''
+        calculate the f/Q factor for band iband and given chl
+        '''
+
+        self.foqtab_chl.index(0, iband)
+        self.foqtab_chl.lookup(1, logchl)  # ignore backeting errors
+
+        return self.foqtab_chl.interp()
+
+    cdef calc_Tfresnel(self,
+                       float ths, float ths_,
+                       float thv, float thv_,
+                       float ws, float[:] lam):  # ::1 ensures contiguous in memory
+        cdef int i
+
+        mus = cos(ths*M_PI/180.);
+        mus_ = cos(ths_*M_PI/180.);
+        muv = cos(thv*M_PI/180.);
+        muv_ = cos(thv_*M_PI/180.);
+
+        # water-air interface
+        rs_wa = (nw*muv_ - muv)/(nw*muv_ + muv);
+        rt_wa = (nw*muv - muv_)/(nw*muv + muv_);
+        T_fresnel_wa = 1. - 0.5*(rs_wa*rs_wa  +  rt_wa*rt_wa);
+
+        # air-water interface
+        # effects of the air-sea transmittance for solar path
+        # Wang 2006, from SeaDAS source code
+        cdef float[::1] lam_ = lam.copy()
+        fresnel_sol(&lam[0], len(lam), ths, ws,
+                    &self.Tfresnel[0], 1)
+
+        for i in range(len(lam)):
+            self.Tfresnel[i] *= T_fresnel_wa/(nw*nw)
+
+
 cdef class MorelMaritorena(WaterModel):
 
-    cdef float[:] wav  # wavelength (nm)
+    cdef float[:] wav  # wavelength (nm) including the extra 700nm
     cdef int Nwav
     cdef CLUT Kw_tab, bw_tab, Chi_tab, e_tab, simspec
     cdef float[:] Kw_i
@@ -547,14 +680,16 @@ cdef class MorelMaritorena(WaterModel):
     cdef float lam_join
     cdef initialized
     cdef object out_type
+    cdef int directional
+    cdef BRDF brdf
 
     cdef int debug
     cdef float[:] bw, atot, bbtot
 
-    def __init__(self, debug=False):
+    def __init__(self, dir_common, directional=True, debug=False):
 
-        warn('f/Q is not implemented')
         self.debug = debug
+        self.directional = directional
 
         self.Kw_tab = CLUT(np.array([
                     0.02710, 0.02380, 0.02160, 0.01880, 0.01770, 0.01595, 0.01510, 0.01376, 0.01271, 0.01208,
@@ -593,7 +728,7 @@ cdef class MorelMaritorena(WaterModel):
                     0.0121, 0.0113, 0.0107, 0.0099, 0.0095, 0.0089, 0.0085, 0.0081, 0.0077, 0.0072,
                     0.0069, 0.0065, 0.0062, 0.0059, 0.0056, 0.0054, 0.0051, 0.0049, 0.0047, 0.0044,
                     0.0043, 0.0040, 0.0039, 0.0037, 0.0035, 0.0034, 0.0033, 0.0031, 0.0030, 0.0029,
-                    0.0027] + map(lambda x: 0.0027*((x/500.)**-4.), np.arange(505, 701, 5.)),
+                    0.0027] + [0.0027*((x/500.)**-4.) for x in np.arange(505, 701, 5.)],
                     dtype='float32'),
                     axes=[np.arange(350, 701, 5.)]
                 )
@@ -611,10 +746,14 @@ cdef class MorelMaritorena(WaterModel):
                 axes=[np.arange(650, 901, 2.5)])
 
         self.initialized = 0
-        self.lam_join = 690.
+        self.lam_join = 700.
+
+        if directional:
+            file_morel_foq = join(dir_common, 'morel_fq.dat')
+            self.brdf = BRDF(file_morel_foq)
 
 
-    cdef int init(self, float[:] wav, float sza, float vza, float raa):
+    cdef int init_pixel(self, float[:] wav, float sza, float vza, float raa, float ws) except -1:
         self.Nwav = len(wav)
         cdef int i
         cdef float lam
@@ -659,6 +798,9 @@ cdef class MorelMaritorena(WaterModel):
             if self.simspec.lookup(0, lam) == 0:
                 self.simspec_i[i] = self.simspec.interp()
 
+        if self.directional:
+            self.brdf.init_pixel(self.wav, sza, vza, raa, ws)
+
         return 0
 
 
@@ -679,7 +821,7 @@ cdef class MorelMaritorena(WaterModel):
 
         return self.Rw
 
-    cdef float calc_rho_vis(self, int i, float[:] x):
+    cdef float calc_rho_vis(self, int i, float[:] x) except -999.:
         '''
         reflectance calculation for visible bands
         return -1 if invalid wavelength
@@ -743,20 +885,21 @@ cdef class MorelMaritorena(WaterModel):
 
             u = 0.90 * 1/(1 + 2.25*R) * (1 - R)
 
-        # TODO:
-        # interpolate f/Q coefficients
-
         if self.debug:
             self.bw[i] = bw
             self.bbtot[i] = bb
             self.atot[i] = a + a_ys + a_nap
 
-        return R * 0.544
+        if self.directional:
+            return R/0.33 * self.brdf.foq(i, logchl) * M_PI * self.brdf.Tfresnel[i]
+
+        else:
+            return R * 0.544
 
     cdef float calc_rho_nir(self, int i, float rw_join):
         return self.simspec_i[i]*rw_join/self.simspec_i[self.Nwav]
 
-    def calc(self, w, logchl, bbs=0., sza=0., vza=0., raa=0.):
+    def calc(self, w, logchl, bbs=0., sza=0., vza=0., raa=0., ws=5.):
         '''
         water reflectance calculation (python interface)
         w: wavelength (nm) [float, list or array]
@@ -772,7 +915,7 @@ cdef class MorelMaritorena(WaterModel):
             self.out_type = lambda x: x[0]
             wav = np.array([w], dtype='float32')
 
-        self.init(wav, float(sza), float(vza), float(raa))
+        self.init_pixel(wav, float(sza), float(vza), float(raa), float(ws))
         params = np.zeros(2, dtype='float32')
         params[0] = logchl
         params[1] = bbs
@@ -794,6 +937,6 @@ cdef class MorelMaritorena(WaterModel):
 
 def test():
     pr = ParkRuddick('auxdata/common/')
-    pr.init(np.linspace(401, 800, 100, dtype='float32'), 0, 0, 0)
+    pr.init_pixel(np.linspace(401, 800, 100, dtype='float32'), 0, 0, 0, 5.)
     a = pr.calc_rho(np.array([0., 0.], dtype='float32'))
     # print np.array(a)

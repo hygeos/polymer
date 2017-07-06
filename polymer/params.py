@@ -86,6 +86,10 @@ class Params(object):
 
         self.Rprime_consistency = True
 
+        # water model
+        # PR05: based on Park and Ruddick, 2005
+        # MM01: based on Morel and Maritorena, 2001
+        # MM01_FOQ: MM01 including directional reflectances using f/Q tables
         if 'water_model' in kwargs:
             self.water_model = kwargs['water_model']
         else:
@@ -110,7 +114,7 @@ class Params(object):
                                        # 2: include NAP absorption (Babin2003)
             self.absorption = 'bricaud98_aphy'
 
-        elif self.water_model == 'MM01':
+        elif self.water_model.startswith('MM01'):
             self.initial_point_1 = [-1, 0]
             self.initial_point_2 = [-1, 0]
             self.initial_step = [0.05, 0.0005]

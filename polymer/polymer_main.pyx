@@ -105,7 +105,7 @@ cdef class F(NelderMeadMinimizer):
     cdef int init_pixel(self, float[:] Rprime, float[:] Rprime_noglint,
                    float[:,:] A, float[:,:] pA,
                    float[:] Tmol,
-                   float[:] wav, float sza, float vza, float raa):
+                   float[:] wav, float sza, float vza, float raa, float ws) except -1:
         '''
         set the input parameters for the current pixel
 
@@ -118,7 +118,7 @@ cdef class F(NelderMeadMinimizer):
         self.A = A
         self.Tmol = Tmol
 
-        return self.w.init(wav, sza, vza, raa)
+        return self.w.init_pixel(wav, sza, vza, raa, ws)
 
 
     cdef float eval(self, float[:] x) except? -999:
@@ -400,10 +400,10 @@ cdef class PolymerMinimizer:
                 params.bands_oc).astype('int32')
         self.N_bands_read = len(params.bands_read())
 
-    cdef loop(self, block,
+    cdef int loop(self, block,
               float[:,:,:,:] A,
               float[:,:,:,:] pA
-              ):
+              ) except -1:
         '''
         cython method which does the main pixel loop
         (over a block)
@@ -471,7 +471,8 @@ cdef class PolymerMinimizer:
                         A[i,j,:,:], pA[i,j,:,:],
                         Tmol[i,j,:],
                         wav[i,j,:],
-                        sza[i,j], vza[i,j], raa[i,j]):
+                        sza[i,j], vza[i,j], raa[i,j],
+                        block.wind_speed[i,j]):
                     raiseflag(bitmask, i, j, self.L2_FLAG_EXCEPTION)
                     continue
 
@@ -559,7 +560,8 @@ cdef class PolymerMinimizer:
                             A[i,j,:,:], pA[i,j,:,:],
                             Tmol[i,j,:],
                             wav[i,j,:],
-                            0., 0., 0.)
+                            0., 0., 0.,
+                            block.wind_speed[i,j])
                     self.f.w.calc_rho(self.f.xmin)
 
                     for ib in range(self.N_bands_read):
