@@ -1,4 +1,5 @@
 from distutils.core import setup
+import numpy
 from Cython.Build import cythonize
 
 
@@ -31,5 +32,6 @@ setup(
     name = NAME,
     description = DESC,
     ext_modules = EXTENSIONS,
+    include_dirs = [numpy.get_include()],
     )
 
