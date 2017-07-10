@@ -204,7 +204,7 @@ cdef class CLUT:
             # verifications
             if jj<0:
                 raise Exception('Consistency error in lookup, jj={}'.format(jj))
-            if not ((self.axes[i,jj] - v) * (self.axes[i,jj+1] - v) < 0):
+            if not ((self.axes[i,jj] - v) * (self.axes[i,jj+1] - v) <= 0):
                 raise Exception('Could not verify {} between {} and {}'.format(
                     v, self.axes[i,jj], self.axes[i,jj+1]))
 
