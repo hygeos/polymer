@@ -7,7 +7,7 @@ NAME = "Polymer"
 DESC = "Polymer atmospheric correction algorithm (http://dx.doi.org/10.1364/OE.19.009783)"
 SRC_DIR = 'polymer'
 DEBUG=False
-ANNOTATE=False
+ANNOTATE=True
 
 
 if DEBUG:
@@ -24,9 +24,10 @@ else:
             }
 
 EXTENSIONS = cythonize([SRC_DIR + '/*.pyx'],
-            compiler_directives=compiler_directives,
-            annotate=ANNOTATE,
-            )
+                       build_dir='build',
+                       compiler_directives=compiler_directives,
+                       annotate=ANNOTATE,
+                       )
 
 setup(
     name = NAME,

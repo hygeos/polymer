@@ -13,10 +13,7 @@ all: auxdata_all main ancillary
 rebuild: clean all
 
 clean:
-	rm -fv polymer/*.html
-	rm -fv polymer/*.pyc
-	rm -fv polymer/*.c
-	rm -fv polymer/*.so
+	rm -rfv build
 
 test: all
 	nosetests -v
