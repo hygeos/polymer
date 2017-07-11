@@ -14,6 +14,7 @@ rebuild: clean all
 
 clean:
 	rm -rfv build
+	rm -fv polymer/*.so
 
 test: all
 	nosetests -v
