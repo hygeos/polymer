@@ -16,6 +16,39 @@ params_v3_5 = {
     'absorption': 'bricaud95_aphy',
     }
 
+
+# these parameters will quasi-reproduce the VIIRS v3.5 with MM01 model
+params_v3_5_VIIRS_MM01 = {
+        'reinit_rw_neg': True,
+        'constraint_bbs': [1e-3, 0.2258, 0.9233],
+        'metrics': 'polymer_3_5',
+        'Rprime_consistency': False,
+        'absorption': 'bricaud95_aphy',
+        'bands_corr' : [410,443,486,551,671,745,862],
+        'bands_oc'   : [410,443,486,551,671,745,862],
+        'water_model' : 'MM01_FOQ',
+        'atm_model' : 'T0,-1,-4',
+        'calib' : {  # vicarious calibration R2014.0
+            410: 0.9631, 443: 1.0043,
+            486: 1.0085, 551: 0.9765,
+            671: 1.0204, 745: 1.0434,
+            862: 1.0   , 1238:1.0   ,
+            },
+    }
+
+# OLCI parameters consistent with params_v3_5_VIIRS_MM01
+params_v3_5_OLCI_MM01 = {
+        'reinit_rw_neg': True,
+        'constraint_bbs': [1e-3, 0.2258, 0.9233],
+        'metrics': 'polymer_3_5',
+        'Rprime_consistency': False,
+        'absorption': 'bricaud95_aphy',
+        'water_model' : 'MM01_FOQ',
+        'atm_model' : 'T0,-1,-4',
+        }
+
+
+
 class Params(object):
     '''
     A class to store the processing parameters
