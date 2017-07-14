@@ -190,8 +190,9 @@ class InitCorr(object):
         # ozone correction
         #
         # make sure that ozone is in DU
-        if (block.ozone[ok] < 50).any() or (block.ozone[ok] > 1000).any():
-            warn('ozone is assumed in DU')
+        ozone_warn = (block.ozone[ok] < 50) | (block.ozone[ok] > 1000)
+        if ozone_warn.any():
+            warn('ozone is assumed in DU ({})'.format(block.ozone[ok][ozone_warn]))
 
         # bands loop
         for i, b in enumerate(block.bands):
@@ -360,6 +361,14 @@ def process_block(args):
 
     if opt is None:
         opt = c.init_minimizer()
+
+    # filter pixels such that ths > 88° as EXCEPTION
+    raiseflag(block.bitmask,
+              L2FLAGS['EXCEPTION'],
+              block.sza > 88)
+    raiseflag(block.bitmask,
+              L2FLAGS['EXCEPTION'],
+              np.isnan(block.ozone))
 
     c.convert_reflectance(block)
 

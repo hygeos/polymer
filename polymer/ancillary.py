@@ -193,8 +193,9 @@ class Ancillary_NASA(object):
         elif param == 'ozone':
             sds = hdf.select('ozone')
             assert 'Dobson units' in sds.attributes()['units']
-            ozone = sds.get()
+            ozone = sds.get().astype('float')
             D = LUT_LatLon(ozone)
+            D.data.data[D.data.data == 0] = np.NaN
             D.filename = {'ozone': orig_filename}
 
         else:
