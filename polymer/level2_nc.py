@@ -71,6 +71,18 @@ class Level2_NETCDF(Level2_file):
         '''
         write data into sds name with slice S
         '''
+        if data.ndim == 3:
+            for i, b in enumerate(self.bands):
+                sdsname = '{}{}'.format(name, b)
+                self.write_block(sdsname, data[:,:,i], S, attrs)
+            return
+
+        if not self.initialized:
+
+            self.root.createDimension('width', self.shape[1])
+            self.root.createDimension('height', self.shape[0])
+            self.initialized = True
+
         assert data.ndim == 2
         if self.format == 'NETCDF4_CLASSIC':
             # data type conversion
@@ -101,35 +113,6 @@ class Level2_NETCDF(Level2_file):
         # write block
         self.varlist[name][S[0], S[1]] = data
 
-
-    def write(self, block):
-        (yoff, xoff) = block.offset
-        (hei, wid) = block.size
-        S = (slice(yoff,yoff+hei), slice(xoff,xoff+wid))
-
-        if not self.initialized:
-
-            self.root.createDimension('width', self.shape[1])
-            self.root.createDimension('height', self.shape[0])
-            self.initialized = True
-
-        for d in self.datasets:
-
-            # don't write dataset if not in block
-            if d not in block.datasets():
-                continue
-
-            if block[d].ndim == 2:
-                self.write_block(d, block[d], S,
-                                 block.attributes.get(d, {}))
-
-            elif block[d].ndim == 3:
-                for i, b in enumerate(block.bands):
-                    sdsname = '{}{}'.format(d, b)
-                    self.write_block(sdsname, block[d][:,:,i], S,
-                                     block.attributes.get(d, {}))
-            else:
-                raise Exception('Error ndim')
 
     def finish(self, params):
         # write attributes

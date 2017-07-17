@@ -79,32 +79,56 @@ class Level2_base(object):
         if self.datasets is None:
             self.datasets = default_datasets
 
+    def write_block(self, name, data, S, attrs):
+
+        if data.ndim == 2:
+            if name not in self.__dict__:
+                self.__dict__[name] = np.zeros(self.shape, dtype=data.dtype)
+            self.__dict__[name][S] = data[:,:]
+
+        elif data.ndim == 3:
+            if name not in self.__dict__:
+                self.__dict__[name] = np.zeros((self.shape+(len(self.bands),)), dtype=data.dtype)
+            self.__dict__[name][S+(slice(None),)] = data[:,:,:]
+
+
     def write(self, block):
         assert self.shape is not None
         self.bands = block.bands
 
         (yoff, xoff) = block.offset
         (hei, wid) = block.size
+        S = (slice(yoff,yoff+hei), slice(xoff,xoff+wid))
 
-        for d in self.datasets:
-            if d not in block.datasets():
-                warn('Could not find dataset "{}"'.format(d))
-                continue
+        to_write = list(self.datasets)
+
+        for d in block.datasets():
 
             data = block[d]
 
-            if data.ndim == 2:
-                if d not in self.__dict__:
-                    self.__dict__[d] = np.zeros(self.shape, dtype=data.dtype)
-                self.__dict__[d][yoff:yoff+hei,xoff:xoff+wid] = data[:,:]
+            if not hasattr(data, 'ndim'):
+                continue
 
-            elif data.ndim == 3:
-                if d not in self.__dict__:
-                    self.__dict__[d] = np.zeros((self.shape+(len(block.bands),)), dtype=data.dtype)
-                self.__dict__[d][yoff:yoff+hei,xoff:xoff+wid,:] = data[:,:,:]
+            if (data.ndim == 2) and (d in self.datasets):
+                to_write.remove(d)
+                self.write_block(d, block[d], S,
+                                 block.attributes.get(d, {}))
 
-            else:
-                raise Exception('Error')
+            if (data.ndim == 3):
+                if d in self.datasets:
+                    to_write.remove(d)
+                    self.write_block(d, block[d], S,
+                                     block.attributes.get(d, {}))
+                else:
+                    for iband, b in enumerate(self.bands):
+                        dd = d+str(b) 
+                        if dd in self.datasets:
+                            to_write.remove(dd)
+                            self.write_block(dd, block[d][:,:,iband], S,
+                                             block.attributes.get(d, {}))
+
+        if len(to_write) != 0:
+            raise Exception('Error, could not find requested datasets: {}'.format(', '.join(to_write)))
 
     def attributes(self):
         return {}

@@ -99,6 +99,11 @@ class Level2_HDF(Level2_file):
         '''
         write data into sds name with slice S
         '''
+        if data.ndim == 3:
+            for i, b in enumerate(self.bands):
+                sdsname = '{}{}'.format(name, b)
+                self.write_block(sdsname, data[:,:,i], S, attrs)
+            return
 
         # create dataset
         if name not in self.sdslist:
@@ -114,31 +119,6 @@ class Level2_HDF(Level2_file):
         # write
         self.sdslist[name][S] = data[:,:]
 
-
-    def write(self, block):
-
-        (yoff, xoff) = block.offset
-        (hei, wid) = block.size
-        S = (slice(yoff,yoff+hei), slice(xoff,xoff+wid))
-
-        for d in self.datasets:
-
-            # don't write dataset if not in block
-            if d not in block.datasets():
-                warn('Could not find dataset "{}"'.format(d))
-                continue
-
-            if block[d].ndim == 2:
-                self.write_block(d, block[d], S,
-                                 block.attributes.get(d, {}))
-
-            elif block[d].ndim == 3:
-                for i, b in enumerate(block.bands):
-                    sdsname = '{}{}'.format(d, b)
-                    self.write_block(sdsname, block[d][:,:,i], S,
-                                     block.attributes.get(d, {}))
-            else:
-                raise Exception('Error ndim')
 
     def finish(self, params):
         if self.compress:
