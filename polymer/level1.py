@@ -5,6 +5,7 @@ from __future__ import print_function, division, absolute_import
 from os.path import basename
 
 
+
 class Level1(object):
     '''
     Level 1 initializer
@@ -57,7 +58,7 @@ class Level1(object):
             raise Exception('Unable to detect sensor for file "{}"'.format(b))
 
     def __str__(self):
-            return '<{} level1: {}>'.format(self.sensor, self.basename)
+        return '<{} level1: {}>'.format(self.sensor, self.basename)
 
     def __enter__(self):
         '''
@@ -101,6 +102,42 @@ class Level1(object):
 
 
 
+class Level1_base(object):
+    '''
+    Base class for Level1 objects
+    '''
+
+    def init_shape(self, totalheight, totalwidth,
+                   sline=0, eline=-1,
+                   scol=0, ecol=-1):
+        self.totalheight = totalheight
+        self.totalwidth = totalwidth
+
+        if sline > totalheight:
+            raise IndexError('Invalid sline {} (product height is {})'.format(sline, totalheight))
+        if scol > totalwidth:
+            raise IndexError('Invalid scol {} (product width is {})'.format(scol, totalwidth))
+
+        self.sline = sline
+        self.eline = eline
+        self.scol = scol
+        self.ecol = ecol
+
+        if eline < 0:
+            self.height = self.totalheight
+            self.height -= sline
+            self.height += eline + 1
+        else:
+            self.height = eline-sline
+
+        if ecol < 0:
+            self.width = self.totalwidth
+            self.width -= scol
+            self.width += ecol + 1
+        else:
+            self.width = ecol - scol
+
+        self.shape = (self.height, self.width)
 
 
 

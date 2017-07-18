@@ -6,6 +6,7 @@ import numpy as np
 from polymer.block import Block
 from polymer.common import L2FLAGS
 from polymer.utils import raiseflag
+from polymer.level1 import Level1_base
 from netCDF4 import Dataset
 from scipy.ndimage import map_coordinates
 from datetime import datetime
@@ -14,14 +15,17 @@ import os
 from collections import OrderedDict
 
 
-class Level1_OLCI(object):
+class Level1_OLCI(Level1_base):
     '''
     OLCI reader using the netcdf module
     '''
-    def __init__(self, dirname, sline=0, eline=-1,
+    def __init__(self, dirname,
+                 sline=0, eline=-1,
+                 scol=0, ecol=-1,
                  blocksize=100, ancillary=None):
 
         self.sensor = 'OLCI'
+        self.blocksize = blocksize
 
         if not os.path.isdir(dirname):
             dirname = os.path.dirname(dirname)
@@ -35,24 +39,16 @@ class Level1_OLCI(object):
         self.nc_datasets = {}
 
         # get product shape
-        (self.totalheight, self.totalwidth) = self.get_ncroot('Oa01_radiance.nc').variables['Oa01_radiance'].shape
-        print('height={}, width={}'.format(self.totalheight, self.totalwidth))
+        (totalheight, totalwidth) = self.get_ncroot('Oa01_radiance.nc').variables['Oa01_radiance'].shape
+        print('height={}, width={}'.format(totalheight, totalwidth))
 
-        self.width = self.totalwidth
-        self.height = self.totalheight
-
-        self.blocksize = blocksize
-        self.sline = sline
-        self.eline = eline
-
-        if eline < 0:
-            self.height = self.totalheight
-            self.height -= sline
-            self.height += eline + 1
-        else:
-            self.height = eline-sline
-
-        self.shape = (self.height, self.width)
+        self.init_shape(
+                totalheight=totalheight,
+                totalwidth=totalwidth,
+                sline=sline,
+                eline=eline,
+                scol=scol,
+                ecol=ecol)
 
         # file names
         self.band_names = {
@@ -146,16 +142,17 @@ class Level1_OLCI(object):
         root = self.get_ncroot(filename)
         var = root.variables[band_name]
 
-        data = var[yoffset+self.sline:yoffset+self.sline+ysize,
-                   xoffset:xoffset+xsize]
+        data = var[yoffset+self.sline:yoffset+self.sline+ysize, :]
 
         if tiepoint:
             shp = data.shape
             coords = np.meshgrid(np.linspace(0, shp[1]-1, self.totalwidth), np.arange(shp[0]))
-            out = np.zeros(size, dtype='float32')
+            out = np.zeros((ysize, self.totalwidth), dtype='float32')
             map_coordinates(data, (coords[1], coords[0]), output=out)
             # FIXME: don't use 3rd order for azimuth angles
             data = out
+
+        data = data[:, xoffset+self.scol:xoffset+self.scol+xsize]
 
         return data
 

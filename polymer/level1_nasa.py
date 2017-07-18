@@ -11,9 +11,10 @@ from polymer.ancillary import Ancillary_NASA
 from polymer.common import L2FLAGS
 from collections import OrderedDict
 from polymer.utils import raiseflag
+from polymer.level1 import Level1_base
 
 
-class Level1_NASA(object):
+class Level1_NASA(Level1_base):
     '''
     Interface to NASA level-1C files
     Applies to sensors:
@@ -27,32 +28,20 @@ class Level1_NASA(object):
         self.filename = filename
         self.root = Dataset(filename)
         lat = self.root.groups['navigation_data'].variables['latitude']
-        self.totalheight, self.totalwidth = lat.shape
-        self.sline = sline
-        self.scol = scol
+        totalheight, totalwidth = lat.shape
         self.blocksize = blocksize
         if ancillary is None:
             self.ancillary = Ancillary_NASA()
         else:
             self.ancillary = ancillary
 
-
-        if eline < 0:
-            self.height = self.totalheight
-            self.height -= sline
-            self.height += eline + 1
-        else:
-            self.height = eline-sline
-
-        if ecol < 0:
-            self.width = self.totalwidth
-            self.width -= scol
-            self.width += ecol + 1
-        else:
-            self.width = ecol - scol
-
-        self.shape = (self.height, self.width)
-
+        self.init_shape(
+                totalheight=totalheight,
+                totalwidth=totalwidth,
+                sline=sline,
+                eline=eline,
+                scol=scol,
+                ecol=ecol)
 
         # read flag meanings
         var = self.root.groups['geophysical_data'].variables['l2_flags']

@@ -11,6 +11,8 @@ import sys
 from os.path import basename, join, dirname
 from collections import OrderedDict
 from polymer.utils import raiseflag
+from polymer.level1 import Level1_base
+
 if sys.version_info[:2] >= (3, 0):
     xrange = range
 
@@ -19,33 +21,36 @@ BANDS_MERIS = [412, 443, 490, 510, 560,
                760, 779, 865, 885, 900]
 
 
-class Level1_MERIS(object):
+class Level1_MERIS(Level1_base):
 
-    def __init__(self, filename, sline=0, eline=-1, blocksize=100,
-                 dir_smile=None, ancillary=None):
+    def __init__(self, filename,
+                 sline=0, eline=-1,
+                 scol=0, ecol=-1,
+                 blocksize=100,
+                 dir_smile=None,
+                 ancillary=None):
 
         self.sensor = 'MERIS'
         self.filename = filename
         self.prod = epr.Product(filename)
-        self.width = self.prod.get_scene_width()
-        self.totalheight = self.prod.get_scene_height()
         self.blocksize = blocksize
+        totalwidth = self.prod.get_scene_width()
+        totalheight = self.prod.get_scene_height()
+
+        self.init_shape(
+                totalheight=totalheight,
+                totalwidth=totalwidth,
+                sline=sline,
+                eline=eline,
+                scol=scol,
+                ecol=ecol)
+
         self.full_res = basename(filename).startswith('MER_FR')
         self.ancillary = ancillary
 
         if dir_smile is None:
             dir_smile = join(dirname(dirname(__file__)), 'auxdata/meris/smile/v2/')
 
-        self.sline = sline
-        self.eline = eline
-        if eline < 0:
-            self.height = self.totalheight
-            self.height -= sline
-            self.height += eline + 1
-        else:
-            self.height = eline-sline
-
-        self.shape = (self.height, self.width)
         self.band_names = dict(map(lambda b: (b[1], 'Radiance_{:d}'.format(b[0]+1)),
                                    enumerate(BANDS_MERIS)))
 
@@ -114,7 +119,7 @@ class Level1_MERIS(object):
         (ysize, xsize) = size
         (yoffset, xoffset) = offset
         return self.prod.get_band(band_name).read_as_array(
-                    xoffset=xoffset, yoffset=yoffset+self.sline,
+                    xoffset=xoffset+self.scol, yoffset=yoffset+self.sline,
                     width=xsize, height=ysize)
 
 
@@ -123,7 +128,7 @@ class Level1_MERIS(object):
         (ysize, xsize) = size
         (yoffset, xoffset) = offset
         raster = epr.create_bitmask_raster(xsize, ysize)
-        self.prod.read_bitmask_raster(bmexpr, xoffset, yoffset+self.sline, raster)
+        self.prod.read_bitmask_raster(bmexpr, xoffset+self.scol, yoffset+self.sline, raster)
 
         return raster.data
 

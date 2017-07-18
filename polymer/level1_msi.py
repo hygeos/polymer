@@ -14,6 +14,7 @@ from polymer.utils import rectBivariateSpline
 import pyproj
 from polymer.ancillary import Ancillary_NASA
 from polymer.common import L2FLAGS
+from polymer.level1 import Level1_base
 
 '''
 List of MSI bands:
@@ -36,10 +37,11 @@ B12  SWIR 2      2190nm     20m
 '''
 
 
-class Level1_MSI(object):
+class Level1_MSI(Level1_base):
 
     def __init__(self, dirname, blocksize=200, resolution='60',
-                 sline=0, eline=-1, ancillary=None):
+                 sline=0, eline=-1, scol=0, ecol=-1,
+                 ancillary=None):
         '''
         dirname: granule dirname
 
@@ -51,8 +53,6 @@ class Level1_MSI(object):
         self.blocksize = blocksize
         self.resolution = resolution
         assert isinstance(resolution, str)
-        self.sline = sline
-        self.eline = eline
 
         if ancillary is None:
             self.ancillary = Ancillary_NASA()
@@ -81,18 +81,17 @@ class Level1_MSI(object):
         # read image size for current resolution
         for e in self.geocoding.findall('Size'):
             if e.attrib['resolution'] == resolution:
-                self.totalheight = int(e.find('NROWS').text)
-                self.width = int(e.find('NCOLS').text)
+                totalheight = int(e.find('NROWS').text)
+                totalwidth = int(e.find('NCOLS').text)
                 break
 
-        if eline < 0:
-            self.height = self.totalheight
-            self.height -= sline
-            self.height += eline + 1
-        else:
-            self.height = eline-sline
-
-        self.shape = (self.height, self.width)
+        self.init_shape(
+                totalheight=totalheight,
+                totalwidth=totalwidth,
+                sline=sline,
+                eline=eline,
+                scol=scol,
+                ecol=ecol)
 
         self.init_latlon()
         self.init_geometry()
@@ -120,8 +119,8 @@ class Level1_MSI(object):
                 XDIM = int(e.find('XDIM').text)
                 YDIM = int(e.find('YDIM').text)
 
-        X, Y = np.meshgrid(ULX + XDIM*np.arange(self.height), 
-                           ULY + YDIM*np.arange(self.width))
+        X, Y = np.meshgrid(ULX + XDIM*np.arange(self.totalheight), 
+                           ULY + YDIM*np.arange(self.totalwidth))
 
         self.lon, self.lat = (proj(X, Y, inverse=True))
 
@@ -133,8 +132,10 @@ class Level1_MSI(object):
         sza = read_xml_block(self.tileangles.find('Sun_Angles_Grid').find('Zenith').find('Values_List'))
         saa = read_xml_block(self.tileangles.find('Sun_Angles_Grid').find('Azimuth').find('Values_List'))
 
-        self.sza = rectBivariateSpline(sza, self.shape)
-        self.saa = rectBivariateSpline(saa, self.shape)
+        shp = (self.totalheight, self.totalwidth)
+
+        self.sza = rectBivariateSpline(sza, shp)
+        self.saa = rectBivariateSpline(saa, shp)
 
         # read view angles (for each band)
         vza = {}
@@ -159,14 +160,14 @@ class Level1_MSI(object):
                ok = ~np.isnan(data)
                vaa[bandid][ok] = data[ok]
 
-        self.vza = np.zeros(self.shape, dtype='float32')
-        self.vaa = np.zeros(self.shape, dtype='float32')
+        self.vza = np.zeros(shp, dtype='float32')
+        self.vaa = np.zeros(shp, dtype='float32')
 
         # use the first band as vza and vaa
         k = sorted(vza.keys())[0]
         assert k in vaa
-        self.vza[:,:] = rectBivariateSpline(vza[k], self.shape)
-        self.vaa[:,:] = rectBivariateSpline(vaa[k], self.shape)
+        self.vza[:,:] = rectBivariateSpline(vza[k], shp)
+        self.vaa[:,:] = rectBivariateSpline(vaa[k], shp)
 
     def get_filename(self, band):
         '''
@@ -185,13 +186,13 @@ class Level1_MSI(object):
 
         jp = Jp2k(self.get_filename(band))
 
-        xrat = jp.shape[0]//self.shape[0]
-        yrat = jp.shape[1]//self.shape[1]
+        xrat = jp.shape[0]//self.totalwidth
+        yrat = jp.shape[1]//self.totalheight
 
         # read the whole array that will be downsampled
         datao = jp[
            yrat*(yoffset+self.sline) : yrat*(yoffset+self.sline+ysize),
-           xrat*xoffset : xrat*(xoffset+xsize)
+           xrat*(xoffset+self.scol) : xrat*(xoffset+self.scol+xsize)
            ]
 
         data = np.zeros(size, dtype='float32')
@@ -213,7 +214,7 @@ class Level1_MSI(object):
         block = Block(offset=offset, size=size, bands=bands)
 
         SY = slice(offset[0]+self.sline, offset[0]+self.sline+ysize)
-        SX = slice(offset[1], offset[1]+xsize)
+        SX = slice(offset[1]+self.scol, offset[1]+self.scol+xsize)
 
         # read lat/lon
         block.latitude = self.lat[SY, SX]
