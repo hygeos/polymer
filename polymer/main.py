@@ -63,6 +63,32 @@ class InitCorr(object):
         return PolymerMinimizer(watermodel, self.params)
 
 
+    def preprocessing(self, block):
+
+        #
+        # filter pixels such that ths > 88° as EXCEPTION
+        #
+        raiseflag(block.bitmask,
+                  L2FLAGS['EXCEPTION'],
+                  block.sza > 88)
+        raiseflag(block.bitmask,
+                  L2FLAGS['EXCEPTION'],
+                  np.isnan(block.ozone))
+
+        #
+        # apply external mask
+        #
+        if self.params.external_mask is not None:
+            ox, oy = block.offset
+            sx, sy = block.size
+            raiseflag(block.bitmask,
+                      L2FLAGS['EXTERNAL_MASK'],
+                      self.params.external_mask[ox:ox+sx,
+                                                oy:oy+sy] != 0
+                      )
+
+
+
     def convert_reflectance(self, block):
 
         if self.params.partial >= 5:
@@ -362,13 +388,7 @@ def process_block(args):
     if opt is None:
         opt = c.init_minimizer()
 
-    # filter pixels such that ths > 88° as EXCEPTION
-    raiseflag(block.bitmask,
-              L2FLAGS['EXCEPTION'],
-              block.sza > 88)
-    raiseflag(block.bitmask,
-              L2FLAGS['EXCEPTION'],
-              np.isnan(block.ozone))
+    c.preprocessing(block)
 
     c.convert_reflectance(block)
 
@@ -464,6 +484,7 @@ def run_atm_corr(level1, level2, **kwargs):
     with level2 as l2, level1 as l1:
 
         params = Params(l1.sensor, **kwargs)
+        params.preprocess(l1)
 
         l2.init(l1)
 

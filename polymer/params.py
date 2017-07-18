@@ -5,6 +5,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 from os.path import join, dirname
 from collections import OrderedDict
+from pyhdf.SD import SD
 
 # pass these parameters to polymer to obtain the quasi-same results as polymer v3.5
 # polymer(<level>, <level2>, **params_v3_5)
@@ -94,6 +95,7 @@ class Params(object):
         self.size_end_iter = 0.005
         self.metrics = 'W_dR2_norm'
         self.glint_precorrection = True
+        self.external_mask = None
 
         self.thres_chi2 = 0.005
 
@@ -601,6 +603,28 @@ class Params(object):
         bands_read = bands_read.union(self.bands_oc)
         bands_read = bands_read.union(self.bands_rw)
         return sorted(bands_read)
+
+    def preprocess(self, l1):
+        '''
+        This method is executed after params initialization
+        '''
+        #
+        # initialize external mask
+        #
+        if self.external_mask is not None:
+            if isinstance(self.external_mask, str):
+                # read external mask
+                hdf = SD(self.external_mask)
+                self.external_mask = hdf.select('mask').get()
+            elif isinstance(self.external_mask, np.ndarray):
+                pass
+            else:
+                raise Exception('external_mask should be a hdf filename containing a mask dataset, or a numpy array, or None')
+
+            # check external mask size
+            assert (l1.height, l1.width) == self.external_mask.shape, \
+                    'Error, product shape is {} but external mask shape is {}'.format( (l1.width, l1.height), self.external_mask.shape)
+
 
     def print_info(self):
         print(self.__class__)
