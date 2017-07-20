@@ -3,6 +3,8 @@
 
 from __future__ import print_function, division, absolute_import
 from os.path import basename
+import numpy as np
+from itertools import product
 
 
 
@@ -140,5 +142,29 @@ class Level1_base(object):
         self.shape = (self.height, self.width)
 
 
+    def blocks(self, bands_read):
+
+        nblocks_h = int(np.ceil(float(self.height)/self.blocksize[0]))
+        nblocks_w = int(np.ceil(float(self.width)/self.blocksize[1]))
+
+        for (iblock_h, iblock_w) in product(range(nblocks_h), range(nblocks_w)):
+
+            # determine block size
+            if iblock_h == nblocks_h-1:
+                ysize = self.height-(nblocks_h-1)*self.blocksize[0]
+            else:
+                ysize = self.blocksize[0]
+            if iblock_w == nblocks_w-1:
+                xsize = self.width-(nblocks_w-1)*self.blocksize[1]
+            else:
+                xsize = self.blocksize[1]
+            size = (ysize, xsize)
+
+            # determine the block offset
+            yoffset = iblock_h * self.blocksize[0]
+            xoffset = iblock_w * self.blocksize[1]
+            offset = (yoffset, xoffset)
+
+            yield self.read_block(size, offset, bands_read)
 
 
