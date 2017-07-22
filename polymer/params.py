@@ -35,6 +35,7 @@ params_v3_5_VIIRS_MM01 = {
             671: 1.0204, 745: 1.0434,
             862: 1.0   , 1238:1.0   ,
             },
+        'thres_Rcloud_std': 0.02,
     }
 
 # OLCI parameters consistent with params_v3_5_VIIRS_MM01
