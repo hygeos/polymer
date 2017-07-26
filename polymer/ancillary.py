@@ -112,7 +112,7 @@ class Ancillary_NASA(object):
     See https://oceancolor.gsfc.nasa.gov/cms/ancillary for details
 
     Arguments:
-        
+
     * meteo: NCEP filename              (without interpolation)
              or tuple (meteo1, meteo1)  (with interpolation)
              if None, search for the two closest and activate interpolation
@@ -144,7 +144,7 @@ class Ancillary_NASA(object):
         self.delta = timedelta(days=delta)
         self.url = 'https://oceandata.sci.gsfc.nasa.gov/cgi/getfile/'
 
-        assert isdir(directory), '{} does not exist'.format(directory)
+        assert isdir(directory), 'Directory {} does not exist. Please create it, by default it will be automatically populated with ancillary data. Please see help for class Ancillary_NASA for more details.'.format(directory)
 
 
     def read(self, param, filename,
@@ -157,8 +157,8 @@ class Ancillary_NASA(object):
         if uncompress is None:
             uncompress = filename.endswith(".bz2")
         if uncompress:
-            with tempfile.NamedTemporaryFile() as decomp_file:
-                compdata = open(filename, 'rb').read()
+            with tempfile.NamedTemporaryFile() as decomp_file, open(filename, 'rb') as fp:
+                compdata = fp.read()
                 try:
                     decompdata = bz2.decompress(compdata)
                 except OSError:
