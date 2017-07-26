@@ -43,6 +43,7 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
   pandas          level1_ascii   https://pypi.python.org/pypi/pandas
   lxml            MSI            https://pypi.python.org/pypi/lxml
   glymur          MSI            https://pypi.python.org/pypi/Glymur/
+  pyproj          MSI            https://pypi.python.org/pypi/pyproj
 
 
 NOTE: python2 and python3 are both supported.
