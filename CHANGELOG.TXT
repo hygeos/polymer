@@ -6,8 +6,44 @@
                            #####################
 
 
+v4.4
+----
+
+Release date: 2017-07-27
+
+* Add support for Level1 MERIS and OLCI files subsetted by SNAP, in NetCDF4 format.
+  Example:
+    from polymer.level1_netcdf import Level1_NETCDF
+    run_atm_corr(
+        Level1_NETCDF('subset_0_of_MER_FRS_1PPEPA20080806_094519_000005122071_00022_33643_2741.nc'),
+        Level2(),
+        )
+* Reintroduce support for external masking.
+  The relevant keyword to pass to run_atm_corr is external_mask.
+  external_mask can be:
+    * None
+    * a string: the filename of a hdf4 file containing an integer dataset 'mask'
+    * an integer or boolean numpy array
+    In the latter two cases, the shape of the mask shall be the same as the Level1 product.
+* Allow to select columns in MERIS and OLCI products.
+  Example for OLCI:
+    run_atm_corr(
+        Level1_OLCI(
+            filename,
+            sline=1117,     scol=2871,
+            eline=1117+100, ecol=2871+100,
+            ),
+        Level2(),
+        )
+* VIIRS: small change in params.py for backward compatibility (params_v3_5_VIIRS_MM01)
+* Add requirements.txt for python dependencies installation with 'pip install -r requirements.txt'
+* Minor consistency fix in OLCI params (bands definition)
+
+
 v4.3
 ----
+
+Release date: 2017-07-17
 
 * Reintroduce bidirectional water reflectances in MM01
   Directional model is used with water_model='MM01_FOQ'
@@ -29,6 +65,8 @@ v4.3
 v4.2
 ----
 
+Release date: 2017-04-26
+
 * Fixes to Sentinel-2 processing
 * Some functions are modules renaming.
   previous import: from polymer.polymer import polymer
@@ -45,6 +83,8 @@ v4.2
 
 v4.1
 ----
+
+Release date: 2016-12-23
 
 * Updated SVC coefficients for using NCEP data instead of ERA
 * Improved netCDF4 support:
@@ -74,6 +114,8 @@ v4.1
 v4.0
 ----
 
+Release date: 2016-10-18
+
 * Updated vicarious calibration coefficients (oct 2016)
 * Implemented the "thick aerosol" flag (problem detected for CCI QA, for
   example MERIS orbit 14935)
@@ -82,6 +124,8 @@ v4.0
 
 v4.0beta5
 ---------
+
+Release date: 2016-10-06
 
 * VIIRS: don't use band 412 by default
   'Solves' problem of stability over clear waters (MOBY)
@@ -99,6 +143,8 @@ v4.0beta5
 v4.0beta4
 ---------
 
+Release date: 2016-09-16
+
 * fix a memory leak in multiprocessing mode
 * generalization of level1_ascii
 * Improved level1_msi
@@ -109,6 +155,8 @@ v4.0beta4
 
 v4.0beta3
 ---------
+
+Release date: 2016-07-29
 
 * added an inconsistency test which raises a flag (64) and reinitializes the pixel parameters.
   Some unstable results for SeaWiFS are avoided. Some dubious pixels are flagged out.
@@ -127,6 +175,8 @@ v4.0beta3
 v4.0beta2
 ---------
 
+Release date: 2016-07-25
+
 A few fixes:
 * Add a missing auxiliary file
 * Level1_ASCII: Deal with ASCII extractions of multiple sensors
@@ -135,6 +185,8 @@ A few fixes:
 
 v4.0beta1
 ---------
+
+Release date: 2016-07-22
 
 * Complete rewrite in python+cython:
     * Processing speed is similar to the C version (about 5% slower)
