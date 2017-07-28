@@ -543,7 +543,7 @@ cdef class BRDF:
     cdef int n_wav
     cdef CLUT foqtab, foqtab_chl
     cdef int[:] x  # for indexing
-    cdef float[::1] Tfresnel
+    cdef float[:] Tfresnel
 
     def __init__(self, file_morel_foq):
         #
@@ -640,7 +640,7 @@ cdef class BRDF:
     cdef calc_Tfresnel(self,
                        float ths, float ths_,
                        float thv, float thv_,
-                       float ws, float[:] lam):  # ::1 ensures contiguous in memory
+                       float ws, float[:] lam):
         cdef int i
 
         mus = cos(ths*M_PI/180.);
@@ -656,7 +656,7 @@ cdef class BRDF:
         # air-water interface
         # effects of the air-sea transmittance for solar path
         # Wang 2006, from SeaDAS source code
-        cdef float[::1] lam_ = lam.copy()
+        cdef float[:] lam_ = lam.copy()
         fresnel_sol(&lam[0], len(lam), ths, ws,
                     &self.Tfresnel[0], 1)
 
