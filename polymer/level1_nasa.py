@@ -106,6 +106,7 @@ class Level1_NASA(Level1_base):
                   flags & self.flag_meanings['LAND'] != 0)
 
         ok = block.latitude > -90.
+        ok &= block.Rtoa[:,:,0] >= 0
         raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], ~ok)
 
         block.ozone = np.zeros_like(ok, dtype='float32')
