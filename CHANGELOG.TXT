@@ -6,6 +6,17 @@
                            #####################
 
 
+v4.5
+----
+
+Release date: 2017-08-25
+
+Bug fixes:
+  * Fix improper flagging of NASA L1C
+    Was resulting in rows improperly flagged as CLOUD for VIIRS around trimmed pixels
+  * Fix for MM01 model: improper initialization could result in errors in high chl conditions
+  * Fix for compatibility with older versions of cython (0.23)
+
 v4.4
 ----
 
