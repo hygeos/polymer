@@ -814,7 +814,7 @@ cdef class MorelMaritorena(WaterModel):
 
         # wavelength loop: NIR
         for i in range(self.Nwav):
-            if self.Rw[i] < 0:
+            if isnan(self.Rw[i]):
                 self.Rw[i] = self.calc_rho_nir(i, rw_join)
 
         return self.Rw
@@ -845,7 +845,7 @@ cdef class MorelMaritorena(WaterModel):
         lam = self.wav[i]
 
         if lam > 700:
-            return -1
+            return np.NaN
 
         Kbio = Chi * (10.**(e * logchl))
 
