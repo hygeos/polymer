@@ -13,6 +13,7 @@ from numpy.testing import assert_allclose, assert_equal
 import tempfile
 import numpy as np
 
+
 class Test_MERIS(unittest.TestCase):
     filename = '/mfs/user/francois/TESTCASES/MERIS/GlintMediteranea/MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1'
 
@@ -109,8 +110,18 @@ class Test_MERIS(unittest.TestCase):
             )
 
     def test_ancillary_era(self):
-        raise NotImplementedError
+        from polymer.ancillary_era import Ancillary_ERA
 
+        run_atm_corr(
+            Level1_MERIS(
+                self.filename,
+                sline=5774,     scol=299,
+                eline=5774+100, ecol=299+150,
+                ancillary=Ancillary_ERA(),
+                ),
+            Level2('memory'),
+            multiprocessing=-1,
+            )
 
 class Test_OLCI(unittest.TestCase):
 
