@@ -46,7 +46,9 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
   pyproj          MSI            https://pypi.python.org/pypi/pyproj
 
 
-NOTE: python2 and python3 are both supported.
+NOTE: python 2.7 and python 3.5 are both supported.
+
+NOTE: The supported operating system is Linux. The code has not been tested under Windows or Mac OS X.
 
 
 1.2 AUXILIARY DATA

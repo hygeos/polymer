@@ -17,7 +17,7 @@ clean:
 	rm -fv polymer/*.so
 
 test: all
-	nosetests -v
+	nosetests test/test.py
 
 ancillary:
 	mkdir -p ANCILLARY/METEO/
