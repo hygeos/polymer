@@ -216,6 +216,8 @@ class Level1_OLCI(Level1_base):
         block.bitmask = np.zeros(size, dtype='uint16')
         raiseflag(block.bitmask, L2FLAGS['LAND'],
                   bitmask & self.quality_flags['land'] != 0)
+        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'],
+                  bitmask & self.quality_flags['invalid'] != 0)
 
         return block
 
