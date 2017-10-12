@@ -22,10 +22,12 @@ class Level1_OLCI(Level1_base):
     def __init__(self, dirname,
                  sline=0, eline=-1,
                  scol=0, ecol=-1,
-                 blocksize=100, ancillary=None):
+                 blocksize=100, ancillary=None,
+                 apply_land_mask=True):
 
         self.sensor = 'OLCI'
         self.blocksize = blocksize
+        self.apply_land_mask = apply_land_mask
 
         if not os.path.isdir(dirname):
             dirname = os.path.dirname(dirname)
@@ -214,8 +216,9 @@ class Level1_OLCI(Level1_base):
         # quality flags
         bitmask = self.read_band('quality_flags', size, offset)
         block.bitmask = np.zeros(size, dtype='uint16')
-        raiseflag(block.bitmask, L2FLAGS['LAND'],
-                  bitmask & self.quality_flags['land'] != 0)
+        if self.apply_land_mask:
+            raiseflag(block.bitmask, L2FLAGS['LAND'],
+                      bitmask & self.quality_flags['land'] != 0)
         raiseflag(block.bitmask, L2FLAGS['L1_INVALID'],
                   bitmask & self.quality_flags['invalid'] != 0)
 

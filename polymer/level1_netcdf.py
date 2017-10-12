@@ -20,11 +20,13 @@ class Level1_NETCDF(Level1_base):
     Reader for subsetted products in netcdf format
     (produced by SNAP)
     '''
-    def __init__(self, filename, blocksize=(500, 400), dir_smile=None):
+    def __init__(self, filename, blocksize=(500, 400),
+                 dir_smile=None, apply_land_mask=True):
 
         self.filename = filename
         self.root = Dataset(filename)
         self.blocksize = blocksize
+        self.apply_land_mask = apply_land_mask
 
         # detect sensor
         title = self.root.getncattr('title')
@@ -218,12 +220,14 @@ class Level1_NETCDF(Level1_base):
         # read bitmask
         block.bitmask = np.zeros(size, dtype='uint16')
         if self.sensor == 'OLCI':
-            raiseflag(block.bitmask, L2FLAGS['LAND'], self.get_bitmask('quality_flags', 'land', size, offset))
+            if self.apply_land_mask:
+                raiseflag(block.bitmask, L2FLAGS['LAND'], self.get_bitmask('quality_flags', 'land', size, offset))
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('quality_flags', 'invalid', size, offset))
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('quality_flags', 'cosmetic', size, offset))
 
         elif self.sensor == 'MERIS':
-            raiseflag(block.bitmask, L2FLAGS['LAND'], self.get_bitmask('l1_flags', 'LAND_OCEAN', size, offset))
+            if self.apply_land_mask:
+                raiseflag(block.bitmask, L2FLAGS['LAND'], self.get_bitmask('l1_flags', 'LAND_OCEAN', size, offset))
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('l1_flags', 'INVALID', size, offset))
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('l1_flags', 'SUSPECT', size, offset))
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('l1_flags', 'COSMETIC', size, offset))
