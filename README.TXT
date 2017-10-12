@@ -31,11 +31,13 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
   SOFTWARE        REQUIRED FOR   URL
   python          all            http://www.python.org/
   cython          all            http://cython.org/
+  gcc             all            https://gcc.gnu.org/
 
   PYTHON MODULES  REQUIRED FOR   URL
   numpy           all            https://pypi.python.org/pypi/numpy/
   scipy           all            https://pypi.python.org/pypi/scipy
   python-hdf4     all            https://pypi.python.org/pypi/python-hdf4
+   (or pyhdf)                    https://pypi.python.org/pypi/pyhdf
   pyepr           MERIS          https://pypi.python.org/pypi/pyepr/
   netCDF4         MODIS,SeaWiFS, https://pypi.python.org/pypi/netCDF4
                   VIIRS,OLCI,
