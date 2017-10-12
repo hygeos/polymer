@@ -55,6 +55,10 @@ class Ancillary_ERA(object):
                  pattern='%Y/era_interim_%Y%m%d.grib',
                  offline=False):
         self.directory = directory
+        if not exists(directory):
+            raise Exception('Directory {} does not exist. Please create it, by default it will be '
+                            'automatically populated with ancillary data. '
+                            'Please see help for class Ancillary_ERA for more details.'.format(directory))
         self.pattern = pattern
         self.offline = offline
 
