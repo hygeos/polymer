@@ -25,7 +25,7 @@ ancillary:
 
 auxdata_all: auxdata_common auxdata_meris auxdata_olci auxdata_modisa auxdata_seawifs auxdata_viirs auxdata_msi
 
-auxdata_common: auxdata/common/no2_climatology.hdf auxdata/common/trop_f_no2_200m.hdf auxdata/common/morel_fq.dat auxdata/common/AboveRrs_gCoef_w0.dat auxdata/common/AboveRrs_gCoef_w10.dat auxdata/common/AboveRrs_gCoef_w5.dat auxdata/common/aph_bricaud_1995.txt auxdata/common/aph_bricaud_1998.txt auxdata/common/morel_buiteveld_bsw.txt auxdata/common/palmer74.dat auxdata/common/pope97.dat auxdata/common/raman_westberry13.txt auxdata/common/astarmin_average_2015_SLSTR.txt auxdata/common/astarmin_average.txt
+auxdata_common: auxdata/common/no2_climatology.hdf auxdata/common/trop_f_no2_200m.hdf auxdata/common/morel_fq.dat auxdata/common/AboveRrs_gCoef_w0.dat auxdata/common/AboveRrs_gCoef_w10.dat auxdata/common/AboveRrs_gCoef_w5.dat auxdata/common/aph_bricaud_1995.txt auxdata/common/aph_bricaud_1998.txt auxdata/common/morel_buiteveld_bsw.txt auxdata/common/palmer74.dat auxdata/common/pope97.dat auxdata/common/raman_westberry13.txt auxdata/common/astarmin_average_2015_SLSTR.txt auxdata/common/astarmin_average.txt auxdata/common/Matsuoka11_aphy_Table1_JGR.csv
 	@mkdir -p auxdata/common/
 	@echo b88aadd272734634b756922ad5b6f439 auxdata/common/no2_climatology.hdf            |md5sum -c -
 	@echo 10350ad3441c9e76346f6429985f3c71 auxdata/common/trop_f_no2_200m.hdf            |md5sum -c -
@@ -41,6 +41,7 @@ auxdata_common: auxdata/common/no2_climatology.hdf auxdata/common/trop_f_no2_200
 	@echo 0dda3b7d9e2062abbb24f55f86ededf5 auxdata/common/raman_westberry13.txt          |md5sum -c -
 	@echo c340ec49f1ad3214a4ee84a19652b7ac auxdata/common/astarmin_average_2015_SLSTR.txt|md5sum -c -
 	@echo 56cd52dfaf2dab55b67398ac9adcbded auxdata/common/astarmin_average.txt           |md5sum -c -
+	@echo 862c49b5dd19c9b09e451891ef11ce50 auxdata/common/Matsuoka11_aphy_Table1_JGR.csv |md5sum -c -
 auxdata/common/no2_climatology.hdf:
 	$(WGET) auxdata/common/ $(URL)/common/no2_climatology.hdf
 auxdata/common/trop_f_no2_200m.hdf:
@@ -69,6 +70,8 @@ auxdata/common/astarmin_average_2015_SLSTR.txt:
 	$(WGET) auxdata/common/ $(URL)/common/astarmin_average_2015_SLSTR.txt
 auxdata/common/astarmin_average.txt:
 	$(WGET) auxdata/common/ $(URL)/common/astarmin_average.txt
+auxdata/common/Matsuoka11_aphy_Table1_JGR.csv:
+	$(WGET) auxdata/common/ $(URL)/common/Matsuoka11_aphy_Table1_JGR.csv
 
 
 auxdata_meris: auxdata/meris/LUTB.hdf auxdata/meris/smile/v2/sun_spectral_flux_rr.txt auxdata/meris/smile/v2/central_wavelen_rr.txt auxdata/meris/smile/v2/sun_spectral_flux_fr.txt auxdata/meris/smile/v2/central_wavelen_fr.txt

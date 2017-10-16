@@ -71,7 +71,7 @@ cdef class ParkRuddick(WaterModel):
     cdef int[:] index  # multi-purpose vector
     cdef int absorption
 
-    def __init__(self, directory, absorption='bricaud95_aphy', bbopt=0, min_abs=0, debug=False):
+    def __init__(self, directory, absorption='bricaud98_aphy', bbopt=0, min_abs=0, debug=False):
         '''
         Water reflectance model based on:
         Park, Y.-J. & Ruddick, K. Model of remote-sensing reflectance including
@@ -82,6 +82,7 @@ cdef class ParkRuddick(WaterModel):
             absorption: absorption option
                 'bricaud95_aphy': aphy from [Bricaud, 95]
                 'bricaud98_aphy': aphy from [Bricaud, 98]
+                'matsuoka': aphy from [Matsuoka et al, JGR 2011]
             bbopt: particle backscattering option
             min_abs: mineral absorption option
         '''
@@ -93,6 +94,7 @@ cdef class ParkRuddick(WaterModel):
         self.min_abs = min_abs  # activate mineral absorption
         self.absorption = {'bricaud95_aphy': 1,
                            'bricaud98_aphy': 2,
+                           'matsuoka': 3,
                           }[absorption]
 
         self.read_iop(directory)
@@ -131,12 +133,26 @@ cdef class ParkRuddick(WaterModel):
             assert lambda_bric95[-1] == 700
             self.a700 = ap_bricaud[-1,1]
 
-        else:
+        elif self.absorption == 2:
             ap_bricaud = np.genfromtxt(join(directory, 'aph_bricaud_1998.txt'),
                                     delimiter=',', skip_header=12)  # header is lambda,Ap,Ep,Aphi,Ephi
             assert ap_bricaud[-1,0] == 700
             # Aphi, Ephi
             self.AB_BRIC = CLUT(ap_bricaud[:,3:], axes=[ap_bricaud[:,0], None])
+
+            self.a700 = ap_bricaud[-1,3]
+            assert ap_bricaud[-1, 0] == 700
+
+        else:
+            aphy_matsuoka = np.genfromtxt(join(directory, 'Matsuoka11_aphy_Table1_JGR.csv'),
+                                          skip_header=5)  # lam, Aphi, Bphi*
+            aphy_matsuoka[:,2] += 1   # convert chl-normalized aphy into non-chl-normalized
+            self.AB_BRIC = CLUT(aphy_matsuoka[:,1:],
+                                axes=[aphy_matsuoka[:,0], None])
+
+            self.a700 = aphy_matsuoka[-1,1]
+            assert aphy_matsuoka[-1, 0] == 700
+
 
         #
         # read mineral absorption
@@ -347,7 +363,7 @@ cdef class ParkRuddick(WaterModel):
 
         # phytoplankton scattering
         # and spectral dependency
-        if (self.bbopt <= 1):
+        if (self.bbopt <= 2):
             bp550 = 0.416 * (chl**0.766) * fb
             if (logchl < 2):
                 bbp550 = (0.002 + 0.01*(0.5 - 0.25*logchl)) * bp550
@@ -359,8 +375,6 @@ cdef class ParkRuddick(WaterModel):
                 # spectral dependency (from Antoine LO (2011))
                 gamma = -0.733 * log(chl) + 1.499   # /!\ log is ln
                 if gamma < 0: gamma = 0
-
-                bbp650 = bbp550 * (650./550.)**(-gamma)
 
             elif self.bbopt == 1:
                 # alternate version (H. Loisel), improved in turbid waters
@@ -377,20 +391,30 @@ cdef class ParkRuddick(WaterModel):
                 if gamma > 4:
                     gamma = 4.
 
-                bbp650 = bbp550 * (650./550.)**(-gamma)
 
-        elif self.bbopt == 2:
+            elif self.bbopt == 2:
+                # Table A1 of Matsuoka et al., 2013, BG
+                gamma = 1.
+
+            bbp650 = bbp550 * (650./550.)**(-gamma)
+
+        elif self.bbopt == 3:
             bbp650 = bbp_huot08(chl, 650) * fb
 
-        SPM = 100.*bbp650  # Neukermans, log10(bbp) = 1.03*log10(SPM) - 2.06
+
+        SPM = 100.*bbp650  # approximated from Neukermans, log10(bbp) = 1.03*log10(SPM) - 2.06
 
         # CDM absorption central value
         # from Bricaud et al GBC, 2012 (data from nov 2007)
         aCDM443 = fa * 0.069 * (chl**1.070)
 
-        S = 0.00262*(aCDM443**(-0.448))
-        if (S > 0.025): S=0.025
-        if (S < 0.011): S=0.011
+        if self.absorption <= 2:
+            S = 0.00262*(aCDM443**(-0.448))
+            if (S > 0.025): S=0.025
+            if (S < 0.011): S=0.011
+        else:
+            # Arctic model, from A. Matsuoka
+            S = 0.0185
 
         # wavelength loop
         for i in range(self.Nwav):
@@ -403,7 +427,7 @@ cdef class ParkRuddick(WaterModel):
             # pure water scattering
             bbw = 0.5*self.bw[i]
 
-            if self.bbopt <= 1:
+            if self.bbopt <= 2:
                 bbp = bbp550 * (lam/550)**(-gamma)
             else:
                 bbp = bbp_huot08(chl, lam) * fb
