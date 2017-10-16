@@ -367,6 +367,7 @@ cdef class PolymerMinimizer:
     cdef int N_bands_oc
     cdef int[:] i_oc_read  # index or the 'oc' bands within the 'read' bands
     cdef int N_bands_read
+    cdef float[:] central_wavelength
 
     def __init__(self, watermodel, params):
 
@@ -399,6 +400,9 @@ cdef class PolymerMinimizer:
                 params.bands_read(),
                 params.bands_oc).astype('int32')
         self.N_bands_read = len(params.bands_read())
+
+        self.central_wavelength = np.array([params.central_wavelength[b]
+                                            for b in params.bands_read()], dtype='float32')
 
     cdef int loop(self, block,
               float[:,:,:,:] A,
@@ -450,6 +454,9 @@ cdef class PolymerMinimizer:
         cdef int i, j, ib, ioc
         cdef int flag_reinit
         cdef float Rw_max
+        cdef float[:] wav0
+        cdef float sza0, vza0, raa0
+
 
         #
         # pixel loop
@@ -548,10 +555,26 @@ cdef class PolymerMinimizer:
 
                 # water reflectance normalization
                 if self.normalize:
-                    # Rw -> Rw*Rwmod[nadir]/Rwmod
+                    # Rw -> Rw*Rwmod[nadir,lambda0]/Rwmod
 
                     for ib in range(self.N_bands_read):
                         Rw[i,j,ib] /= self.f.Rwmod[ib]
+
+                    if self.normalize & 1:
+                        # activate geometry normalization
+                        sza0 = 0.
+                        vza0 = 0.
+                        raa0 = 0.
+                    else:
+                        sza0 = sza[i,j]
+                        vza0 = vza[i,j]
+                        raa0 = raa[i,j]
+
+                    if self.normalize & 2:
+                        # activate wavelength normalization
+                        wav0 = self.central_wavelength
+                    else:
+                        wav0 = wav[i,j,:]
 
                     # calculate model reflectance at nadir
                     self.f.init_pixel(
@@ -559,8 +582,8 @@ cdef class PolymerMinimizer:
                             Rprime_noglint[i,j,:],
                             A[i,j,:,:], pA[i,j,:,:],
                             Tmol[i,j,:],
-                            wav[i,j,:],
-                            0., 0., 0.,
+                            wav0,
+                            sza0, vza0, raa0,
                             block.wind_speed[i,j])
                     self.f.w.calc_rho(self.f.xmin)
 

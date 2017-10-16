@@ -471,7 +471,11 @@ def run_atm_corr(level1, level2, **kwargs):
         N < 0: use as many threads as there are CPUs on local machine
     - dir_base: location of base directory to locate auxiliary data
     - calib: a dictionary for applying calibration coefficients
-    - normalize: if True (default), apply normalization of the water reflectance at nadir-nadir
+    - normalize: select water reflectance normalization
+           * no geometry nor wavelength normalization (0)
+           * apply normalization of the water reflectance at nadir-nadir (1)
+           * apply wavelength normalization for MERIS and OLCI (2)
+           * apply both (3)
 
     RETURNS: the level2 instance
     '''

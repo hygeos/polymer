@@ -127,7 +127,13 @@ class Params(object):
         self.weights_oc = None
 
         self.atm_model = 'T0,-1,Rmol'
-        self.normalize = True
+
+        # water reflectance normalization
+        #   * no geometry nor wavelength normalization (0)
+        #   * apply normalization of the water reflectance at nadir-nadir (1)
+        #   * apply wavelength normalization for MERIS and OLCI (2)
+        #   * apply both (3)
+        self.normalize = 3
 
         self.Rprime_consistency = True
 

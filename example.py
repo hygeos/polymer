@@ -43,7 +43,7 @@ def example_modis():
                            ),
                  # see params.py for exhaustive options
                  force_initialization=True,
-                 normalize=False,
+                 normalize=0,
                  water_model='PR05',
                  )
 
