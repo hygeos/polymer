@@ -278,7 +278,10 @@ class Level1_MSI(Level1_base):
             yield self.read_block(size, offset, bands_read)
 
     def attributes(self, datefmt):
-        return {}
+        return {
+                'L1_TILE_ID': self.xmlroot.General_Info.find('TILE_ID'),
+                'L1_DATASTRIP_ID': self.xmlroot.General_Info.find('DATASTRIP_ID'),
+                }
 
     def __enter__(self):
         return self
