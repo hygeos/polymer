@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, division, absolute_import
-from os.path import basename
+from os.path import basename, join
 import numpy as np
 from itertools import product
+from glob import glob
 
 
 
@@ -53,11 +54,17 @@ class Level1(object):
         elif b.startswith('S') and '.L1C' in b:
             self.sensor = 'seawifs'
 
-        elif b.startswith('S2A_OPER_MSI_L1C'):
+        elif self.detect_msi():
             self.sensor = 'msi'
 
         else:
             raise Exception('Unable to detect sensor for file "{}"'.format(b))
+
+
+    def detect_msi(self):
+        xmlfiles = glob(join(self.filename, '*MTD*_TL*.xml'))
+        return len(xmlfiles) == 1
+
 
     def __str__(self):
         return '<{} level1: {}>'.format(self.sensor, self.basename)

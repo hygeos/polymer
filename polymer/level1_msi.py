@@ -48,8 +48,11 @@ class Level1_MSI(Level1_base):
         resolution: 60, 20 or 10m
         '''
         self.sensor = 'MSI'
-        self.dirname = dirname
-        self.filename = dirname
+        if dirname.endswith('/'):
+            self.dirname = dirname[:-1]
+        else:
+            self.dirname = dirname
+        self.filename = self.dirname
         self.blocksize = blocksize
         self.resolution = resolution
         assert isinstance(resolution, str)
