@@ -39,13 +39,20 @@ B12  SWIR 2      2190nm     20m
 
 class Level1_MSI(Level1_base):
 
-    def __init__(self, dirname, blocksize=200, resolution='60',
+    def __init__(self, dirname, blocksize=198, resolution='60',
                  sline=0, eline=-1, scol=0, ecol=-1,
                  ancillary=None):
         '''
         dirname: granule dirname
 
         resolution: 60, 20 or 10m
+
+        sline, eline, scol, ecol refers to the coordinate of the area to process:
+            * in the 1830x1830 grid at 60m resolution
+            * in the 5490x5490 grid at 20m resolution
+              => eline-sline and ecol-scol must be a multiple of 3
+            * in the 10980x10980 grid at 10m resolution
+              => eline-sline and ecol-scol must be a multiple of 6
         '''
         self.sensor = 'MSI'
         if dirname.endswith('/'):
@@ -54,8 +61,7 @@ class Level1_MSI(Level1_base):
             self.dirname = dirname
         self.filename = self.dirname
         self.blocksize = blocksize
-        self.resolution = resolution
-        assert isinstance(resolution, str)
+        self.resolution = str(resolution)
 
         if ancillary is None:
             self.ancillary = Ancillary_NASA()
@@ -189,23 +195,29 @@ class Level1_MSI(Level1_base):
 
         jp = Jp2k(self.get_filename(band))
 
-        xrat = jp.shape[0]//self.totalwidth
-        yrat = jp.shape[1]//self.totalheight
+        xrat = jp.shape[0]/float(self.totalwidth)
+        yrat = jp.shape[1]/float(self.totalheight)
 
-        # read the whole array that will be downsampled
+        # read input data
         datao = jp[
-           yrat*(yoffset+self.sline) : yrat*(yoffset+self.sline+ysize),
-           xrat*(xoffset+self.scol) : xrat*(xoffset+self.scol+xsize)
+           int(yrat*(yoffset+self.sline)): int(yrat*(yoffset+self.sline+ysize)),
+           int(xrat*(xoffset+self.scol)) : int(xrat*(xoffset+self.scol+xsize))
            ]
 
-        data = np.zeros(size, dtype='float32')
-        N = 0
-        for i in range(xrat):
-            for j in range(yrat):
-                N += 1
-                data += datao[j::yrat, i::xrat]
+        if xrat >= 1.:
+            # downsample
+            data = np.zeros(size, dtype='float32')
+            N = 0
+            for i in range(int(xrat)):
+                for j in range(int(yrat)):
+                    N += 1
+                    data += datao[j::int(yrat), i::int(xrat)]
+            data /= N
+        else:
+            # over-sample
+            data = datao.repeat(int(1/yrat), axis=0).repeat(int(1/xrat), axis=1)
 
-        data /= N
+        assert data.shape == size, '{} != {}'.format(data.shape, size)
 
         return data
 
