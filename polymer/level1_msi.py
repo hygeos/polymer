@@ -3,6 +3,7 @@
 
 
 from __future__ import print_function, division, absolute_import
+from collections import OrderedDict
 from glymur import Jp2k
 from glob import glob
 from lxml import objectify
@@ -290,10 +291,14 @@ class Level1_MSI(Level1_base):
             yield self.read_block(size, offset, bands_read)
 
     def attributes(self, datefmt):
-        return {
-                'L1_TILE_ID': self.xmlroot.General_Info.find('TILE_ID'),
-                'L1_DATASTRIP_ID': self.xmlroot.General_Info.find('DATASTRIP_ID'),
-                }
+
+        attr = OrderedDict()
+        attr['l1_filename'] = self.filename
+        attr['sensing_time'] = self.date.strftime(datefmt)
+        attr['L1_TILE_ID'] = self.xmlroot.General_Info.find('TILE_ID'),
+        attr['L1_DATASTRIP_ID'] = self.xmlroot.General_Info.find('DATASTRIP_ID'),
+        return attr
+
 
     def __enter__(self):
         return self
