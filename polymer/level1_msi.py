@@ -295,8 +295,8 @@ class Level1_MSI(Level1_base):
         attr = OrderedDict()
         attr['l1_filename'] = self.filename
         attr['sensing_time'] = self.date.strftime(datefmt)
-        attr['L1_TILE_ID'] = self.xmlroot.General_Info.find('TILE_ID'),
-        attr['L1_DATASTRIP_ID'] = self.xmlroot.General_Info.find('DATASTRIP_ID'),
+        attr['L1_TILE_ID'] = str(self.xmlroot.General_Info.find('TILE_ID'))
+        attr['L1_DATASTRIP_ID'] = str(self.xmlroot.General_Info.find('DATASTRIP_ID'))
         return attr
 
 
