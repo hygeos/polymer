@@ -291,6 +291,21 @@ class Test_Level1_Subsetted_NETCDF(unittest.TestCase):
                 multiprocessing=-1,
                 )
 
+    def test_msi_1(self):
+        run_atm_corr(
+                Level1_NETCDF('/mfs/proj/CGLOPS-LAKES/from_Mark_S2_netcdf/L1C_T30UVA_A009329_20170405T112111_resampled_120.nc'),
+                Level2('memory'),
+                multiprocessing=-1,
+                )
+
+    def test_msi_2(self):
+        run_atm_corr(
+                Level1_NETCDF('/mfs/proj/CGLOPS-LAKES/from_Mark_S2_netcdf/S2A_OPER_MSI_L1C_TL_SGS__20160619T163833_A005182_T30UVA_N02.04_resampled_120.nc'),
+                Level2('memory'),
+                multiprocessing=-1,
+                )
+
+
 class Test_Ancillary_ERA(unittest.TestCase):
     pass
 

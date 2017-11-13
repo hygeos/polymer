@@ -10,6 +10,7 @@ from warnings import warn
 from datetime import datetime
 from polymer.common import L2FLAGS
 from polymer.utils import raiseflag
+from polymer.ancillary import Ancillary_NASA
 from os.path import basename, join, dirname
 from collections import OrderedDict
 
@@ -21,7 +22,8 @@ class Level1_NETCDF(Level1_base):
     (produced by SNAP)
     '''
     def __init__(self, filename, blocksize=(500, 400),
-                 dir_smile=None, apply_land_mask=True):
+                 dir_smile=None, apply_land_mask=True,
+                 ancillary=None):
 
         self.filename = filename
         self.root = Dataset(filename)
@@ -29,11 +31,16 @@ class Level1_NETCDF(Level1_base):
         self.apply_land_mask = apply_land_mask
 
         # detect sensor
-        title = self.root.getncattr('title')
+        try:
+            title = self.root.getncattr('title')
+        except AttributeError:
+            title = self.root.getncattr('product_type')
 
         if 'MERIS' in title:
             self.sensor = 'MERIS'
             self.varnames = {
+                    'latitude': 'latitude',
+                    'longitude': 'longitude',
                     'SZA': 'sun_zenith',
                     'VZA': 'view_zenith',
                     'SAA': 'sun_azimuth',
@@ -64,6 +71,8 @@ class Level1_NETCDF(Level1_base):
         elif 'OLCI' in title:
             self.sensor = 'OLCI'
             self.varnames = {
+                    'latitude': 'latitude',
+                    'longitude': 'longitude',
                     'SZA': 'SZA',
                     'VZA': 'OZA',
                     'SAA': 'SAA',
@@ -80,12 +89,22 @@ class Level1_NETCDF(Level1_base):
                     900 , 940, 1020]
             self.band_index = dict((b, i+1) for (i, b) in enumerate(BANDS_OLCI))
 
+        elif title == 'S2_MSI_Level-1C':
+            self.sensor = 'MSI'
+            self.varnames = {
+                    'latitude': 'lat',
+                    'longitude': 'lon',
+                    'SZA': 'sun_zenith',
+                    'VZA': 'view_zenith_B1',
+                    'SAA': 'sun_azimuth',
+                    'VAA': 'view_azimuth_B1',
+                    }
         else:
             raise Exception('Could not identify sensor from "{}"'.format(title))
 
         # get product shape
-        totalheight = self.root.variables['latitude'].shape[0]
-        totalwidth = self.root.variables['latitude'].shape[1]
+        totalheight = self.root.variables[self.varnames['latitude']].shape[0]
+        totalwidth = self.root.variables[self.varnames['latitude']].shape[1]
 
         print('{} product, size is {}x{}'.format(self.sensor, totalheight, totalwidth))
 
@@ -96,6 +115,24 @@ class Level1_NETCDF(Level1_base):
                 scol=0,  ecol=-1)
 
         self.init_date()
+
+        # init ancillary
+        if (ancillary is None) and (self.sensor == 'MSI'):
+            self.ancillary = Ancillary_NASA()
+        else:
+            self.ancillary = ancillary
+        if self.ancillary is not None:
+            self.init_ancillary()
+
+    def init_ancillary(self):
+        self.ozone = self.ancillary.get('ozone', self.date)
+        self.wind_speed = self.ancillary.get('wind_speed', self.date)
+        self.surf_press = self.ancillary.get('surf_press', self.date)
+
+        self.ancillary_files = OrderedDict()
+        self.ancillary_files.update(self.ozone.filename)
+        self.ancillary_files.update(self.wind_speed.filename)
+        self.ancillary_files.update(self.surf_press.filename)
 
     def read_date(self, date):
         ''' parse a date in the format 04-JUL-2017 12:31:28.013924 '''
@@ -186,36 +223,62 @@ class Level1_NETCDF(Level1_base):
         block.saa = self.read_band(self.varnames['SAA'], size, offset)
         block.vaa = self.read_band(self.varnames['VAA'], size, offset)
 
-        # read Rtoa
-        block.Ltoa = np.zeros(size3) + np.NaN
-        for iband, band in enumerate(bands):
+        # read Rtoa or Ltoa+F0
+        # and wavelen
+        block.wavelen = np.zeros(size3, dtype='float32') + np.NaN
+        if self.sensor == 'MSI':
+            # read Rtoa
+            block.Rtoa = np.zeros(size3) + np.NaN
+            for iband, band in enumerate(bands):
+                band_name = {
+                        443 : 'B1', 490 : 'B2',
+                        560 : 'B3', 665 : 'B4',
+                        705 : 'B5', 740 : 'B6',
+                        783 : 'B7', 842 : 'B8',
+                        865 : 'B8A', 940 : 'B9',
+                        1375: 'B10', 1610: 'B11',
+                        2190: 'B12'}[band]
+
+                block.Rtoa[:,:,iband] = self.read_band(band_name, size, offset)
+
+            # init wavelengths
+            for iband, band in enumerate(bands):
+                block.wavelen[:,:,iband] = float(band)
+
+        elif self.sensor in ['MERIS', 'OLCI']:
+            # read Ltoa and F0
+            block.Ltoa = np.zeros(size3) + np.NaN
+            for iband, band in enumerate(bands):
+                if self.sensor == 'MERIS':
+                    band_name = 'radiance_{}'.format(self.band_index[band])
+                elif self.sensor == 'OLCI':
+                    band_name = 'Oa{:02d}_radiance'.format(self.band_index[band])
+                else:
+                    raise Exception('Invalid sensor "{}"'.format(self.sensor))
+
+                block.Ltoa[:,:,iband] = self.read_band(band_name, size, offset)
+
+            # detector wavelength and solar irradiance
+            block.F0 = np.zeros(size3, dtype='float32') + np.NaN
             if self.sensor == 'MERIS':
-                band_name = 'radiance_{}'.format(self.band_index[band])
-            elif self.sensor == 'OLCI':
-                band_name = 'Oa{:02d}_radiance'.format(self.band_index[band])
+                # read detector index
+                detector_index = self.read_band('detector_index', size, offset)
+
+                for iband, band in enumerate(bands):
+                    name = 'lam_band{}'.format(self.band_index[band]-1)   # 0-based
+                    block.wavelen[:,:,iband] = self.detector_wavelength[name][detector_index]
+
+                    name = 'E0_band{}'.format(self.band_index[band]-1)   # 0-based
+                    block.F0[:,:,iband] = self.F0[name][detector_index]
+
+            elif self.sensor == 'OLCI':  # OLCI
+                for iband, band in enumerate(bands):
+                    block.wavelen[:,:,iband] = self.read_band('lambda0_band_{}'.format(self.band_index[band]), size, offset)
+                    block.F0[:,:,iband] = self.read_band('solar_flux_band_{}'.format(self.band_index[band]), size, offset)
             else:
                 raise Exception('Invalid sensor "{}"'.format(self.sensor))
-
-            block.Ltoa[:,:,iband] = self.read_band(band_name, size, offset)
-
-        # detector wavelength and solar irradiance
-        block.wavelen = np.zeros(size3, dtype='float32') + np.NaN
-        block.F0 = np.zeros(size3, dtype='float32') + np.NaN
-        if self.sensor == 'MERIS':
-            # read detector index
-            detector_index = self.read_band('detector_index', size, offset)
-
-            for iband, band in enumerate(bands):
-                name = 'lam_band{}'.format(self.band_index[band]-1)   # 0-based
-                block.wavelen[:,:,iband] = self.detector_wavelength[name][detector_index]
-
-                name = 'E0_band{}'.format(self.band_index[band]-1)   # 0-based
-                block.F0[:,:,iband] = self.F0[name][detector_index]
-
-        else:  # OLCI
-            for iband, band in enumerate(bands):
-                block.wavelen[:,:,iband] = self.read_band('lambda0_band_{}'.format(self.band_index[band]), size, offset)
-                block.F0[:,:,iband] = self.read_band('solar_flux_band_{}'.format(self.band_index[band]), size, offset)
+        else:
+            raise Exception('Invalid sensor "{}"'.format(self.sensor))
 
         # read bitmask
         block.bitmask = np.zeros(size, dtype='uint16')
@@ -231,17 +294,28 @@ class Level1_NETCDF(Level1_base):
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('l1_flags', 'INVALID', size, offset))
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('l1_flags', 'SUSPECT', size, offset))
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('l1_flags', 'COSMETIC', size, offset))
+        elif self.sensor == 'MSI':
+            raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], np.isnan(block.vza))
+        else:
+            raise Exception('Invalid sensor {}'.format(self.sensor))
 
         # date
         block.jday = self.date.timetuple().tm_yday
         block.month = self.date.timetuple().tm_mon
 
         # read ancillary data
-        block.ozone = self.read_band(self.varnames['ozone'], size, offset)
-        zwind = self.read_band(self.varnames['zwind'], size, offset)
-        mwind = self.read_band(self.varnames['mwind'], size, offset)
-        block.wind_speed = np.sqrt(zwind**2 + mwind**2)
-        block.surf_press = self.read_band(self.varnames['press'], size, offset)
+        if self.sensor in ['MERIS', 'OLCI']:
+            block.ozone = self.read_band(self.varnames['ozone'], size, offset)
+            zwind = self.read_band(self.varnames['zwind'], size, offset)
+            mwind = self.read_band(self.varnames['mwind'], size, offset)
+            block.wind_speed = np.sqrt(zwind**2 + mwind**2)
+            block.surf_press = self.read_band(self.varnames['press'], size, offset)
+        elif self.sensor == 'MSI':
+            block.ozone = self.ozone[block.latitude, block.longitude]
+            block.wind_speed = self.wind_speed[block.latitude, block.longitude]
+            block.surf_press = self.surf_press[block.latitude, block.longitude]
+        else:
+            raise Exception('Invalid sensor {}'.format(self.sensor))
 
 
         return block
