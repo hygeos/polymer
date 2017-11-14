@@ -16,6 +16,7 @@ import pyproj
 from polymer.ancillary import Ancillary_NASA
 from polymer.common import L2FLAGS
 from polymer.level1 import Level1_base
+from polymer.utils import raiseflag
 
 '''
 List of MSI bands:
@@ -253,11 +254,7 @@ class Level1_MSI(Level1_base):
             block.Rtoa[:,:,iband] = self.read_TOA(band, size, offset)/QUANTIF
 
         block.bitmask = np.zeros(size, dtype='uint16')
-        # very crude land mask
-        # block.bitmask += L2FLAGS['LAND']*landmask(
-                # block.latitude, block.longitude,
-                # resolution='f').astype('uint16')
-        block.bitmask += L2FLAGS['L1_INVALID']*(np.isnan(block.muv).astype('uint16'))
+        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], np.isnan(block.muv))
 
         block.ozone = self.ozone[block.latitude, block.longitude]
         block.wind_speed = self.wind_speed[block.latitude, block.longitude]
