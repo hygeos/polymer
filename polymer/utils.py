@@ -148,5 +148,5 @@ def raiseflag(bitmask, flag_value, condition):
         * condition: where to raise the flag
     '''
     notraised = (bitmask & flag_value) == 0
-    bitmask[condition & notraised] += flag_value
+    bitmask[condition.astype('bool') & notraised] += flag_value
 
