@@ -8,6 +8,7 @@ from polymer.level1_netcdf import Level1_NETCDF
 from polymer.level2_nc import Level2_NETCDF
 from polymer.level2_hdf import Level2_HDF
 from polymer.ancillary import Ancillary_NASA
+from polymer.ancillary_era import Ancillary_ERA
 from polymer.level2 import Level2
 from numpy.testing import assert_allclose, assert_equal
 import tempfile
@@ -136,6 +137,30 @@ class Test_OLCI(unittest.TestCase):
                 ),
             Level2('memory'),
             )
+
+    def test_ancillary_nasa(self):
+        run_atm_corr(
+            Level1_OLCI(
+                self.filename,
+                sline=1117,     scol=2871,
+                eline=1117+100, ecol=2871+150,
+                ancillary=Ancillary_NASA(),
+                ),
+            Level2('memory'),
+            )
+
+    def test_ancillary_era(self):
+        run_atm_corr(
+            Level1_OLCI(
+                self.filename,
+                sline=1117,     scol=2871,
+                eline=1117+100, ecol=2871+150,
+                ancillary=Ancillary_ERA(),
+                ),
+            Level2('memory'),
+            )
+
+
 
     def test_window(self):
 
