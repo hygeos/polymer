@@ -34,10 +34,7 @@ class Level1_OLCI(Level1_base):
 
         self.dirname = dirname
         self.filename = dirname
-        if ancillary is None:
-            self.ancillary = Ancillary_NASA()
-        else:
-            self.ancillary = ancillary
+        self.ancillary = ancillary
         self.nc_datasets = {}
 
         # get product shape
@@ -90,7 +87,9 @@ class Level1_OLCI(Level1_base):
         self.read_date()
 
         # ancillary data initialization
-        self.init_ancillary()
+        self.ancillary_files = OrderedDict()
+        if self.ancillary is not None:
+            self.init_ancillary()
 
     def read_date(self):
         var = self.get_ncroot('Oa01_radiance.nc')
@@ -99,9 +98,13 @@ class Level1_OLCI(Level1_base):
 
 
     def init_ancillary(self):
+        self.ozone = self.ancillary.get('ozone', self.date())
         self.wind_speed = self.ancillary.get('wind_speed', self.date())
+        self.surf_press = self.ancillary.get('surf_press', self.date())
+        self.ancillary_files.update(self.ozone.filename)
+        self.ancillary_files.update(self.wind_speed.filename)
+        self.ancillary_files.update(self.surf_press.filename)
 
-        self.ancillary_files = OrderedDict()
         self.ancillary_files.update(self.wind_speed.filename)
 
     def get_ncroot(self, filename):
@@ -131,20 +134,28 @@ class Level1_OLCI(Level1_base):
         elif band_name in ['detector_index']:
             filename = 'instrument_data.nc'
             tiepoint = False
-        elif band_name in ['total_ozone', 'sea_level_pressure']:
+        elif band_name in ['total_ozone', 'sea_level_pressure', 'horizontal_wind']:
             filename = 'tie_meteo.nc'
             tiepoint = True
         elif band_name in ['quality_flags']:
             filename = 'qualityFlags.nc'
             tiepoint = False
         else:
-            raise Exception('ERROR')
+            raise Exception('ERROR', band_name)
 
 
         root = self.get_ncroot(filename)
-        var = root.variables[band_name]
+        try:
+            var = root.variables[band_name]
+        except KeyError:
+            print(root.variables)
+            raise
 
         data = var[yoffset+self.sline:yoffset+self.sline+ysize, :]
+
+        if band_name == 'horizontal_wind':
+            # wind modulus from zonal and meridional components
+            data = np.sqrt(data[...,0]**2 + data[...,1]**2)
 
         if tiepoint:
             shp = data.shape
@@ -204,14 +215,24 @@ class Level1_OLCI(Level1_base):
         block.jday = self.date().timetuple().tm_yday
         block.month = self.date().timetuple().tm_mon
 
-        # read total ozone in kg/m2
-        block.ozone = self.read_band('total_ozone', size, offset)
-        block.ozone /= 2.1415e-5  # convert kg/m2 to DU
+        # read ancillary data
+        if self.ancillary is not None:
+            # external ancillary files
+            block.ozone = self.ozone[block.latitude, block.longitude]
+            block.wind_speed = self.wind_speed[block.latitude, block.longitude]
+            block.surf_press = self.surf_press[block.latitude, block.longitude]
 
-        # read sea level pressure in hPa
-        block.surf_press = self.read_band('sea_level_pressure', size, offset)
+        else: # ancillary files embedded in level1
 
-        block.wind_speed = self.wind_speed[block.latitude, block.longitude]
+            # read total ozone in kg/m2
+            block.ozone = self.read_band('total_ozone', size, offset)
+            block.ozone /= 2.1415e-5  # convert kg/m2 to DU
+
+            # read sea level pressure in hPa
+            block.surf_press = self.read_band('sea_level_pressure', size, offset)
+
+            # read wind speed
+            block.wind_speed = self.read_band('horizontal_wind', size, offset)
 
         # quality flags
         bitmask = self.read_band('quality_flags', size, offset)
