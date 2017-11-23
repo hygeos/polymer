@@ -136,5 +136,7 @@ class Level2_NETCDF(Level2_file):
         self.cleanup()
 
     def cleanup(self):
+        if exists(self.tmpfilename):
+            rmtree(self.tmpfilename)
         if self.tmpdir is not None:
             rmtree(self.tmpdir)

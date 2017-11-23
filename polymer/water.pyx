@@ -413,7 +413,7 @@ cdef class ParkRuddick(WaterModel):
             if (S > 0.025): S=0.025
             if (S < 0.011): S=0.011
         else:
-            # Arctic model, from A. Matsuoka
+            # Arctic model, from Matsuoka et al., 2013, BG
             S = 0.0185
 
         # wavelength loop
