@@ -14,7 +14,7 @@ def download_era(date, filename):
     '''
     Download ERA-INTERIM data
 
-    requires an access to ECMWF server
+    requires an access to ECMWF server in GRIB format
     see "Installing your API key":
     https://software.ecmwf.int/wiki/display/WEBAPI/Accessing+ECMWF+data+servers+in+batch
 
@@ -47,6 +47,9 @@ class Ancillary_ERA(object):
     http://www.ecmwf.int/en/research/climate-reanalysis/era-interim
 
     Arguments:
+    * directory: base directory for storing the ERA-Interim files
+    * pattern: pattern for storing the GRIB files (%Y, %m, %d represent the
+               year, month and day)
     * offline: offline mode, does not try to access online data
     '''
 
