@@ -6,6 +6,62 @@
                            #####################
 
 
+v4.6
+----
+
+Release date: 2017-11-23
+
+New features:
+
+    * Now supporting Sentinel 2 processing at 10 and 20m spatial resolution
+      To activate high resolution processing, pass the option resolution=10 or
+      resolution=20 to Level1_MSI.
+
+    * Wavelength normalization for MERIS and OLCI.
+      In Polymer, the atmospheric correction is performed at each detector
+      wavelength (instead of applying smile correction to the TOA radiance). A new
+      spectral correction is applied to the final water reflectance, simultaneously with
+      the already existing bidirectional reflectance correction:
+          Rw_normalized = Rw(lam,geom)*(Rwmod(lam0,nadir)/Rwmod(lam,geom))
+          where:
+             lam is the measured wavelength (for a given detector)
+             lam0 is the central wavelength for the considered band
+             geom is the observation geometry
+             nadir is the normalization geometry, where the sun and sensor are both at nadir
+             Rw is the non-normalized water reflectance
+             Rw_mod is the water reflectance provided by Polymer's model for the current ocean parameters
+             Rw_normalized is the water reflectance, normalized for the 'nadir' observation geometry and the wavelength lam0
+      This correction is applied by default, and can be disactivated using the keyword normalize.
+
+    * Added ERA-Interim interface: interface with ECMWF ERA-Interim dataset.
+      Use it by passing an instance of Ancillary_ERA to the Level1.
+          from polymer.ancillary_era import Ancillary_ERA
+          Level1(<filename>, ancillary=Ancillary_ERA())
+      See the relevent section of README.TXT
+
+    * Add options to activate an optional "Arctic" mode in the ParkRuddick
+      model (credits Atsushi Matsuoka).
+      To activate it, pass the following arguments to run_atm_corr:
+        absorption='matsuoka': use aphy from Matsuoka et al, JGR 2011
+                               and Scdm from Matsuoka et al., 2013, BG
+        bbopt=2 : set the particle backscattering spectral dependency to eta=1
+
+    * Added support for Sentinel 2 products in netCDF4 format, as written by SNAP (Level1_NETCDF)
+
+Corrections:
+
+    * OLCI: fix flagging issues. Add an option to disactivate land masking in Level1_OLCI and Level1_NETCDF
+      (when providing the land mask through external masking)
+    * OLCI: use nearest neighbour interpolation for reading azimuth angles from tiepoint grids
+      This avoids incorrect interpolation when an azimuth changes sign.
+    * OLCI: fixed incorrect usage of ancillary data.
+      Now properly read all ancillary data from OLCI Level1, and switch to NASA
+      or ERA-Interim when passing the appropriate option (see README)
+    * Improved autodetection of Sentinel2 products.
+      The product autodetection feature is used when using the Level1 class, or polymer_cli.py
+    * Some minor fixes regarding Sentinel 2 products attributes
+
+
 v4.5
 ----
 

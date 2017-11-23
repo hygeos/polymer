@@ -20,6 +20,11 @@ class Level1_NETCDF(Level1_base):
     '''
     Reader for subsetted products in netcdf format
     (produced by SNAP)
+
+    Supported sensors:
+        * OLCI
+        * MERIS
+        * Sentinel2
     '''
     def __init__(self, filename, blocksize=(500, 400),
                  dir_smile=None, apply_land_mask=True,

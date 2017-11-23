@@ -28,29 +28,34 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
 1.1 DEPENDENCIES
     ------------
 
-  SOFTWARE        REQUIRED FOR   URL
-  python          all            http://www.python.org/
-  cython          all            http://cython.org/
-  gcc             all            https://gcc.gnu.org/
+  SOFTWARE          REQUIRED FOR   URL
+  python            all            http://www.python.org/
+  cython            all            http://cython.org/
+  gcc               all            https://gcc.gnu.org/
 
-  PYTHON MODULES  REQUIRED FOR   URL
-  numpy           all            https://pypi.python.org/pypi/numpy/
-  scipy           all            https://pypi.python.org/pypi/scipy
-  python-hdf4     all            https://pypi.python.org/pypi/python-hdf4
-   (or pyhdf)                    https://pypi.python.org/pypi/pyhdf
-  pyepr           MERIS          https://pypi.python.org/pypi/pyepr/
-  netCDF4         MODIS,SeaWiFS, https://pypi.python.org/pypi/netCDF4
-                  VIIRS,OLCI,
-                  level2_netcdf
-  pandas          level1_ascii   https://pypi.python.org/pypi/pandas
-  lxml            MSI            https://pypi.python.org/pypi/lxml
-  glymur          MSI            https://pypi.python.org/pypi/Glymur/
-  pyproj          MSI            https://pypi.python.org/pypi/pyproj
+  PYTHON MODULES    REQUIRED FOR   URL
+  numpy             all            https://pypi.python.org/pypi/numpy/
+  scipy             all            https://pypi.python.org/pypi/scipy
+  python-hdf4       all            https://pypi.python.org/pypi/python-hdf4
+   (or pyhdf)                      https://pypi.python.org/pypi/pyhdf
+  pyepr             MERIS          https://pypi.python.org/pypi/pyepr/
+  netCDF4           MODIS,SeaWiFS, https://pypi.python.org/pypi/netCDF4
+                    VIIRS,OLCI,
+                    level2_netcdf
+  pandas            level1_ascii   https://pypi.python.org/pypi/pandas
+  lxml              MSI            https://pypi.python.org/pypi/lxml
+  glymur            MSI            https://pypi.python.org/pypi/Glymur/
+  pyproj            MSI            https://pypi.python.org/pypi/pyproj
+  ecmwf-api-client  Ancillary_ERA  https://pypi.python.org/pypi/ecmwf-api-client
+                    (on-the-fly download)
+  pygrib            Ancillary_ERA  https://pypi.python.org/pypi/pygrib
 
 
-NOTE: python 2.7 and python 3.5 are both supported.
+NOTE: python 2.7 and python 3 (>=3.5) are both supported.
 
 NOTE: The supported operating system is Linux. The code has not been tested under Windows or Mac OS X.
+
+NOTE: See requirements.txt for installing the required dependencies with pip.
 
 
 1.2 AUXILIARY DATA
@@ -100,23 +105,56 @@ See example.py for more details...
 2.2 Ancillary data
     --------------
 
+2.2.1 NASA Ancillary data
+      -------------------
+
 Ancillary data (ozone total column, wind speed, surface pressure) can be
 provided to the level1 class through the class Ancillary_NASA (NASA files in
 hdf4 format):
 
-Level1(<filename>, ancillary=Ancillary_NASA(
-                        meteo='S201303118_NCEP.MET',
-                        ozone='N201303100_O3_AURAOMI_24h.hdf'))
+    from polymer.ancillary import Ancillary_NASA
+    Level1(<filename>, ancillary=Ancillary_NASA())
 
 NOTE: the class Ancillary_NASA has default options to automatically download and select
 the closest available dataset, in the folder ANCILLARY/METEO/
 This folder is initialized with the command 'make ancillary' or 'make all'.
 
+For more information about the optional parameters, please look at the help of
+Ancillary_NASA.
+
+2.2.2 ERA Interim ancillary data
+      --------------------------
+
+Optionnally, the ancillary data (ozone total column, wind speed, surface
+pressure) can be provided through ECMWF's global reanalysis ERA-Interim.
+
+See https://www.ecmwf.int/en/forecasts/datasets/reanalysis-datasets/era-interim
+
+The following python modules are necessary to interface Polymer with ERA-Interim:
+    * ecmwf python api client (to download ERA-Interim files on the fly)
+      A ECMWF key is necessary.
+      See https://software.ecmwf.int/wiki/display/WEBAPI/Access+ECMWF+Public+Datasets
+    * pygrib, to read the ERA-Interim files in grib format.
+
+The ERA-Interim ancillary data is used by passing the class Ancillary_ERA to
+the parameter ancillary of the Level1.
+
+    from polymer.ancillary_era import Ancillary_ERA
+    Level1(<filename>, ancillary=Ancillary_ERA())
+
+By default, the closest data in time is automatically used, and downloaded on
+the fly if necessary.
+For more information, please look at the docstring of Ancillary_ERA.
+
 
 2.3 Input data
     ----------
 
-This section provided information about the supported file formats and sensors.
+This section provides information about the supported file formats and sensors.
+
+NOTE: The class Level1 (from polymer.level1 import Level1) autodetects the file
+format and returns the appropriate specific level1 object (Level1_MERIS,
+Level1_OLCI, etc).
 
 2.3.1 MERIS/Envisat
 
@@ -165,6 +203,11 @@ This section provided information about the supported file formats and sensors.
 2.3.5 Ascii input
 
     Polymer supports ascii (CSV) data input from multiple sensors through the level1 class Level1_ASCII.
+
+2.3.6 Subsetted products produced by SNAP
+
+    Level1_NETCDF can be used to read MERIS, OLCI or Sentinel2 products in
+    netCDF4 format, written by SNAP, in particular when used for subsetting.
 
 
 2.4 Level 1C files

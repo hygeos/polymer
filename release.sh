@@ -1,12 +1,12 @@
 #!/bin/bash
 
 
-VERSION='4.5'
+VERSION='4.6'
 
 BASE=`pwd`
 SRC=polymer-v$VERSION.tar.gz
 TARGET='RELEASE/TARGET/'
-DIR='POLYMER/'
+DIR='polymer-v'$VERSION'/'
 TEMP=$TARGET$DIR
 
 if [[ -n $(git diff) ]]; then
@@ -37,8 +37,11 @@ for i in `git ls-files`; do
     fi
 done
 
+# remove useless files
 rm $TEMP/release.sh
+rm -rfv test/
 
+# create tar
 cd $TARGET
 tar czvf $SRC $DIR
 rm -rf $DIR
