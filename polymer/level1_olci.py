@@ -32,6 +32,9 @@ class Level1_OLCI(Level1_base):
         if not os.path.isdir(dirname):
             dirname = os.path.dirname(dirname)
 
+        if dirname.endswith(os.path.sep):
+            dirname = dirname[:-1]
+
         self.dirname = dirname
         self.filename = dirname
         self.ancillary = ancillary
@@ -161,8 +164,11 @@ class Level1_OLCI(Level1_base):
             shp = data.shape
             coords = np.meshgrid(np.linspace(0, shp[1]-1, self.totalwidth), np.arange(shp[0]))
             out = np.zeros((ysize, self.totalwidth), dtype='float32')
-            map_coordinates(data, (coords[1], coords[0]), output=out)
-            # FIXME: don't use 3rd order for azimuth angles
+            if band_name in ['OAA', 'SAA']:
+                order=0   # nearest neighbour for azimuth angles
+            else:
+                order=3
+            map_coordinates(data, (coords[1], coords[0]), output=out, order=order)
             data = out
 
         data = data[:, xoffset+self.scol:xoffset+self.scol+xsize]
