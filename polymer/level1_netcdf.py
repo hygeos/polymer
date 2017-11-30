@@ -207,7 +207,7 @@ class Level1_NETCDF(Level1_base):
             else:
                 raise Exception('Error in ozone unit ({})'.format(unit))
 
-        return data
+        return np.array(data)
 
     def read_block(self, size, offset, bands):
 
