@@ -15,9 +15,13 @@ from polymer.utils import raiseflag
 BANDS_MODIS = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240]
 BANDS_SEAWIFS = [412,443,490,510,555,670,765,865]
 BANDS_VIIRS = [410,443,486,551,671,745,862,1238,1601,2257]
+BANDS_OLCI = [400 , 412, 443 , 490, 510 , 560, 620 , 665,
+              674 , 681, 709 , 754, 760 , 764, 767 , 779,
+              865 , 885, 900 , 940, 1020]
 
 headers_default = {
                    'TOA': 'TOAR_{:02d}',
+                   'F0': 'F0_{:02d}',
                    'LAT': 'LAT',
                    'LON': 'LON',
                    'DATETIME': 'TIME',
@@ -73,6 +77,7 @@ class Level1_ASCII(object):
                     'SeaWiFS': BANDS_SEAWIFS,
                     'MODIS': BANDS_MODIS,
                     'VIIRS': BANDS_VIIRS,
+                    'OLCI': BANDS_OLCI
                     }[sensor]
 
         self.band_names = dict(map(lambda b: (b[1], self.headers['TOA'].format(b[0]+1)),
@@ -93,6 +98,9 @@ class Level1_ASCII(object):
                                           enumerate(BANDS)))
             self.wav_band_names = dict(map(lambda b: (b[1], 'lam_band{:d}'.format(b[0])),
                                            enumerate(BANDS)))
+        if sensor in ['OLCI']:
+            self.F0 = dict(map(lambda b: (b[1], self.headers['F0'].format(b[0]+1)),
+                                   enumerate(BANDS)))
 
         #
         # read the csv file (only the required columns)
@@ -146,7 +154,7 @@ class Level1_ASCII(object):
 
     def get_field(self, fname, sl, size):
         cname = self.headers[fname]
-        return self.csv[cname][sl].reshape(size).astype('float32')
+        return self.csv[cname][sl].values.reshape(size).astype('float32')
 
     def read_block(self, size, offset, bands):
 
@@ -175,7 +183,7 @@ class Level1_ASCII(object):
         TOA = np.zeros((ysize,xsize,nbands)) + np.NaN
         for iband, band in enumerate(bands):
             name = self.band_names[band]
-            TOA[:,:,iband] = self.csv[name][sl].reshape(size)
+            TOA[:,:,iband] = self.csv[name][sl].values.reshape(size)
 
         if self.TOAR == 'reflectance':
             block.Rtoa = TOA
@@ -188,7 +196,7 @@ class Level1_ASCII(object):
 
         # detector index
         if self.sensor in ['MERIS', 'MERIS_FR', 'MERIS_RR']:
-            di = self.csv[self.headers['DETECTOR_INDEX']][sl].reshape(size).astype('int')
+            di = self.csv[self.headers['DETECTOR_INDEX']][sl].values.reshape(size).astype('int')
 
             # F0
             block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
@@ -208,7 +216,7 @@ class Level1_ASCII(object):
 
                 if 'F0' in self.headers:
                     name = self.headers['F0'].format(iband+1)
-                    block.F0[:,:,iband] = self.csv[name][sl].reshape(size)
+                    block.F0[:,:,iband] = self.csv[name][sl].values.reshape(size)
 
         block.jday = np.array([x.timetuple().tm_yday for x in self.dates[sl]]).reshape(size)
 
@@ -220,21 +228,23 @@ class Level1_ASCII(object):
         raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], invalid)
 
         # ozone
-        block.ozone = self.csv[self.headers['OZONE']][sl].reshape(size)
+        block.ozone = self.csv[self.headers['OZONE']][sl].values.reshape(size)
+        if self.sensor == 'OLCI':
+            block.ozone /= 2.1415e-5  # convert kg/m2 to DU
 
         # wind speed
         if isinstance(self.wind_module, float):
             block.wind_speed = np.zeros(size)
             block.wind_speed[:] = self.wind_module
         elif self.wind_module:
-            block.wind_speed = self.csv[self.headers['WIND']][sl].reshape(size)
+            block.wind_speed = self.csv[self.headers['WIND']][sl].values.reshape(size)
         else:
-            zwind = self.csv[self.headers['ZONAL_WIND']][sl].reshape(size)
-            mwind = self.csv[self.headers['MERID_WIND']][sl].reshape(size)
+            zwind = self.csv[self.headers['ZONAL_WIND']][sl].values.reshape(size)
+            mwind = self.csv[self.headers['MERID_WIND']][sl].values.reshape(size)
             block.wind_speed = np.sqrt(zwind**2 + mwind**2)
 
         # surface pressure
-        block.surf_press = self.csv[self.headers['SURFACE_PRESSURE']][sl].reshape(size)
+        block.surf_press = self.csv[self.headers['SURFACE_PRESSURE']][sl].values.reshape(size)
 
         return block
 
