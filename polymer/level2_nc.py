@@ -8,6 +8,7 @@ from netCDF4 import Dataset, default_fillvals
 import tempfile
 import numpy as np
 from os.path import exists, dirname, join, basename
+from os import remove
 from shutil import rmtree
 
 
@@ -137,6 +138,6 @@ class Level2_NETCDF(Level2_file):
 
     def cleanup(self):
         if exists(self.tmpfilename):
-            rmtree(self.tmpfilename)
+            remove(self.tmpfilename)
         if self.tmpdir is not None:
             rmtree(self.tmpdir)
