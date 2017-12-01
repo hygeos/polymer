@@ -300,10 +300,18 @@ class Test_MSI(unittest.TestCase):
 
 class Test_Level1_Subsetted_NETCDF(unittest.TestCase):
 
-    def test_meris(self):
+    def test_meris_1(self):
 
         run_atm_corr(
                 Level1_NETCDF('/mfs/proj/CGLOPS-LAKES/from_Stefan/subsetted_products/subset_0_of_MER_FRS_1PPEPA20080806_094519_000005122071_00022_33643_2741.nc'),
+                Level2('memory'),
+                multiprocessing=-1,
+                )
+
+    def test_meris_2(self):
+
+        run_atm_corr(
+                Level1_NETCDF('/mfs/proj/CGLOPS-LAKES/from_Stefan/subsetted_problem_20171201/MER_FRS_1PPEPA20020721_093901_000004052007_00480_02037_1130__radPoly4.nc', ozone_unit='DU'),
                 Level2('memory'),
                 multiprocessing=-1,
                 )
