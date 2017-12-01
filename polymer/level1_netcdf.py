@@ -28,12 +28,13 @@ class Level1_NETCDF(Level1_base):
     '''
     def __init__(self, filename, blocksize=(500, 400),
                  dir_smile=None, apply_land_mask=True,
-                 ancillary=None):
+                 ancillary=None, ozone_unit=None):
 
         self.filename = filename
         self.root = Dataset(filename)
         self.blocksize = blocksize
         self.apply_land_mask = apply_land_mask
+        self.ozone_unit = ozone_unit
 
         # detect sensor
         try:
@@ -199,13 +200,19 @@ class Level1_NETCDF(Level1_base):
                   ]
 
         if 'ozone' in band_name:
-            unit = var.getncattr('units')
-            if unit == 'Kg.m-2':
+            if self.ozone_unit is not None:
+                ozone_unit = self.ozone_unit
+            elif 'units' in var.ncattrs():
+                ozone_unit = var.getncattr('units')
+            else:
+                raise Exception("Ozone unit not found in netcdf attributes. Please pass ozone_unit='Kg.m-2' or ozone_unit='DU' as argument to Level1_NETCDF.")
+
+            if ozone_unit == 'Kg.m-2':
                 data /= 2.1415e-5  # convert kg/m2 to DU
-            elif unit == 'DU':
+            elif ozone_unit == 'DU':
                 pass
             else:
-                raise Exception('Error in ozone unit ({})'.format(unit))
+                raise Exception('Error in ozone unit ({})'.format(ozone_unit))
 
         return np.array(data)
 
