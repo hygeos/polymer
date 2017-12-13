@@ -17,7 +17,11 @@ ancillary_datasets = ['ozone', 'surf_press', 'wind_speed']
 
 
 class OutputExists(Exception):
-    pass
+    def __init__(self, filename):
+        self.filename = filename
+    def __str__(self):
+        return 'File "{}" exists'.format(self.filename)
+
 
 class Level2(object):
     '''
@@ -159,7 +163,7 @@ class Level2_file(Level2_base):
                 print('Removing file', self.filename)
                 remove(self.filename)
             else:
-                raise OutputExists('File "{}" exists'.format(self.filename))
+                raise OutputExists(self.filename)
 
         if self.datasets is None:
             self.datasets = default_datasets
