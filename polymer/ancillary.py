@@ -106,6 +106,19 @@ def perdelta(start, end, delta):
     return L
 
 
+def verify(filename):
+    '''
+    Fix files with wrong extension from NASA
+    -> HDF files with bz2 extension
+    '''
+    if filename.endswith('.bz2') and system('bzip2 -t '+filename):
+        target = filename[:-4]
+        system('mv -v {} {}'.format(filename, target))
+        filename = target
+
+    return filename
+
+
 class Ancillary_NASA(object):
     '''
     Ancillary data provider using NASA data.
@@ -315,7 +328,7 @@ class Ancillary_NASA(object):
                     sys.stdout.flush()
                     ret = self.download(url, target)
                     if ret == 0:
-                        print('success!')
+                        target = verify(target)
                         return target
                     else:
                         print('failure ({})'.format(ret))
