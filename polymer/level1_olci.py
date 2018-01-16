@@ -167,7 +167,7 @@ class Level1_OLCI(Level1_base):
             if band_name in ['OAA', 'SAA']:
                 order=0   # nearest neighbour for azimuth angles
             else:
-                order=3
+                order=1
             map_coordinates(data, (coords[1], coords[0]), output=out, order=order)
             data = out
 
