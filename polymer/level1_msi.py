@@ -91,7 +91,7 @@ class Level1_MSI(Level1_base):
 
         # read image size for current resolution
         for e in self.geocoding.findall('Size'):
-            if e.attrib['resolution'] == resolution:
+            if e.attrib['resolution'] == str(resolution):
                 totalheight = int(e.find('NROWS').text)
                 totalwidth = int(e.find('NCOLS').text)
                 break
