@@ -6,6 +6,27 @@
                            #####################
 
 
+v4.7
+----
+
+Release date: 2018-02-02
+
+This release introduces vicarious calibration coefficients for OLCI, and
+corrects a few issues with previous version:
+
+* Added OLCI SVC coefficients provided by C. Mazeran
+  These coefficients are now used by default
+  The previous coefficients (gains=1) can be restored by passing the argument "calib=None" to run_atm_corr.
+* OLCI: fix a problem when using auxiliary data embedded in OLCI level1 (the default).
+  3rd order interpolation of the auxiliary data fields was used, which could result in negative wind speeds in some cases.
+  Now using linear interpolation.
+* Added support for OLCI in Level1_ASCII
+* Fix a problem in Level2 cleanup in case of code error
+* Level1_NETCDF:
+    - Fix a compatibility problem with older versions of libnetcdf
+    - Allow to specify the ozone unit
+
+
 v4.6
 ----
 
