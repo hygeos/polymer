@@ -164,7 +164,8 @@ class LUT(object):
                     assert len(ax) == data.shape[i]
                 elif ax is None: pass
                 else:
-                    raise Exception('Invalid axis type {}'.format(ax.__class__))
+                    assert ax[:].ndim == 1
+                    assert len(ax) == data.shape[i]
 
         # check names
         if names is None:
@@ -178,23 +179,22 @@ class LUT(object):
         else:
             self.formatter = '{}'
 
-    def sub(self, d=None):
+    def sub(self, d=None, ignore=False):
         '''
-        returns a subset LUT of current LUT
+        returns a subset LUT of current LUT along several axes
 
-        d is a dictionary of axis: value
+        * d is a dictionary of {ax: value}, where:
 
-        * axis is the name (string) or index (integer) of the axis to consider
+            - ax is the name (string) or index (integer) of the axis to consider
 
-        * value can be:
-            * scalar integer (axis is removed)
-            * float index (axis is removed with interpolation)
-            * slice (axis is subsetted)
-            * array (axis is subsetted)
-            * Idx (axis is subsetted)
+            - value can be:
+                * scalar integer (axis is removed)
+                * float index (axis is removed with interpolation)
+                * slice (axis is subsetted)
+                * 1-d array (axis is subsetted)
+                * Idx
 
-        * if no argument is provided, returns a 'subsetter' object which can be indexed like:
-                lut.sub()[-1,:,0.2, Idx(12.)]
+        * ignore: if True, return full LUT if axis is not present in LUT
 
         Examples:
           lut.sub({'axis1': 1.5})
@@ -207,46 +207,71 @@ class LUT(object):
         '''
         if d is None:
             return Subsetter(self)
-        else:
-            dd = {}
-            for ax, v in d.items():
-                if isinstance(ax, str):
-                    if ax in self.names:
-                        iax = self.names.index(ax)
-                        dd[iax] = v
-                    # if ax is not in the LUT, ignore this dimension
-                else:
-                    assert isinstance(ax, int)
-                    dd[ax] = v
 
-            keys = []
-            axes = []
-            names = []
-            for i in xrange(self.ndim):
-                if i in dd:
-                    if isinstance(dd[i], Idx):
-                        ind = dd[i].index(self.axes[i])
+        if self.ndim == 0:
+            # scalar lut, cannot subset
+            if ignore:
+                return self
+            else:
+                raise Exception('Cannot subset scalar LUT {}'.format(self))
+
+        keys = [slice(None)] * self.ndim
+        names = list(self.names)
+        axes = list(self.axes)
+        dims_to_remove = []
+
+        for ax, v in d.items():
+            # ax: str or int
+            if isinstance(ax, int):
+                iax = ax
+            else:
+                assert isinstance(ax, str), 'ax should be str or int'
+                if ax in self.names:
+                    iax = self.names.index(ax)
+                else:
+                    if ignore:
+                        continue
                     else:
-                        ind = dd[i]
+                        raise Exception('sub is not possible on axis "{}" '
+                                        'because this axis is not present '
+                                        'in {}'.format(ax, self))
 
-                    keys.append(ind)
+            if isinstance(v, Idx_base):
+                idx = v.index(self.axes[iax])
+                newax = v.apply(self.axes[iax])
+            else:
+                idx = v
+                newax = None
 
-                    if isinstance(ind, slice):
-                        axes.append(self.axes[i][ind])
-                        names.append(self.names[i])
-                    elif isinstance(ind, np.ndarray) and (ind.ndim > 0):
-                        axes.append(self.axes[i][ind])
-                        names.append(self.names[i])
-
+            # axes: names and values
+            if (np.array(idx).ndim == 0) and not isinstance(v, slice):
+                # scalar, remove dimension
+                dims_to_remove.append(iax)
+            # in all other cases, keep dimension
+            elif axes[iax] is None:
+                axes[iax] = None
+            elif isinstance(v, slice):
+                axes[iax] = axes[iax][v]
+            elif np.array(idx).ndim == 1:
+                if newax is not None:
+                    axes[iax] = newax
+                elif v.dtype.kind in ['u', 'i']: # integer
+                    axes[iax] = axes[iax][v]
                 else:
-                    # axis not provided: take the full axis
-                    keys.append(slice(None))
-                    axes.append(self.axes[i])
-                    names.append(self.names[i])
+                    axes[iax] = None
+            else:
+                raise Exception('Cannot use a {}-dim array to '
+                                'subset a LUT'.format(np.array(idx).ndim))
 
-            data = self[tuple(keys)]
+            keys[iax] = idx
 
-            return LUT(data, axes=axes, names=names, attrs=self.attrs, desc=self.desc)
+        axes = [a for i, a in enumerate(axes) if not i in dims_to_remove]
+        names = [a for i, a in enumerate(names) if not i in dims_to_remove]
+
+        data = self[tuple(keys)]
+
+        return LUT(data, axes=axes, names=names,
+                   attrs=dict(self.attrs), desc=self.desc)
 
 
     def axis(self, a, aslut=False):
@@ -349,25 +374,26 @@ class LUT(object):
         N = len(keys)
 
         if N != self.ndim:
-            raise Exception('Incorrect number of dimensions in __getitem__')
+            raise Exception('Incorrect number of dimensions in __getitem__ '
+                            '(expecting {}, got {})'.format(self.ndim, N))
 
         # convert the Idx keys to float indices
         for i in xrange(N):
             k = keys[i]
-            if isinstance(k, Idx):
+            if isinstance(k, Idx_base):
                 # k is an Idx instance
                 # convert it to float indices for the current axis
                 if k.name not in [None, self.names[i]]:
                     msg = 'Error, wrong parameter passed at position {}, expected {}, got {}'
                     raise Exception(msg.format(i, self.names[i], k.name))
-                keys[i] = k.index(self.axes[i], name=k.name)
+                keys[i] = k.index(self.axes[i])
 
         # determine the dimensions of the result (for broadcasting coef)
         dims_array = None
         index0 = []
         for i in xrange(N):
             k = keys[i]
-            if isinstance(k, np.ndarray):
+            if isinstance(k, np.ndarray) and (k.ndim > 0):
                 index0.append(np.zeros_like(k, dtype='int'))
                 if dims_array is None:
                     dims_array = k.shape
@@ -375,7 +401,7 @@ class LUT(object):
                     assert dims_array == k.shape, 'LUTS.__getitem__: all arrays must have same shape ({} != {})'.format(str(dims_array), str(k.shape))
             elif isinstance(k, slice):
                 index0.append(k)
-            else:
+            else:  # scalar
                 index0.append(0)
 
         shp_res = np.zeros(1).reshape([1]*self.ndim)[index0].shape
@@ -391,7 +417,8 @@ class LUT(object):
 
             # floating-point indices should be interpolated
             interpolate = False
-            if isinstance(k, np.ndarray) and (k.dtype in [np.dtype('float')]):
+            if isinstance(k, np.ndarray) and (k.dtype in [np.dtype('float32'),
+                                                          np.dtype('float64')]):
                 interpolate = True
                 inf = k.astype('int')
                 inf[inf == self.data.shape[i]-1] -= 1
@@ -710,18 +737,25 @@ class LUT(object):
         elif self.ndim == 2:
             self.__plot_2d(*args, **kwargs)
         else:
-            self.__plot_nd(*args, **kwargs)
+            self.plot_nd(*args, **kwargs)
 
         return self
 
 
     def __plot_1d(self, show_grid=True, swap=False, fmt=None, label=None, 
-            vmin=None, vmax=None, legend=False, **kwargs):
+                  vmin=None, vmax=None, legend=False, plot=None, **kwargs):
         '''
         plot a 1-dimension LUT, returns self
+
+        arguments:
+            plot: custom plot function (defaults to plot)
+                  example: plot=semilogy
         '''
-        from pylab import plot, xlabel, ylabel, grid, ylim
+        from pylab import xlabel, ylabel, grid, ylim, ticklabel_format
         import pylab as pl
+
+        if plot is None:
+            plot = pl.plot
 
         # no plotting for string datasets
         if self.data.dtype.char == 'S':
@@ -757,6 +791,9 @@ class LUT(object):
             xlabel(xlab)
         if ylab is not None and not legend:
             ylabel(ylab)
+
+        if plot == pl.plot:
+            ticklabel_format(axis='y', style='sci', scilimits=(-2,2))
 
         grid(show_grid)
         if legend:
@@ -836,6 +873,7 @@ class LUT(object):
                 v = axis2[index]
 
             ax1.plot([np.amin(axis1), np.amax(axis1)], [v, v], 'w--')
+            ax1.ticklabel_format(axis='y', style='sci', scilimits=(-2,2))
 
             if not swap:
                 ax2.plot(axis1, self[index, :], fmt)
@@ -850,10 +888,11 @@ class LUT(object):
             plt.xlabel(lab1)
 
             ax2.axis(ymin=vmin, ymax=vmax)
+            ax2.ticklabel_format(axis='y', style='sci', scilimits=(-2,2))
 
         fig.subplots_adjust(hspace=0.)
 
-    def __plot_nd(self, *args, **kwargs):
+    def plot_nd(self, *args, **kwargs):
         try:
             from ipywidgets import VBox, HBox, Checkbox, IntSlider, HTML
             from IPython.display import display, clear_output
@@ -921,6 +960,123 @@ class LUT(object):
         plot_polar(self, *args, **kwargs)
         return self
 
+    def transect2D(self, *args, **kwargs):
+        transect2D(self, *args, **kwargs)
+        return self
+
+
+def Idx(value, name=None, round=False, fill_value=None):
+    '''
+    Calculate the indices of values by interpolation in a LUT axis
+    The index method is typically called when indexing a dimension of a LUT
+    object by a Idx object.
+    The round attribute (boolean) indicates whether the resulting index should
+    be rounded to the closest integer.
+
+    Idx value can be of several kinds:
+    - scalar (int or float)
+     => index return scalar float index
+    - array-like
+      => index return array-like float index
+    - callable (ex: lambda x: x<5)
+      => index returns callable applied to axis
+
+    Example: find the float index of 35. in an array [0, 10, ..., 100]
+    >>> Idx(35.).index(np.linspace(0, 100, 11))
+    array(3.5)
+
+    Find the indices of several values in the array [0, 10, ..., 100]
+    >>> Idx(np.array([32., 45., 72.])).index(np.linspace(0, 100, 11))
+    array([ 3.2,  4.5,  7.2])
+
+    Optionally, the name of the parameter can be provided as a keyword
+    argument.
+    Example: Idx(3., 'a') instead of Idx(3.)
+    This allows verifying that the parameter is used in the right axis.
+
+    Options:
+        - fill_value are passed to interp1d (implies bounds_error=False)
+          Special value for fill_value='extrema': fill with extrema values, don't extrapolate
+
+    NOTE: this function is a factory that returns an Idx_* instance based on input type
+
+    Method apply(axis):
+        returns the Idx values applied to axis instead of their index
+    '''
+    if hasattr(value, '__call__'):
+        return Idx_filter(value, name=name)
+    else:
+        return Idx_arr(value, name=name,
+                       round=round, fill_value=fill_value)
+
+
+class Idx_base(object):
+    '''
+    Base class for Idx objects
+    '''
+    def __init__(self, value, name=None, round=False, fill_value=None):
+        if value is not None:
+            self.value = value
+            self.name = name
+            self.round = round
+            self.fill_value = fill_value
+
+
+class Idx_arr(Idx_base):
+    '''
+    Idx class for array-like values
+    '''
+    def index(self, axis):
+        '''
+        Return the floating point index of the values in the axis
+        '''
+        if len(axis) == 1:
+            if not np.allclose(np.array(self.value), axis[0]):
+                raise ValueError("(Idx) Out of axis value (value={}, axis={})".format(self.value, axis))
+            return 0
+
+        else:
+            # axis is scalar or ndarray: interpolate
+            if self.fill_value == 'extrema':
+                fv = (0, len(axis)-1)
+            elif self.fill_value == 'extrema,warn':
+                fv = (0, len(axis)-1)
+                if (np.amax(self.value) > np.amax(axis)):
+                    warnings.warn('(Idx) Value {} is above the axis maximum {} (axis {})'.format(
+                        np.amax(self.value), np.amax(axis), self.name))
+                if (np.amin(self.value) < np.amin(axis)):
+                    warnings.warn('(Idx) Value {} is under the axis minimum {} (axis {})'.format(
+                        np.amin(self.value), np.amin(axis), self.name))
+            else:
+                fv = self.fill_value
+            be = (self.fill_value is None)
+
+            res = interp1d(axis, np.arange(len(axis)),
+                    bounds_error=be,
+                    fill_value=fv)(self.value)
+            if self.round:
+                if isinstance(res, np.ndarray):
+                    res = res.round().astype(int)
+                else:
+                    res = round(res)
+            return res
+
+
+    def apply(self, axis=None):
+        return self.value
+
+class Idx_filter(Idx_base):
+    '''
+    Idx class for filtering functions
+    '''
+    def index(self, axis):
+        # value is a callable (function):
+        # returns value applied to axis
+        return self.value(axis)
+
+    def apply(self, axis):
+        return axis[self.index(axis)]
+
 
 class Subsetter(object):
     '''
@@ -935,95 +1091,7 @@ class Subsetter(object):
         '''
         subset parent LUT
         '''
-        axes = []
-        names = []
-        attrs = self.LUT.attrs
-        desc = self.LUT.desc
-
-        assert len(keys) == self.LUT.ndim
-
-        array_dims_added = True
-        for i in xrange(self.LUT.ndim):
-            if isinstance(keys[i], np.ndarray):
-                if array_dims_added:
-                    axes.extend([None]*keys[i].ndim)
-                    names.extend([None]*keys[i].ndim)
-                    array_dims_added = False
-            elif keys[i] == slice(None):
-                axes.append(self.LUT.axes[i])
-                names.append(self.LUT.names[i])
-
-        data = self.LUT[keys]
-
-        # add missing axes which are added by additional
-        for i in xrange(data.ndim - len(axes)):
-            axes.append(None)
-            names.append(None)
-
-        return LUT(data, axes=axes, names=names, attrs=attrs, desc=desc)
-
-
-class Idx(object):
-    '''
-    Calculate the indices of values by interpolation in a LUT axis
-    The index method is typically called when indexing a dimension of a LUT
-    object by a Idx object.
-    The round attribute (boolean) indicates whether the resulting index should
-    be rounded to the closest integer.
-
-    Example: find the float index of 35. in an array [0, 10, ..., 100]
-    >>> Idx(35.).index(np.linspace(0, 100, 11))
-    array(3.5)
-
-    Find the indices of several values in the array [0, 10, ..., 100]
-    >>> Idx(np.array([32., 45., 72.])).index(np.linspace(0, 100, 11))
-    array([ 3.2,  4.5,  7.2])
-
-    Optionally, the name of the parameter can be provided as a keyword
-    argument.
-    Example: Idx(3., 'a') instead of Idx(3.)
-    This allows verifying that the parameter is used in the right axis.
-    '''
-    def __init__(self, value, name=None, round=False, bounds_error=True, fill_value=np.NaN):
-        if value is not None:
-            self.value = value
-            self.name = name
-            self.round = round
-            self.bounds_error = bounds_error
-            self.fill_value = fill_value
-
-    def index(self, axis, name=None):
-        '''
-        Return the floating point index of the values in the axis
-        '''
-        if hasattr(self.value, '__call__'):
-            # if value is a function, returns value applied to axis
-            return self.value(axis)
-
-        elif len(axis) == 1:
-            if not np.allclose(np.array(self.value), axis[0]):
-                raise ValueError("(Idx) Out of axis value (value={}, axis={})".format(self.value, axis))
-            return 0
-
-        else:
-            # axis is scalar or ndarray: interpolate
-            try:
-                res = interp1d(axis, np.arange(len(axis)),
-                        bounds_error=self.bounds_error,
-                        fill_value=self.fill_value)(self.value)
-            except ValueError:
-                print('Axis "{}": Out of axis error'.format(name))
-                print('           Axis = [{}..{}]'.format(axis[0], axis[-1]))
-                print('           Value between {} and {}'.format(
-                            np.amin(self.value), np.amax(self.value)))
-                raise
-            if self.round:
-                if isinstance(res, np.ndarray):
-                    res = res.round().astype(int)
-                else:
-                    res = round(res)
-            return res
-
+        return self.LUT.sub(dict(enumerate(keys)))
 
 
 def plot_polar(lut, index=None, vmin=None, vmax=None, rect='211', sub='212',
@@ -1036,7 +1104,7 @@ def plot_polar(lut, index=None, vmin=None, vmax=None, rect='211', sub='212',
             with axes (radius, angle) (unless swapped)
             angle is assumed to be in degrees and is not scaled
     index: index of the item to transect in the 'angle' dimension
-           can be an Idx instance
+           can be an Idx instance of several values or a list of indices
            if None (default), no transect
     vmin, vmax: range of values
                 default None: determine min/max from values
@@ -1159,11 +1227,13 @@ def plot_polar(lut, index=None, vmin=None, vmax=None, rect='211', sub='212',
     ax_polar.axis["top"].major_ticklabels.set_axis_direction("top")
     ax_polar.axis["top"].label.set_axis_direction("top")
 
-    ax_polar.axis["top"].axes.text(0.70, 0.92, label1,
+    #ax_polar.axis["top"].axes.text(0.70, 0.92, label1,
+    ax_polar.axis["top"].axes.text(0.72, 0.98, label1,
                                    transform=ax_polar.transAxes,
                                    ha='left',
                                    va='bottom')
-    ax_polar.axis["left"].axes.text(0.25, -0.03, label2,
+    #ax_polar.axis["left"].axes.text(0.25, -0.03, label2,
+    ax_polar.axis["left"].axes.text(0.10, -0.03, label2,
                                    transform=ax_polar.transAxes,
                                    ha='center',
                                    va='top')
@@ -1187,13 +1257,14 @@ def plot_polar(lut, index=None, vmin=None, vmax=None, rect='211', sub='212',
         else:
             ax_cart.set_xlim(ax2_min, ax2_max)
         ax_cart.set_ylim(vmin, vmax)
+        ax_cart.ticklabel_format(axis='y', style='sci', scilimits=(-2,2))
         ax_cart.grid(True)
 
     #
     # draw colormesh
     #
     if cmap is None:
-        cmap = cm.jet
+        cmap = cm.rainbow
         cmap.set_under('black')
         cmap.set_over('white')
         cmap.set_bad('0.5') # grey 50%
@@ -1203,30 +1274,138 @@ def plot_polar(lut, index=None, vmin=None, vmax=None, rect='211', sub='212',
 
     if show_sub:
         # convert Idx instance to index if necessarry
-        if isinstance(index, Idx):
-            index = int(round(index.index(ax1)))
-        if semi:
-            mirror_index = -1 -index
-        else:
-            mirror_index = (ax1_scaled.shape[0]/2 + index)%ax1_scaled.shape[0]
-        # draw line over colormesh
-        vertex0 = np.array([[0,0],[ax1_scaled[index],ax2_max]])
-        vertex1 = np.array([[0,0],[ax1_scaled[mirror_index],ax2_max]])
-        aux_ax_polar.plot(vertex0[:,0],vertex0[:,1], 'w')
-        if sym:
-            aux_ax_polar.plot(vertex1[:,0],vertex1[:,1],'w--')
+        if isinstance(index, Idx_base):
+            indexes = np.round(index.index(ax1)).astype(int)
+            #indexes = int(round(index.index(ax1)))
+        else: indexes = index
+        for ii,index in enumerate(indexes):
+            if semi:
+                mirror_index = -1 -index
+            else:
+                mirror_index = (ax1_scaled.shape[0]//2 + index)%ax1_scaled.shape[0]
+            # draw line over colormesh
+            vertex0 = np.array([[0,0],[ax1_scaled[index],ax2_max]])
+            vertex1 = np.array([[0,0],[ax1_scaled[mirror_index],ax2_max]])
+            aux_ax_polar.plot(vertex0[:,0],vertex0[:,1], 'w')
+            if sym:
+                aux_ax_polar.plot(vertex1[:,0],vertex1[:,1],'w--',linewidth=2)
 
-        #
-        # plot transects
-        #
-        ax_cart.plot(ax2, data[index,:],'k-')
-        if sym:
-            ax_cart.plot(-ax2, data[mirror_index,:],'k--')
+            #
+            # plot transects
+            #
+            color = ['k', 'r','g','b','m','y'][ii%6]
+            ax_cart.plot(ax2, data[index,:],'-'+color)
+            if sym:
+                ax_cart.plot(-ax2, data[mirror_index,:],'--'+color)
 
     # add colorbar
     fig.colorbar(im, orientation='horizontal', extend='both', ticks=np.linspace(vmin, vmax, 5))
     if lut.desc is not None:
-        ax_polar.set_title(lut.desc, weight='bold', position=(0.15,0.9))
+        ax_polar.set_title(lut.desc, weight='bold', position=(0.05,0.97))
+
+
+def transect2D(lut, index=None, vmin=None, vmax=None, sym=True, swap='auto', fig=None, sub=121, color='k', percent=False, fmt='-'):
+    '''
+    Transect of 2D LUT
+
+    lut: 2D look-up table to display
+            with axes (radius, angle) (unless swapped)
+            angle is assumed to be in degrees and is not scaled
+    index: index of the item to transect in the 'angle' dimension
+           can be an Idx instance
+           if None (default), no transect
+    vmin, vmax: range of values
+                default None: determine min/max from values
+    sym: the transect uses symmetrical axis (boolean)
+         if None (default), use symmetry if axis is 'zenith'
+    swap: swap the order of the 2 axes to (radius, angle)
+          if 'auto', searches for 'azi' in both axes names
+    fig : destination figure. If None (default), create a new figure.
+    color : color of the transect
+    percent: if True set scale to 0 to 100%
+    '''
+    from pylab import figure
+
+    assert lut.ndim == 2
+
+    if fig is None:
+        fig = figure(figsize=(4.5, 2.5))
+
+    if swap =='auto':
+        if ('azi' in lut.names[1].lower()) and ('azi' not in lut.names[0].lower()):
+            swap = True
+        else:
+            swap = False
+
+    # ax1 is angle, ax2 is radius
+    if swap:
+        ax1, ax2 = lut.axes[1], lut.axes[0]
+        name1, name2 = lut.names[1], lut.names[0]
+        data = np.swapaxes(lut.data, 0, 1)
+    else:
+        ax1, ax2 = lut.axes[0], lut.axes[1]
+        name1, name2 = lut.names[0], lut.names[1]
+        data = lut.data
+
+
+    if vmin is None:
+        vmin = np.amin(lut.data[~np.isnan(lut.data)])
+    if vmax is None:
+        vmax = np.amax(lut.data[~np.isnan(lut.data)])
+    if vmin == vmax:
+        vmin -= 0.001
+        vmax += 0.001
+    if vmin > vmax: vmin, vmax = vmax, vmin
+    if percent:
+        vmin=0.
+        vmax=100.
+
+    #
+    # semi polar axis
+    #
+    # angle
+    ax1_scaled = ax1
+    label2 = name2
+
+    # convert Idx instance to index if necessarry
+    if isinstance(index, Idx_base):
+        index = int(np.around(index.index(ax1)))
+    mirror_index = (ax1_scaled.shape[0]//2 + index)%ax1_scaled.shape[0]
+
+    if swap:
+        title=lut.axes[1][index]
+    else:
+        title=lut.axes[0][index]
+
+    # radius axis
+    # scale to [0, 90]
+    ax2_min = np.amin(ax2)
+    ax2_max = np.amax(ax2)
+    label1 = name1 + ' {:7.2f}'.format(title)
+    #
+
+    ax_cart = fig.add_subplot(sub)
+    ax_cart.grid(True)
+
+    if sym:
+        ax_cart.set_xlim(-ax2_max, ax2_max)
+    else:
+        ax_cart.set_xlim(ax2_min, ax2_max)
+    ax_cart.set_ylim(vmin, vmax)
+    ax_cart.ticklabel_format(axis='y', style='sci', scilimits=(-2,2))
+    ax_cart.grid(True)
+    ax_cart.set_xlabel(label2)
+    #ax_cart.set_title(label1)
+
+    #
+    # plot transects
+    #
+    ax_cart.plot(ax2, data[index,:],fmt, color=color)
+    if sym:
+       ax_cart.plot(-ax2, data[mirror_index,:],fmt, color=color)
+
+    if lut.desc is not None:
+        ax_cart.set_title(lut.desc)
 
 
 def merge(M, axes, dtype=None):
@@ -1276,7 +1455,7 @@ def merge(M, axes, dtype=None):
 
     # check mluts compatibility
     for i in xrange(1, len(M)):
-        assert first.equal(M[i], strict=False, show_diff=True)
+        assert first.equal(M[i], content=False, attributes=False, show_diff=True)
 
     # add old axes
     for (axname, axis) in first.axes.items():
@@ -1388,7 +1567,7 @@ class MLUT(object):
 
     def datasets(self):
         ''' returns a list of the datasets names '''
-        return list(map(lambda x: x[0], self.data))
+        return [x[0] for x in self.data]
 
     def add_axis(self, name, axis):
         ''' Add an axis to the MLUT '''
@@ -1410,7 +1589,7 @@ class MLUT(object):
         axnames: list of (strings or None), or None
         attrs: dataset attributes
         '''
-        assert name not in map(lambda x: x[0], self.data)
+        assert name not in [x[0] for x in self.data], 'Error, "{}" already in MLUT'.format(name)
         if axnames is not None:
             # check axes consistency
             assert len(axnames) == len(dataset.shape)
@@ -1438,7 +1617,9 @@ class MLUT(object):
             if axname in self.axes:
                 # check axis
                 if ax is not None:
-                    assert self.axes[axname].shape == ax.shape
+                    assert np.array(self.axes[axname]).shape == np.array(ax).shape, \
+                            'Inconsistent shapes for axis "{}": {} != {}'.format(
+                                    axname, self.axes[axname].shape, ax.shape)
                     assert np.allclose(self.axes[axname], ax)
             elif axname is None:
                 assert ax is None
@@ -1452,10 +1633,13 @@ class MLUT(object):
 
     def rm_lut(self, name):
         ''' remove a LUT '''
-        assert isinstance(name, basestring)
+        try:
+            assert isinstance(name, basestring)
+        except NameError: # must be python 3
+            assert isinstance(name, (str, bytes))
 
         try:
-            index = map(lambda x: x[0], self.data).index(name)
+            index = [x[0] for x in self.data].index(name)
         except ValueError:
             raise Exception('{} is not in {}', name, self)
 
@@ -1474,7 +1658,7 @@ class MLUT(object):
             assert isinstance(dd, str)
 
         for dd in self.datasets():
-            m.add_lut(self[dd].sub(d))
+            m.add_lut(self[dd].sub(d, ignore=True))
 
         m.attrs = self.attrs
 
@@ -1497,7 +1681,7 @@ class MLUT(object):
                 raise ex
 
         if verbose:
-            print('Writing MLUT to "{}" ({} format)'.format(filename, fmt))
+            print('Writing "{}" to "{}" ({} format)'.format(self, filename, fmt))
 
         if fmt is None:
             if filename.endswith('.hdf'):
@@ -1518,7 +1702,7 @@ class MLUT(object):
             raise ValueError('Invalid format {}'.format(fmt))
 
     def __save_netcdf4(self, filename, overwrite=False,
-                     verbose=False, compress=True):
+                      verbose=False, compress=True):
         from netCDF4 import Dataset
         root = Dataset(filename, 'w', format='NETCDF4')
         dummycount = 0
@@ -1531,19 +1715,25 @@ class MLUT(object):
 
         # write datasets
         for (name, data, axnames, attributes) in self.data:
+            if verbose:
+                print('   Write data "{}" ({}, {})'.format(name, data.dtype, data.shape))
             # create dummy dimensions when axis is missing
             for i in xrange(len(axnames)):
                 if axnames[i] is None:
                     dummycount += 1
-                    dim = 'dummy{:d}'.format(dummycount)
-                    axnames[i] = dim
-                    root.createDimension(dim, data.shape[i])
+                    axnames[i] = 'dummy{:d}'.format(dummycount)
+                if axnames[i] not in root.dimensions:
+                    if verbose:
+                        print('   Create dimension {}'.format(axnames[i]))
+                    root.createDimension(axnames[i], data.shape[i])
 
             var = root.createVariable(name, data.dtype, axnames, zlib=compress)
             var.setncatts(attributes)
-            var[:] = data[:]
+            var[:] = data[...]
 
         # write global attributes
+        if verbose:
+            print('   Write {} attributes'.format(len(self.attrs)))
         root.setncatts(self.attrs)
 
         root.close()
@@ -1554,10 +1744,31 @@ class MLUT(object):
         Save a MLUT to a hdf file
         '''
         from pyhdf.SD import SD, SDC
+        from pyhdf.error import HDF4Error
+
+        def safecast(data):
+            # hdf4 does not support int64, uint64
+            # cast to 32-bits
+            if data.dtype == np.dtype('uint64'):
+                assert np.allclose(data, data.astype('uint32'))
+                return data.astype('uint32')
+            if data.dtype == np.dtype('int64'):
+                assert np.allclose(data, data.astype('int32'))
+                return data.astype('int32')
+            return data
+
 
         typeconv = {
                     np.dtype('float32'): SDC.FLOAT32,
                     np.dtype('float64'): SDC.FLOAT64,
+                    np.dtype('uint64'): SDC.UINT32, # /!\
+                    np.dtype('int64'): SDC.INT32,   # hdf4 does not support 64-bit ints
+                    np.dtype('uint32'): SDC.UINT32,
+                    np.dtype('int32'): SDC.INT32,
+                    np.dtype('uint16'): SDC.UINT16,
+                    np.dtype('int16'): SDC.INT16,
+                    np.dtype('uint8'): SDC.UINT8,
+                    np.dtype('int8'): SDC.INT8,
                     }
         hdf = SD(filename, SDC.WRITE | SDC.CREATE)
 
@@ -1570,19 +1781,30 @@ class MLUT(object):
                 sds = hdf.create(name, type, ax.shape)
                 if compress:
                     sds.setcompress(SDC.COMP_DEFLATE, 9)
-                sds[:] = ax[:]
+                sds[:] = safecast(ax)[:]
                 sds.endaccess()
 
         # write datasets
         for name, data, axnames, attrs in self.data:
+
+            data = safecast(data)
+
             if verbose:
-                print('   Write data "{}"'.format(name))
+                print('   Write data "{}" ({}, {})'.format(name, data.dtype, data.shape))
             type = typeconv[data.dtype]
-            sds = hdf.create(name, type, data.shape)
+
+            # write data
+            if data.ndim == 0:
+                # scalar
+                sds = hdf.create(name, type, (1,))
+                setattr(sds, 'lut:scalar', 'True')
+            else:
+                sds = hdf.create(name, type, data.shape)
             if compress:
                 sds.setcompress(SDC.COMP_DEFLATE, 9)
-            sds[:] = data[:]
-            if axnames is not None:
+            sds[:] = data[...]
+
+            if axnames not in [None, []]:
                 setattr(sds, 'dimensions', ','.join(map(str, axnames)))
             if 'dimensions' in attrs:
                 raise Exception('Error writing {}, "dimensions" attribute conflict'.format(filename))
@@ -1594,7 +1816,10 @@ class MLUT(object):
         if verbose:
             print('   Write {} attributes'.format(len(self.attrs)))
         for k, v in self.attrs.items():
-            setattr(hdf, k, v)
+            try:
+                setattr(hdf, k, v)
+            except HDF4Error:
+                setattr(hdf, str(k), str(v))
 
         hdf.end()
 
@@ -1660,6 +1885,33 @@ class MLUT(object):
 
         return self
 
+    def dropaxis(self, *ax_to_drop):
+        '''
+        drop axes of size 1
+
+        example:
+            m.dropaxis('a')   # remove axis 'a' of size 1
+            m.dropaxis('a', 'b')   # remove 'a' and 'b'
+        '''
+        m = MLUT()
+
+        # axes
+        for axname, ax in self.axes.items():
+            if axname not in ax_to_drop:
+                m.add_axis(axname, ax)
+
+        # datasets
+        for (name, data, axnames, attributes) in self.data:
+            axes = [x for x in axnames if x not in ax_to_drop]
+            shp = [s for (x, s) in zip(axnames, data.shape) if x not in ax_to_drop]
+            m.add_dataset(name, data.reshape(shp), axnames=axes, attrs=attributes)
+
+        # global attributes
+        m.attrs = self.attrs
+
+        return m
+
+
     def promote_attr(self, name):
         '''
         Create a new dataset from attribute name
@@ -1692,27 +1944,21 @@ class MLUT(object):
             axes = None
         else:
             axes = []
-            names = []
             for ax in axnames:
                 if (ax is None) or (ax not in self.axes):
                     axes.append(None)
                 else:
                     axes.append(self.axes[ax])
-                names.append(ax)
 
-        return LUT(desc=name, data=dataset, axes=axes, names=names, attrs=attrs)
+        return LUT(desc=name, data=dataset, axes=axes, names=axnames, attrs=attrs)
 
-    def equal(self, other, strict=True, show_diff=False):
+    def equal(self, other, content=True, attributes=True, show_diff=False):
         '''
         Test equality between two MLUTs
         Arguments:
          * show_diff: print their differences
-         * strict:
-            True: use strict equality
-            False: MLUTs compatibility but not strict equality
-                -> same axes
-                -> same datasets names and shapes, but not content
-                -> attributes may be different
+         * content: check LUT content (otherwise only axes and shapes)
+         * attributes: check global attributes
         '''
         msg = 'MLUTs diff:'
         if not isinstance(other, MLUT):
@@ -1741,12 +1987,12 @@ class MLUT(object):
             msg += '   -> {}'.format(str(other.datasets()))
             eq = False
         for name in self.datasets():
-            if not self[name].equal(other[name], strict=strict):
-                msg += '  dataset {} differs\n'.format(name)
+            if not self[name].equal(other[name], strict=content):
+                msg += '  dataset {} differs (shapes are {} and {})\n'.format(name, self[name].shape, other[name].shape)
                 eq = False
 
         # check global attributes
-        if strict:
+        if attributes:
             for a in set(self.attrs.keys()).union(other.attrs.keys()):
                 if (a not in self.attrs) or (a not in other.attrs):
                     msg += '  attribute {} missing in either MLUT\n'.format(a)
@@ -1884,7 +2130,7 @@ class MLUT(object):
                         index = slider.value
                         keys.append(index)
                         # set text (value)
-                        if self[d].axes[i] is not None:
+                        if self[d].axes[i] != None:
                             text.value = '&nbsp;&nbsp;{:.5g}&nbsp;&nbsp;'.format(self[d].axes[i][index])
                     else:
                         keys.append(slice(None))
@@ -1952,7 +2198,7 @@ def read_mlut_netcdf4(filename):
 
     # read axes
     for dim in root.dimensions:
-        if not dim.startswith('dummy'):
+        if (not dim.startswith('dummy')) and (dim in root.variables):
             m.add_axis(str(dim), root.variables[dim][:])
 
     # read datasets
@@ -1966,7 +2212,7 @@ def read_mlut_netcdf4(filename):
         for a in var.ncattrs():
             attrs[a] = var.getncattr(a)
 
-        m.add_dataset(varname, var[:], list(map(str, var.dimensions)), attrs=attrs)
+        m.add_dataset(varname, var[:], [str(x) for x in var.dimensions], attrs=attrs)
 
     # read global attributes
     for a in root.ncattrs():
@@ -2086,15 +2332,20 @@ def read_mlut_hdf(filename, datasets=None):
 
         if (axes is None) and ('dimensions' in sds.attributes()):
             axes = sds.attributes()['dimensions'].split(',')
-            axes = list(map(lambda x: x.strip(), axes))
+            axes = [x.strip() for x in axes]
 
             # replace 'None's by None
-            axes = list(map(lambda x: {True: None, False: x}[x == 'None'], axes))
+            axes = [None if (x=='None') else x for x in axes]
 
         if axes is not None:
             ls_axes.extend(axes)
 
-        ls_datasets.append((sdsname, sds.get(), axes, sds.attributes()))
+        data = sds.get()
+        attrs = sds.attributes()
+        if 'lut:scalar' in attrs:
+            attrs.pop('lut:scalar')
+            data = data.reshape(())
+        ls_datasets.append((sdsname, data, axes, attrs))
 
     # remove 'None' axes
     while None in ls_axes:
@@ -2103,13 +2354,15 @@ def read_mlut_hdf(filename, datasets=None):
     # transfer the axes from ls_datasets to the new MLUT
     m = MLUT()
     for ax in set(ls_axes):
+        [x[0] for x in ls_datasets]
 
         # read the axis if not done already
-        if ax not in map(lambda x: x[0], ls_datasets):
-            sds = hdf.select(ax)
-            m.add_axis(ax, sds.get())
+        if ax not in [x[0] for x in ls_datasets]:
+            if ax in hdf.datasets():
+                sds = hdf.select(ax)
+                m.add_axis(ax, sds.get())
         else:
-            i = list(map(lambda x: x[0], ls_datasets)).index(ax)
+            i = [x[0] for x in ls_datasets].index(ax)
             (name, data, _, _) = ls_datasets.pop(i)
             m.add_axis(name, data)
 
@@ -2124,71 +2377,6 @@ def read_mlut_hdf(filename, datasets=None):
         m.set_attr(k, v)
 
     return m
-
-
-def read_lut_hdf(filename, dataset, axnames=None):
-    '''
-    read a hdf file as a LUT, using axis list axnames
-    if axnames is None, read the axes names in the attribute 'dimensions' of dataset
-    '''
-    from pyhdf.SD import SD
-
-    warnings.warn('This function shall be replaced by read_mlut_*', DeprecationWarning)
-
-    axes = []
-    names = []
-    data = None
-    dimensions = None
-
-    hdf = SD(filename)
-
-    # load dataset
-    if dataset in hdf.datasets():
-        sds = hdf.select(dataset)
-        data = sds.get()
-        if 'dimensions' in sds.attributes():
-            dimensions = sds.attributes()['dimensions'].split(',')
-            dimensions = map(lambda x: x.strip(), dimensions)
-    else:
-        print('dataset "{}" not available.'.format(dataset))
-        print('{} contains the following datasets:'.format(filename))
-        for d in hdf.datasets():
-            print('  *', d)
-        raise Exception('Missing dataset')
-
-    if axnames == None:
-        assert dimensions is not None, 'Error, dimension names have not been provided'
-        axnames = dimensions
-    else:
-        if dimensions is not None:
-            assert axnames == dimensions, 'Error in dimensions, expected {}, found {}'.format(axnames, dimensions)
-
-    # load axes
-    for d in axnames:
-        if not d in hdf.datasets():
-            axes.append(None)
-            names.append(d)
-            continue
-
-        sds = hdf.select(d)
-        (sdsname, rank, shp, dtype, nattr) = sds.info()
-
-        assert rank == 1
-
-        axis = sds.get()
-        axes.append(axis)
-        names.append(sdsname)
-
-    assert data.ndim == len(axes)
-    for i in xrange(data.ndim):
-        assert (axes[i] is None) or (len(axes[i]) == data.shape[i])
-
-    # read global attributes
-    attrs = {}
-    for a in hdf.attributes():
-        attrs.update({a: hdf.attributes()[a]})
-
-    return LUT(data, axes=axes, names=names, desc=dataset, attrs=attrs)
 
 
 
