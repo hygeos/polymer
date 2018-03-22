@@ -18,16 +18,26 @@ from collections import OrderedDict
 class Level1_OLCI(Level1_base):
     '''
     OLCI reader using the netcdf module
+
+    landmask:
+        * None => don't apply land mask at all
+        * 'default' => use landmask provided in Level1
+        * GSW object: use global surface water product (see gsw.py)
     '''
     def __init__(self, dirname,
                  sline=0, eline=-1,
                  scol=0, ecol=-1,
                  blocksize=100, ancillary=None,
-                 apply_land_mask=True):
+                 landmask='default',
+                 apply_land_mask=None,
+                 ):
 
         self.sensor = 'OLCI'
         self.blocksize = blocksize
-        self.apply_land_mask = apply_land_mask
+        self.landmask = landmask
+
+        if apply_land_mask is not None:
+            raise Exception('[Deprecated] Level1_OLCI: apply_land_mask option has been replaced by landmask.')
 
         if not os.path.isdir(dirname):
             dirname = os.path.dirname(dirname)
@@ -94,6 +104,8 @@ class Level1_OLCI(Level1_base):
         if self.ancillary is not None:
             self.init_ancillary()
 
+        self.init_landmask()
+
     def read_date(self):
         var = self.get_ncroot('Oa01_radiance.nc')
         self.dstart = datetime.strptime(var.getncattr('start_time'), '%Y-%m-%dT%H:%M:%S.%fZ')
@@ -109,6 +121,19 @@ class Level1_OLCI(Level1_base):
         self.ancillary_files.update(self.surf_press.filename)
 
         self.ancillary_files.update(self.wind_speed.filename)
+
+    def init_landmask(self):
+        if not hasattr(self.landmask, 'get'):
+            return
+
+        lat = self.read_band('latitude',
+                             (self.height, self.width),
+                             (self.sline, self.scol))
+        lon = self.read_band('longitude',
+                             (self.height, self.width),
+                             (self.sline, self.scol))
+
+        self.landmask_data = self.landmask.get(lat, lon)
 
     def get_ncroot(self, filename):
         if filename in self.nc_datasets:
@@ -183,6 +208,7 @@ class Level1_OLCI(Level1_base):
     def read_block(self, size, offset, bands):
 
         (ysize, xsize) = size
+        (yoffset, xoffset) = offset
         nbands = len(bands)
 
         # initialize block
@@ -243,11 +269,17 @@ class Level1_OLCI(Level1_base):
         # quality flags
         bitmask = self.read_band('quality_flags', size, offset)
         block.bitmask = np.zeros(size, dtype='uint16')
-        if self.apply_land_mask:
+        if self.landmask == 'default':
             raiseflag(block.bitmask, L2FLAGS['LAND'],
                       bitmask & self.quality_flags['land'] != 0)
-        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'],
-                  bitmask & self.quality_flags['invalid'] != 0)
+        elif self.landmask is None:
+            pass
+        else:  # assume GSW-like object
+            raiseflag(block.bitmask, L2FLAGS['LAND'],
+                      self.landmask_data[
+                          yoffset+self.sline:yoffset+self.sline+ysize,
+                          xoffset+self.scol:xoffset+self.scol+xsize,
+                                         ])
 
         return block
 

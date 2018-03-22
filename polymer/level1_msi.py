@@ -7,7 +7,7 @@ from collections import OrderedDict
 from glymur import Jp2k
 from glob import glob
 from lxml import objectify
-from os.path import join
+from os.path import join, basename
 from datetime import datetime
 import numpy as np
 from polymer.block import Block
@@ -17,6 +17,7 @@ from polymer.ancillary import Ancillary_NASA
 from polymer.common import L2FLAGS
 from polymer.level1 import Level1_base
 from polymer.utils import raiseflag
+from polymer.gsw import GSW
 
 '''
 List of MSI bands:
@@ -43,7 +44,7 @@ class Level1_MSI(Level1_base):
 
     def __init__(self, dirname, blocksize=198, resolution='60',
                  sline=0, eline=-1, scol=0, ecol=-1,
-                 ancillary=None):
+                 ancillary=None, landmask=GSW()):
         '''
         dirname: granule dirname
 
@@ -55,6 +56,11 @@ class Level1_MSI(Level1_base):
               => eline-sline and ecol-scol must be a multiple of 3
             * in the 10980x10980 grid at 10m resolution
               => eline-sline and ecol-scol must be a multiple of 6
+
+        landmask:
+            * None: no land mask
+            * GSW object (see gsw.py)
+
         '''
         self.sensor = 'MSI'
         if dirname.endswith('/'):
@@ -64,6 +70,9 @@ class Level1_MSI(Level1_base):
         self.filename = self.dirname
         self.blocksize = blocksize
         self.resolution = str(resolution)
+        self.landmask = landmask
+        self.platform = basename(dirname)[:3]
+        assert self.platform in ['S2A', 'S2B']
 
         if ancillary is None:
             self.ancillary = Ancillary_NASA()
@@ -107,6 +116,11 @@ class Level1_MSI(Level1_base):
         self.init_latlon()
         self.init_geometry()
         self.init_ancillary()
+        self.init_landmask()
+
+    def init(self, params):
+        # read spectral response function
+        pass
 
     def init_ancillary(self):
         self.ozone = self.ancillary.get('ozone', self.date)
@@ -180,6 +194,13 @@ class Level1_MSI(Level1_base):
         self.vza[:,:] = rectBivariateSpline(vza[k], shp)
         self.vaa[:,:] = rectBivariateSpline(vaa[k], shp)
 
+    def init_landmask(self):
+        if not hasattr(self.landmask, 'get'):
+            return
+
+        self.landmask_data = self.landmask.get(self.lat, self.lon)
+
+
     def get_filename(self, band):
         '''
         returns jp2k filename containing band
@@ -226,6 +247,7 @@ class Level1_MSI(Level1_base):
     def read_block(self, size, offset, bands):
 
         (ysize, xsize) = size
+        (yoffset, xoffset) = offset
         nbands = len(bands)
 
         block = Block(offset=offset, size=size, bands=bands)
@@ -255,6 +277,13 @@ class Level1_MSI(Level1_base):
 
         block.bitmask = np.zeros(size, dtype='uint16')
         raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], np.isnan(block.muv))
+
+        if self.landmask is not None:
+            raiseflag(block.bitmask, L2FLAGS['LAND'],
+                      self.landmask_data[
+                          yoffset+self.sline:yoffset+self.sline+ysize,
+                          xoffset+self.scol:xoffset+self.scol+xsize,
+                                         ])
 
         block.ozone = self.ozone[block.latitude, block.longitude]
         block.wind_speed = self.wind_speed[block.latitude, block.longitude]
