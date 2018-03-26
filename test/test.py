@@ -15,6 +15,9 @@ import tempfile
 import numpy as np
 
 
+mp = -1 # multiprocessing
+
+
 class Test_MERIS(unittest.TestCase):
     filename = '/mfs/user/francois/TESTCASES/MERIS/GlintMediteranea/MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1'
 
@@ -81,7 +84,7 @@ class Test_MERIS(unittest.TestCase):
                     eline=5774+100, ecol=299+150,
                     ),
                 Level2_NETCDF(target),
-                multiprocessing=-1,
+                multiprocessing=mp,
                 )
 
     def test_output_hdf(self):
@@ -94,7 +97,7 @@ class Test_MERIS(unittest.TestCase):
                     eline=5774+100, ecol=299+150,
                     ),
                 Level2_HDF(target),
-                multiprocessing=-1,
+                multiprocessing=mp,
                 )
 
     def test_ancillary_nasa(self):
@@ -107,7 +110,7 @@ class Test_MERIS(unittest.TestCase):
                 ancillary=Ancillary_NASA(),
                 ),
             Level2('memory'),
-            multiprocessing=-1,
+            multiprocessing=mp,
             )
 
     def test_ancillary_era(self):
@@ -121,7 +124,7 @@ class Test_MERIS(unittest.TestCase):
                 ancillary=Ancillary_ERA(),
                 ),
             Level2('memory'),
-            multiprocessing=-1,
+            multiprocessing=mp,
             )
 
 class Test_OLCI(unittest.TestCase):
@@ -183,7 +186,7 @@ class Test_OLCI(unittest.TestCase):
                         ),
                     Level2('memory'),
                     force_initialization=True,
-                    multiprocessing=-1,
+                    multiprocessing=mp,
                     )
         assert_allclose(
                 l2_a.Rw[50:60,50:60,:],
@@ -305,7 +308,7 @@ class Test_Level1_Subsetted_NETCDF(unittest.TestCase):
         run_atm_corr(
                 Level1_NETCDF('/mfs/proj/CGLOPS-LAKES/from_Stefan/subsetted_products/subset_0_of_MER_FRS_1PPEPA20080806_094519_000005122071_00022_33643_2741.nc'),
                 Level2('memory'),
-                multiprocessing=-1,
+                multiprocessing=mp,
                 )
 
     def test_meris_2(self):
@@ -313,7 +316,7 @@ class Test_Level1_Subsetted_NETCDF(unittest.TestCase):
         run_atm_corr(
                 Level1_NETCDF('/mfs/proj/CGLOPS-LAKES/from_Stefan/subsetted_problem_20171201/MER_FRS_1PPEPA20020721_093901_000004052007_00480_02037_1130__radPoly4.nc'),
                 Level2('memory'),
-                multiprocessing=-1,
+                multiprocessing=mp,
                 )
 
     def test_olci(self):
@@ -321,21 +324,21 @@ class Test_Level1_Subsetted_NETCDF(unittest.TestCase):
         run_atm_corr(
                 Level1_NETCDF('/mfs/proj/CGLOPS-LAKES/from_Stefan/subsetted_products/subset_0_of_S3A_OL_1_EFR____20170704T122949_20170704T123249_20170705T182000_0179_019_280_3419_MAR_O_NT_002.nc'),
                 Level2('memory'),
-                multiprocessing=-1,
+                multiprocessing=mp,
                 )
 
     def test_msi_1(self):
         run_atm_corr(
                 Level1_NETCDF('/mfs/proj/CGLOPS-LAKES/from_Mark_S2_netcdf/L1C_T30UVA_A009329_20170405T112111_resampled_120.nc'),
                 Level2('memory'),
-                multiprocessing=-1,
+                multiprocessing=mp,
                 )
 
     def test_msi_2(self):
         run_atm_corr(
                 Level1_NETCDF('/mfs/proj/CGLOPS-LAKES/from_Mark_S2_netcdf/S2A_OPER_MSI_L1C_TL_SGS__20160619T163833_A005182_T30UVA_N02.04_resampled_120.nc'),
                 Level2('memory'),
-                multiprocessing=-1,
+                multiprocessing=mp,
                 )
 
 
