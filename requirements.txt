@@ -16,3 +16,4 @@ pandas    # for Level1_ASCII
 pyepr     # for MERIS
 ecmwf-api-client   # for Ancillary_ERA (download ERA-Interim files)
 pygrib             # for Ancillary_ERA
+gdal      # for GSW (global surface water)

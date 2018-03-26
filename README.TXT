@@ -41,7 +41,8 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
   pyepr             MERIS          https://pypi.python.org/pypi/pyepr/
   netCDF4           MODIS,SeaWiFS, https://pypi.python.org/pypi/netCDF4
                     VIIRS,OLCI,
-                    level2_netcdf
+                    level2_netcdf,
+                    GSW
   pandas            level1_ascii   https://pypi.python.org/pypi/pandas
   lxml              MSI            https://pypi.python.org/pypi/lxml
   glymur            MSI            https://pypi.python.org/pypi/Glymur/
@@ -49,6 +50,7 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
   ecmwf-api-client  Ancillary_ERA  https://pypi.python.org/pypi/ecmwf-api-client
                     (on-the-fly download)
   pygrib            Ancillary_ERA  https://pypi.python.org/pypi/pygrib
+  gdal              GSW            https://pypi.python.org/pypi/GDAL
 
 
 NOTE: python 2.7 and python 3 (>=3.5) are both supported.
