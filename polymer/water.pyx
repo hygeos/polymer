@@ -6,6 +6,7 @@ from os.path import join
 from clut cimport CLUT
 from libc.math cimport exp, M_PI, isnan, log, sin, asin, log10, cos
 from warnings import warn
+from io import open
 
 
 cdef extern from "fresnel.c":
@@ -114,7 +115,9 @@ cdef class ParkRuddick(WaterModel):
         # read pure water absorption coefficient
         #
         # Pope&Fry
-        data = np.genfromtxt(join(directory, 'pope97.dat'), skip_header=6)
+        with open(join(directory, 'pope97.dat'), 'rb') as fp:
+            for i in range(6): fp.readline()  # skip the first 6 lines
+            data = np.genfromtxt(fp)
         data[:,1] *= 100 #  convert from cm-1 to m-1
         self.AW_POPEFRY = CLUT(data[:,1], axes=[data[:,0]])
         # Palmer&Williams
