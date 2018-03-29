@@ -13,7 +13,7 @@ default_datasets = [
             'Rw', 'Rnir', 'bitmask',
             'logchl', 'bbs', 'Rgli']
 analysis_datasets = ['Rtoa', 'Rprime', 'Ratm', 'vza', 'sza', '_raa', 'niter', 'Rwmod', 'Tmol']
-ancillary_datasets = ['ozone', 'surf_press', 'wind_speed']
+ancillary_datasets = ['ozone', 'surf_press', 'wind_speed', 'altitude']
 
 
 class OutputExists(Exception):
