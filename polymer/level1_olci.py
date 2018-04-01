@@ -28,7 +28,10 @@ class Level1_OLCI(Level1_base):
 
     altitude: surface altitude in km
         * a float
-        * a DEM_SRTM instance (srtm.py)
+        * a DEM instance such as:
+            SRTM(cache_dir=...)  # srtm.py
+            GLOBE(directory=...)  # globe.py
+            SRTM(..., missing=GLOBE(...))
     '''
     def __init__(self, dirname,
                  sline=0, eline=-1,
@@ -136,10 +139,10 @@ class Level1_OLCI(Level1_base):
 
         lat = self.read_band('latitude',
                              (self.height, self.width),
-                             (self.sline, self.scol))
+                             (0, 0))
         lon = self.read_band('longitude',
                              (self.height, self.width),
-                             (self.sline, self.scol))
+                             (0, 0))
 
         self.landmask_data = self.landmask.get(lat, lon)
 
@@ -305,8 +308,8 @@ class Level1_OLCI(Level1_base):
         else:  # assume GSW-like object
             raiseflag(block.bitmask, L2FLAGS['LAND'],
                       self.landmask_data[
-                          yoffset+self.sline:yoffset+self.sline+ysize,
-                          xoffset+self.scol:xoffset+self.scol+xsize,
+                          yoffset:yoffset+ysize,
+                          xoffset:xoffset+xsize,
                                          ])
 
         return block
