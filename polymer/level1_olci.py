@@ -26,7 +26,7 @@ class Level1_OLCI(Level1_base):
         * 'default' => use landmask provided in Level1
         * GSW object: use global surface water product (see gsw.py)
 
-    altitude: surface altitude in km
+    altitude: surface altitude in m
         * a float
         * a DEM instance such as:
             SRTM(cache_dir=...)  # srtm.py
@@ -278,15 +278,14 @@ class Level1_OLCI(Level1_base):
 
         # read surface altitude
         try:
-            altitude_km = self.altitude.get(lat=block.latitude,
-                                            lon=block.longitude)/1000.
+            block.altitude = self.altitude.get(lat=block.latitude,
+                                            lon=block.longitude)
         except AttributeError:
             # altitude expected to be a float
-            altitude_km = np.zeros((ysize, xsize), dtype='float32') + self.altitude
-        block.altitude = altitude_km
+            block.altitude = np.zeros((ysize, xsize), dtype='float32') + self.altitude
 
         # calculate surface altitude
-        block.surf_press = P0 * np.exp(-altitude_km/8.)
+        block.surf_press = P0 * np.exp(-block.altitude/8000.)
 
         # calculate rayleigh optical thickness for each band
         block.tau_ray = np.zeros((nbands, ysize, xsize), dtype='float32') + np.NaN
@@ -294,7 +293,7 @@ class Level1_OLCI(Level1_base):
             # per-pixel average wavelength
             wav = self.wav[self.band_index[band], di]
             block.tau_ray[iband,:,:] = rod(wav/1000., 400., 45.,
-                                           altitude_km,
+                                           block.altitude,
                                            block.surf_press)
 
         # quality flags
