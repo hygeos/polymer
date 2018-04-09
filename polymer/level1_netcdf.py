@@ -25,15 +25,34 @@ class Level1_NETCDF(Level1_base):
         * OLCI
         * MERIS
         * Sentinel2
+
+    landmask:
+        * None => don't apply land mask at all
+        * 'default' => use landmask provided in Level1
+        * GSW object: use global surface water product (see gsw.py)
+
+    altitude: surface altitude in m
+        * a float
+        * a DEM instance such as:
+            SRTM(cache_dir=...)  # srtm.py
+            GLOBE(directory=...)  # globe.py
+            SRTM(..., missing=GLOBE(...))
     '''
-    def __init__(self, filename, blocksize=(500, 400),
-                 dir_smile=None, apply_land_mask=True,
+    def __init__(self, filename,
+                 blocksize=(500, 400),
+                 dir_smile=None,
+                 apply_land_mask=None,
+                 landmask=None,
+                 altitude=0.,
                  ancillary=None):
 
         self.filename = filename
         self.root = Dataset(filename)
         self.blocksize = blocksize
-        self.apply_land_mask = apply_land_mask
+        self.landmask = landmask
+        self.altitude = altitude
+        if apply_land_mask is not None:
+            raise Exception('[Deprecated] Level1_OLCI: apply_land_mask option has been replaced by landmask.')
 
         # detect sensor
         try:
@@ -128,6 +147,22 @@ class Level1_NETCDF(Level1_base):
             self.ancillary = ancillary
         if self.ancillary is not None:
             self.init_ancillary()
+        
+        self.init_landmask()
+    
+    def init_landmask(self):
+        if not hasattr(self.landmask, 'get'):
+            return
+
+        lat = self.read_band('latitude',
+                             (self.height, self.width),
+                             (0, 0))
+        lon = self.read_band('longitude',
+                             (self.height, self.width),
+                             (0, 0))
+
+        self.landmask_data = self.landmask.get(lat, lon)
+
 
     def init_ancillary(self):
         self.ozone = self.ancillary.get('ozone', self.date)
@@ -218,6 +253,8 @@ class Level1_NETCDF(Level1_base):
 
     def read_block(self, size, offset, bands):
 
+        (ysize, xsize) = size
+        (yoffset, xoffset) = offset
         nbands = len(bands)
         size3 = size + (nbands,)
 
@@ -295,13 +332,13 @@ class Level1_NETCDF(Level1_base):
         # read bitmask
         block.bitmask = np.zeros(size, dtype='uint16')
         if self.sensor == 'OLCI':
-            if self.apply_land_mask:
+            if self.landmask == 'default':
                 raiseflag(block.bitmask, L2FLAGS['LAND'], self.get_bitmask('quality_flags', 'land', size, offset))
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('quality_flags', 'invalid', size, offset))
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('quality_flags', 'cosmetic', size, offset))
 
         elif self.sensor == 'MERIS':
-            if self.apply_land_mask:
+            if self.landmask == 'default':
                 raiseflag(block.bitmask, L2FLAGS['LAND'], self.get_bitmask('l1_flags', 'LAND_OCEAN', size, offset))
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('l1_flags', 'INVALID', size, offset))
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], self.get_bitmask('l1_flags', 'SUSPECT', size, offset))
@@ -310,6 +347,16 @@ class Level1_NETCDF(Level1_base):
             raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], np.isnan(block.vza))
         else:
             raise Exception('Invalid sensor {}'.format(self.sensor))
+        
+        # GSW landmask
+        if hasattr(self.landmask, 'get'): # assume GSW-like object
+            raiseflag(block.bitmask, L2FLAGS['LAND'],
+                      self.landmask_data[
+                          yoffset:yoffset+ysize,
+                          xoffset:xoffset+xsize,
+                                         ])
+
+
 
         # date
         block.jday = self.date.timetuple().tm_yday
@@ -321,14 +368,24 @@ class Level1_NETCDF(Level1_base):
             zwind = self.read_band(self.varnames['zwind'], size, offset)
             mwind = self.read_band(self.varnames['mwind'], size, offset)
             block.wind_speed = np.sqrt(zwind**2 + mwind**2)
-            block.surf_press = self.read_band(self.varnames['press'], size, offset)
+            P0 = self.read_band(self.varnames['press'], size, offset)
         elif self.sensor == 'MSI':
             block.ozone = self.ozone[block.latitude, block.longitude]
             block.wind_speed = self.wind_speed[block.latitude, block.longitude]
-            block.surf_press = self.surf_press[block.latitude, block.longitude]
+            P0 = self.surf_press[block.latitude, block.longitude]
         else:
             raise Exception('Invalid sensor {}'.format(self.sensor))
 
+        # read altitude
+        try:
+            block.altitude = self.altitude.get(lat=block.latitude,
+                                               lon=block.longitude)
+        except AttributeError:
+            # altitude expected to be a float
+            block.altitude = np.zeros((ysize, xsize), dtype='float32') + self.altitude
+
+        # surface pressure
+        block.surf_press = P0 * np.exp(-block.altitude/8000.)
 
         return block
 

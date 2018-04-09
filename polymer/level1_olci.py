@@ -263,6 +263,7 @@ class Level1_OLCI(Level1_base):
             # external ancillary files
             block.ozone = self.ozone[block.latitude, block.longitude]
             block.wind_speed = self.wind_speed[block.latitude, block.longitude]
+            P0 = self.surf_press[block.latitude, block.longitude]
 
         else: # ancillary files embedded in level1
 
@@ -279,22 +280,13 @@ class Level1_OLCI(Level1_base):
         # read surface altitude
         try:
             block.altitude = self.altitude.get(lat=block.latitude,
-                                            lon=block.longitude)
+                                               lon=block.longitude)
         except AttributeError:
             # altitude expected to be a float
             block.altitude = np.zeros((ysize, xsize), dtype='float32') + self.altitude
 
         # calculate surface altitude
         block.surf_press = P0 * np.exp(-block.altitude/8000.)
-
-        # calculate rayleigh optical thickness for each band
-        block.tau_ray = np.zeros((nbands, ysize, xsize), dtype='float32') + np.NaN
-        for iband, band in enumerate(bands):
-            # per-pixel average wavelength
-            wav = self.wav[self.band_index[band], di]
-            block.tau_ray[iband,:,:] = rod(wav/1000., 400., 45.,
-                                           block.altitude,
-                                           block.surf_press)
 
         # quality flags
         bitmask = self.read_band('quality_flags', size, offset)

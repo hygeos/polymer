@@ -7,14 +7,10 @@ from polymer.block import Block
 import numpy as np
 from datetime import datetime
 from polymer.common import L2FLAGS
-import sys
 from os.path import basename, join, dirname
 from collections import OrderedDict
 from polymer.utils import raiseflag
 from polymer.level1 import Level1_base
-
-if sys.version_info[:2] >= (3, 0):
-    xrange = range
 
 BANDS_MERIS = [412, 443, 490, 510, 560,
                620, 665, 681, 709, 754,
@@ -22,18 +18,41 @@ BANDS_MERIS = [412, 443, 490, 510, 560,
 
 
 class Level1_MERIS(Level1_base):
+    """
+    MERIS Level1 class
+
+    ancillary: an ancillary data instance (Ancillary_NASA, Ancillary_ERA)
+
+    landmask:
+        * None: don't apply land mask at all
+        * 'default': use landmask provided in MERIS Level1
+        * a GSW object: use global surface water product (see gsw.py)
+    
+    altitude: surface altitude in m
+        * a float
+        * a DEM instance such as:
+            SRTM(cache_dir=...)  # srtm.py
+            GLOBE(directory=...)  # globe.py
+            SRTM(..., missing=GLOBE(...))
+    """
 
     def __init__(self, filename,
                  sline=0, eline=-1,
                  scol=0, ecol=-1,
                  blocksize=100,
                  dir_smile=None,
-                 ancillary=None):
+                 ancillary=None,
+                 altitude=0.,
+                 landmask=None,
+                 ):
 
         self.sensor = 'MERIS'
         self.filename = filename
         self.prod = epr.Product(filename)
         self.blocksize = blocksize
+        self.landmask = landmask
+        self.altitude = altitude
+
         totalwidth = self.prod.get_scene_width()
         totalheight = self.prod.get_scene_height()
 
@@ -49,7 +68,7 @@ class Level1_MERIS(Level1_base):
         self.ancillary = ancillary
 
         if dir_smile is None:
-            dir_smile = join(dirname(dirname(__file__)), 'auxdata/meris/smile/v2/')
+            dir_smile = join(dirname(dirname(__file__)), 'auxdata', 'meris', 'smile', 'v2')
 
         self.band_names = dict(map(lambda b: (b[1], 'Radiance_{:d}'.format(b[0]+1)),
                                    enumerate(BANDS_MERIS)))
@@ -82,6 +101,23 @@ class Level1_MERIS(Level1_base):
         self.ancillary_files = OrderedDict()
         if self.ancillary is not None:
             self.init_ancillary()
+        
+        self.init_landmask()
+    
+    def init_landmask(self):
+        if not hasattr(self.landmask, 'get'):
+            return
+
+        # TODO: test this
+
+        lat = self.read_band('latitude',
+                             (self.height, self.width),
+                             (0, 0))
+        lon = self.read_band('longitude',
+                             (self.height, self.width),
+                             (0, 0))
+
+        self.landmask_data = self.landmask.get(lat, lon)
 
 
     def read_date(self, field):
@@ -141,6 +177,7 @@ class Level1_MERIS(Level1_base):
         '''
 
         (ysize, xsize) = size
+        (yoffset, xoffset) = offset
         nbands = len(bands)
 
         # initialize block
@@ -181,7 +218,7 @@ class Level1_MERIS(Level1_base):
         if self.ancillary is not None:
             block.ozone = self.ozone[block.latitude, block.longitude]
             block.wind_speed = self.wind_speed[block.latitude, block.longitude]
-            block.surf_press = self.surf_press[block.latitude, block.longitude]
+            P0 = self.surf_press[block.latitude, block.longitude]
         else:
             # wind speed (zonal and merdional)
             zwind = self.read_band('zonal_wind', size, offset)
@@ -192,7 +229,18 @@ class Level1_MERIS(Level1_base):
             block.ozone = self.read_band('ozone', size, offset)
 
             # surface pressure
-            block.surf_press = self.read_band('atm_press', size, offset)
+            P0 = self.read_band('atm_press', size, offset)
+
+        # read surface altitude
+        try:
+            block.altitude = self.altitude.get(lat=block.latitude,
+                                               lon=block.longitude)
+        except AttributeError:
+            # altitude expected to be a float
+            block.altitude = np.zeros((ysize, xsize), dtype='float32') + self.altitude
+
+        # calculate surface altitude
+        block.surf_press = P0 * np.exp(-block.altitude/8000.)
 
         # set julian day and month
         block.jday = self.date.timetuple().tm_yday
@@ -200,8 +248,18 @@ class Level1_MERIS(Level1_base):
 
         # read bitmask
         block.bitmask = np.zeros(size, dtype='uint16')
-        raiseflag(block.bitmask, L2FLAGS['LAND'],
-                  self.read_bitmask(size, offset, 'l1_flags.LAND_OCEAN') != 0)
+        if self.landmask == 'default':
+            raiseflag(block.bitmask, L2FLAGS['LAND'],
+                    self.read_bitmask(size, offset, 'l1_flags.LAND_OCEAN') != 0)
+        elif self.landmask is None:
+            pass
+        else: # assume GSW-like object
+            raiseflag(block.bitmask, L2FLAGS['LAND'],
+                      self.landmask_data[
+                          yoffset:yoffset+ysize,
+                          xoffset:xoffset+xsize,
+                                         ])
+
         raiseflag(block.bitmask, L2FLAGS['L1_INVALID'],
                   self.read_bitmask(size, offset,
                                     '(l1_flags.INVALID) OR (l1_flags.SUSPECT) OR (l1_flags.COSMETIC)') != 0)
@@ -212,7 +270,7 @@ class Level1_MERIS(Level1_base):
     def blocks(self, bands_read):
 
         nblocks = int(np.ceil(float(self.height)/self.blocksize))
-        for iblock in xrange(nblocks):
+        for iblock in range(nblocks):
 
             # determine block size
             xsize = self.width

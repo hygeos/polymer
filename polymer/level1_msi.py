@@ -7,17 +7,19 @@ from collections import OrderedDict
 from glymur import Jp2k
 from glob import glob
 from lxml import objectify
-from os.path import join, basename
+from os.path import join, basename, dirname, exists
 from datetime import datetime
 import numpy as np
 from polymer.block import Block
 from polymer.utils import rectBivariateSpline
 import pyproj
+import pandas as pd
 from polymer.ancillary import Ancillary_NASA
 from polymer.common import L2FLAGS
 from polymer.level1 import Level1_base
 from polymer.utils import raiseflag
 from polymer.gsw import GSW
+from polymer.bodhaine import rod
 
 '''
 List of MSI bands:
@@ -44,11 +46,18 @@ class Level1_MSI(Level1_base):
 
     def __init__(self, dirname, blocksize=198, resolution='60',
                  sline=0, eline=-1, scol=0, ecol=-1,
-                 ancillary=None, landmask=GSW()):
+                 ancillary=None,
+                 landmask=GSW(),
+                 altitude=0.,
+                 srf_file=None,
+                 use_srf=True,
+                 ):
         '''
+        Sentinel-2 MSI Level1 reader
+
         dirname: granule dirname
 
-        resolution: 60, 20 or 10m
+        resolution: 60, 20 or 10 (in m)
 
         sline, eline, scol, ecol refers to the coordinate of the area to process:
             * in the 1830x1830 grid at 60m resolution
@@ -57,10 +66,25 @@ class Level1_MSI(Level1_base):
             * in the 10980x10980 grid at 10m resolution
               => eline-sline and ecol-scol must be a multiple of 6
 
+        ancillary: an ancillary data instance (Ancillary_NASA, Ancillary_ERA)
+
         landmask:
             * None: no land mask
-            * GSW object (see gsw.py)
+            * A GSW instance (see gsw.py) [default]
+              Example: landmask=GSW(directory='/path/to/gsw_data/')
 
+        altitude: surface altitude in m
+            * a float
+            * a DEM instance such as:
+                SRTM(cache_dir=...)  # srtm.py
+                GLOBE(directory=...)  # globe.py
+                SRTM(..., missing=GLOBE(...))
+
+        srf_file: spectral response function. By default, it will use:
+            auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv for S2A
+            auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv for S2B
+
+        use_srf: whether to calculate the bands central wavelengths from the SRF or to use fixed ones
         '''
         self.sensor = 'MSI'
         if dirname.endswith('/'):
@@ -71,8 +95,9 @@ class Level1_MSI(Level1_base):
         self.blocksize = blocksize
         self.resolution = str(resolution)
         self.landmask = landmask
-        self.platform = basename(dirname)[:3]
-        assert self.platform in ['S2A', 'S2B']
+        self.srf_file = srf_file
+        self.altitude = altitude
+        self.use_srf = use_srf
 
         if ancillary is None:
             self.ancillary = Ancillary_NASA()
@@ -98,6 +123,11 @@ class Level1_MSI(Level1_base):
         self.geocoding = self.xmlroot.Geometric_Info.find('Tile_Geocoding')
         self.tileangles = self.xmlroot.Geometric_Info.find('Tile_Angles')
 
+        # get platform
+        self.tile_id = str(self.xmlroot.General_Info.find('TILE_ID')[0])
+        self.platform = self.tile_id[:3]
+        assert self.platform in ['S2A', 'S2B']
+
         # read image size for current resolution
         for e in self.geocoding.findall('Size'):
             if e.attrib['resolution'] == str(resolution):
@@ -117,10 +147,30 @@ class Level1_MSI(Level1_base):
         self.init_geometry()
         self.init_ancillary()
         self.init_landmask()
+        self.init_bands()
 
-    def init(self, params):
-        # read spectral response function
-        pass
+
+    def init_bands(self):
+        """ calculate equivalent wavelength from SRF """
+
+        if self.srf_file is None:
+            dir_aux_msi = join(dirname(dirname(__file__)), 'auxdata', 'msi')
+            srf_file = join(dir_aux_msi, 'S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_{}.csv'.format(self.platform))
+        else:
+            srf_file = self.srf_file
+        assert exists(srf_file)
+
+        srf_data = pd.read_csv(srf_file)
+
+        wav = srf_data.SR_WL
+
+        self.wav = np.zeros(len(self.band_names), dtype='float32')
+        for i, bn in enumerate(self.band_names.values()):
+            col = self.platform + '_SR_AV_' + bn.replace('B0', 'B')
+            srf = srf_data[col]
+            wav_eq = np.trapz(wav*srf)/np.trapz(srf)
+            self.wav[i] = wav_eq
+
 
     def init_ancillary(self):
         self.ozone = self.ancillary.get('ozone', self.date)
@@ -287,11 +337,22 @@ class Level1_MSI(Level1_base):
 
         block.ozone = self.ozone[block.latitude, block.longitude]
         block.wind_speed = self.wind_speed[block.latitude, block.longitude]
-        block.surf_press = self.surf_press[block.latitude, block.longitude]
+        P0 = self.surf_press[block.latitude, block.longitude]
 
         block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = float(band)
+
+        # read surface altitude
+        try:
+            block.altitude = self.altitude.get(lat=block.latitude,
+                                               lon=block.longitude)
+        except AttributeError:
+            # altitude expected to be a float
+            block.altitude = np.zeros((ysize, xsize), dtype='float32') + self.altitude
+
+        # surface pressure
+        block.surf_press = P0 * np.exp(-block.altitude/8000.)
 
         return block
 
