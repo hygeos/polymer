@@ -7,6 +7,10 @@ from numpy import ones, sqrt, zeros_like, NaN, isnan
 from os import system
 from scipy.interpolate import RectBivariateSpline
 from scipy.ndimage import distance_transform_edt
+from datetime import datetime, timedelta
+from os.path import exists
+import gzip
+
 
 def coeff_sun_earth_distance(jday):
     jday -= 1
@@ -56,6 +60,61 @@ def landmask(lat, lon, resolution='l'):
     from mpl_toolkits.basemap import maskoceans
     landmask = ~maskoceans(lon, lat, zeros_like(lat), resolution=resolution).mask
     return landmask
+
+
+class ListOnDisk(object):
+    ''' a list of strings, saved on disk as an (eventually compressed) ascii file '''
+
+    def __init__(self, filename, save_freq_min=1, compressed=False):
+        self.__filename = filename
+
+        self.__list = []
+        self.__towrite = []
+        self.__lastwrite = datetime.now()
+        self.__freq = save_freq_min
+        self.__compressed = compressed
+        if exists(filename):
+            if compressed:
+                fp = gzip.open(filename)
+            else:
+                fp = open(filename)
+            for line in fp:
+                self.__list.append(line[:-1])
+            print('loaded {} items from {}'.format(
+                len(self.__list),
+                self.__filename,
+                ))
+            fp.close()
+
+    def __contains__(self, item):
+        return item in self.__list
+
+    def append(self, item):
+        assert type(item) is str # only strings
+
+        self.__list.append(item)
+        self.__towrite.append(item)
+
+        if datetime.now() - self.__lastwrite > timedelta(minutes=self.__freq):
+            self.write()
+
+    def write(self):
+        if self.__compressed:
+            with gzip.open(self.__filename, 'a') as fd:
+                for item in self.__towrite:
+                    fd.write(item+'\n')
+        else:
+            with open(self.__filename, 'a') as fd:
+                for item in self.__towrite:
+                    fd.write(item+'\n')
+        self.__towrite = []
+        self.__lastwrite = datetime.now()
+
+    def __str__(self):
+        return str(self.__list)
+
+    def list(self):
+        return self.__list
 
 
 def stdev(S, S2, N, fillv=NaN):
