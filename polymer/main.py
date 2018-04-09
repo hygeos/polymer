@@ -14,7 +14,7 @@ from datetime import datetime
 from polymer.params import Params
 from polymer.level1 import Level1
 from polymer.level2 import Level2
-
+from polymer.bodhaine import rod
 from polymer.polymer_main import PolymerMinimizer
 from polymer.water import ParkRuddick, MorelMaritorena
 from warnings import warn
@@ -313,33 +313,28 @@ class InitCorr(object):
         ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
 
         for i in xrange(block.nbands):
-            ilut = params.bands_lut.index(block.bands[i])
-
             wind = block.wind_speed[ok]
             wmax = np.amax(mlut.axis('dim_wind'))
             wind[wind > wmax] = wmax  # clip to max wind
+
+            # calculate Rayleigh optical thickness
+            # for current band
+            wav = block.wavelen[ok, i]
+            tau_ray = rod(wav/1000., 400., 45.,
+                          block.altitude[ok],
+                          block.surf_press[ok])
 
             Rmolgli = mlut['Rmolgli'][
                     Idx(block.muv[ok]),
                     Idx(block.raa[ok]),
                     Idx(block.mus[ok]),
-                    ilut, Idx(wind)]
+                    Idx(tau_ray),
+                    Idx(wind)]
             Rmol = mlut['Rmol'][
                     Idx(block.muv[ok]),
                     Idx(block.raa[ok]),
                     Idx(block.mus[ok]),
-                    ilut]
-
-            wl = block.wavelen[ok,i]
-            wl0 = self.params.central_wavelength[block.bands[i]]
-
-            # wavelength adjustment
-            Rmolgli *= (wl/wl0)**(-4.)
-            Rmol *= (wl/wl0)**(-4.)
-
-            # adjustment for atmospheric pressure
-            Rmolgli *= block.surf_press[ok]/1013.
-            Rmol *= block.surf_press[ok]/1013.
+                    Idx(tau_ray)]
 
             block.Rmolgli[ok,i] = Rmolgli
             block.Rmol[ok,i] = Rmol
@@ -353,14 +348,15 @@ class InitCorr(object):
 
             # TODO: share axes indices
             # and across wavelengths
-            block.Tmol[ok,i]  = mlut['Tmolgli'][Idx(block.mus[ok]),
-                    ilut, Idx(wind)]
-            block.Tmol[ok,i] *= mlut['Tmolgli'][Idx(block.muv[ok]),
-                    ilut, Idx(wind)]
+            block.Tmol[ok,i]  = mlut['Tmolgli'][
+                    Idx(block.mus[ok]),
+                    Idx(tau_ray),
+                    Idx(wind)]
+            block.Tmol[ok,i] *= mlut['Tmolgli'][
+                    Idx(block.muv[ok]),
+                    Idx(tau_ray),
+                    Idx(wind)]
 
-            # correction for atmospheric pressure
-            taumol = 0.00877*((block.wavelen[ok,i]/1000.)**-4.05)
-            block.Tmol[ok,i] *= np.exp(-taumol/2. * (block.surf_press[ok]/1013. - 1.) * block.air_mass[ok])
 
     def set_attributes(self, block):
         flag_meanings = ', '.join(['{}:{}'.format(x[0], x[1])
