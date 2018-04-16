@@ -7,6 +7,8 @@ from polymer.block import Block
 from polymer.common import L2FLAGS
 from polymer.utils import raiseflag
 from polymer.level1 import Level1_base
+from polymer.bodhaine import rod
+from polymer.luts import read_mlut, LUT
 from netCDF4 import Dataset
 from scipy.ndimage import map_coordinates
 from datetime import datetime
@@ -23,18 +25,24 @@ class Level1_OLCI(Level1_base):
         * None => don't apply land mask at all
         * 'default' => use landmask provided in Level1
         * GSW object: use global surface water product (see gsw.py)
+
+    altitude: surface altitude in km
+        * a float
+        * a DEM_SRTM instance (srtm.py)
     '''
     def __init__(self, dirname,
                  sline=0, eline=-1,
                  scol=0, ecol=-1,
                  blocksize=100, ancillary=None,
                  landmask='default',
+                 altitude=0.,
                  apply_land_mask=None,
                  ):
 
         self.sensor = 'OLCI'
         self.blocksize = blocksize
         self.landmask = landmask
+        self.altitude = altitude
 
         if apply_land_mask is not None:
             raise Exception('[Deprecated] Level1_OLCI: apply_land_mask option has been replaced by landmask.')
@@ -252,7 +260,6 @@ class Level1_OLCI(Level1_base):
             # external ancillary files
             block.ozone = self.ozone[block.latitude, block.longitude]
             block.wind_speed = self.wind_speed[block.latitude, block.longitude]
-            block.surf_press = self.surf_press[block.latitude, block.longitude]
 
         else: # ancillary files embedded in level1
 
@@ -261,10 +268,31 @@ class Level1_OLCI(Level1_base):
             block.ozone /= 2.1415e-5  # convert kg/m2 to DU
 
             # read sea level pressure in hPa
-            block.surf_press = self.read_band('sea_level_pressure', size, offset)
+            P0 = self.read_band('sea_level_pressure', size, offset)
 
             # read wind speed
             block.wind_speed = self.read_band('horizontal_wind', size, offset)
+
+        # read surface altitude
+        try:
+            altitude_km = self.altitude.get(lat=block.latitude,
+                                            lon=block.longitude)/1000.
+        except AttributeError:
+            # altitude expected to be a float
+            altitude_km = np.zeros((ysize, xsize), dtype='float32') + self.altitude
+        block.altitude = altitude_km
+
+        # calculate surface altitude
+        block.surf_press = P0 * np.exp(-altitude_km/8.)
+
+        # calculate rayleigh optical thickness for each band
+        block.tau_ray = np.zeros((nbands, ysize, xsize), dtype='float32') + np.NaN
+        for iband, band in enumerate(bands):
+            # per-pixel average wavelength
+            wav = self.wav[self.band_index[band], di]
+            block.tau_ray[iband,:,:] = rod(wav/1000., 400., 45.,
+                                           altitude_km,
+                                           block.surf_press)
 
         # quality flags
         bitmask = self.read_band('quality_flags', size, offset)
