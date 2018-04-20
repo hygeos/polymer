@@ -1,6 +1,6 @@
 # base url for auxiliary data download
 URL = http://download.hygeos.com/POLYMER/auxdata
-WGET = @wget -q -c -P
+WGET = @wget -c -P
 
 # mark these make targets as non-file targets, so they'll always trigger when checked
 .PHONY: main all rebuild clean test auxdata_all auxdata_common auxdata_common auxdata_meris auxdata_olci auxdata_modisa auxdata_seawifs auxdata_viirs auxdata_msi
@@ -25,8 +25,7 @@ ancillary:
 
 auxdata_all: auxdata_common auxdata_meris auxdata_olci auxdata_modisa auxdata_seawifs auxdata_viirs auxdata_msi
 
-auxdata_common: auxdata/common/no2_climatology.hdf auxdata/common/trop_f_no2_200m.hdf auxdata/common/morel_fq.dat auxdata/common/AboveRrs_gCoef_w0.dat auxdata/common/AboveRrs_gCoef_w10.dat auxdata/common/AboveRrs_gCoef_w5.dat auxdata/common/aph_bricaud_1995.txt auxdata/common/aph_bricaud_1998.txt auxdata/common/morel_buiteveld_bsw.txt auxdata/common/palmer74.dat auxdata/common/pope97.dat auxdata/common/raman_westberry13.txt auxdata/common/astarmin_average_2015_SLSTR.txt auxdata/common/astarmin_average.txt auxdata/common/Matsuoka11_aphy_Table1_JGR.csv
-	@mkdir -p auxdata/common/
+auxdata_common: directories auxdata/generic/LUT.hdf auxdata/common/no2_climatology.hdf auxdata/common/trop_f_no2_200m.hdf auxdata/common/morel_fq.dat auxdata/common/AboveRrs_gCoef_w0.dat auxdata/common/AboveRrs_gCoef_w10.dat auxdata/common/AboveRrs_gCoef_w5.dat auxdata/common/aph_bricaud_1995.txt auxdata/common/aph_bricaud_1998.txt auxdata/common/morel_buiteveld_bsw.txt auxdata/common/palmer74.dat auxdata/common/pope97.dat auxdata/common/raman_westberry13.txt auxdata/common/astarmin_average_2015_SLSTR.txt auxdata/common/astarmin_average.txt auxdata/common/Matsuoka11_aphy_Table1_JGR.csv
 	@echo b88aadd272734634b756922ad5b6f439 auxdata/common/no2_climatology.hdf            |md5sum -c -
 	@echo 10350ad3441c9e76346f6429985f3c71 auxdata/common/trop_f_no2_200m.hdf            |md5sum -c -
 	@echo 7f3ba3b9ff13b9f135c53256d02a8b1b auxdata/common/morel_fq.dat                   |md5sum -c -
@@ -42,6 +41,12 @@ auxdata_common: auxdata/common/no2_climatology.hdf auxdata/common/trop_f_no2_200
 	@echo c340ec49f1ad3214a4ee84a19652b7ac auxdata/common/astarmin_average_2015_SLSTR.txt|md5sum -c -
 	@echo 56cd52dfaf2dab55b67398ac9adcbded auxdata/common/astarmin_average.txt           |md5sum -c -
 	@echo 862c49b5dd19c9b09e451891ef11ce50 auxdata/common/Matsuoka11_aphy_Table1_JGR.csv |md5sum -c -
+	@echo 4cfc8b2ab76b1b2b2ea85611940ae6e2 auxdata/generic/LUT.hdf                       |md5sum -c -
+directories:
+	@mkdir -p auxdata/common/
+	@mkdir -p auxdata/generic/
+auxdata/generic/LUT.hdf:
+	$(WGET) auxdata/generic/ $(URL)/generic/LUT.hdf
 auxdata/common/no2_climatology.hdf:
 	$(WGET) auxdata/common/ $(URL)/common/no2_climatology.hdf
 auxdata/common/trop_f_no2_200m.hdf:
@@ -121,8 +126,22 @@ auxdata/viirs/LUT.hdf:
 	$(WGET) auxdata/viirs/ $(URL)/viirs/LUT.hdf
 
 
-auxdata_msi: auxdata/msi/LUT.hdf
+auxdata_msi: auxdata/msi/LUT.hdf auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv
 	@mkdir -p auxdata/msi
 	@echo 2d24fb7f0107518c59544bdb220a6e9d  auxdata/msi/LUT.hdf |md5sum -c -
+	@echo 1f815b74a94246ab99f607894c9483ec  auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv |md5sum -c -
+	@echo 414d614f2d15125498c6d7517c4e2f76  auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv |md5sum -c -
 auxdata/msi/LUT.hdf:
 	$(WGET) auxdata/msi/ $(URL)/msi/LUT.hdf
+auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv:
+	$(WGET) auxdata/msi/ $(URL)/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv
+auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv:
+	$(WGET) auxdata/msi/ $(URL)/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv
+
+help:
+	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+# Catch-all target: route all unknown targets to Sphinx using the new
+# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
+%:
+	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
