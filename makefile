@@ -79,15 +79,12 @@ auxdata/common/Matsuoka11_aphy_Table1_JGR.csv:
 	$(WGET) auxdata/common/ $(URL)/common/Matsuoka11_aphy_Table1_JGR.csv
 
 
-auxdata_meris: auxdata/meris/LUTB.hdf auxdata/meris/smile/v2/sun_spectral_flux_rr.txt auxdata/meris/smile/v2/central_wavelen_rr.txt auxdata/meris/smile/v2/sun_spectral_flux_fr.txt auxdata/meris/smile/v2/central_wavelen_fr.txt
+auxdata_meris: auxdata/meris/smile/v2/sun_spectral_flux_rr.txt auxdata/meris/smile/v2/central_wavelen_rr.txt auxdata/meris/smile/v2/sun_spectral_flux_fr.txt auxdata/meris/smile/v2/central_wavelen_fr.txt
 	@mkdir -p auxdata/meris
-	@echo 68f7ee2d82ac2b8de85af511e6398460  auxdata/meris/LUTB.hdf |md5sum -c -
 	@echo 477aef2509b692b599dc0c4db3134b94  auxdata/meris/smile/v2/sun_spectral_flux_rr.txt |md5sum -c -
 	@echo 249b2cf1934f2e42fe5133b7fe739cce  auxdata/meris/smile/v2/central_wavelen_rr.txt   |md5sum -c -
 	@echo e807d872e16513c8ee40f68a4b57d784  auxdata/meris/smile/v2/sun_spectral_flux_fr.txt |md5sum -c -
 	@echo 08b210bf3c4fe4c78d4db0c068820579  auxdata/meris/smile/v2/central_wavelen_fr.txt   |md5sum -c -
-auxdata/meris/LUTB.hdf:
-	$(WGET) auxdata/meris/          $(URL)/meris/LUTB.hdf
 auxdata/meris/smile/v2/sun_spectral_flux_rr.txt:
 	$(WGET) auxdata/meris/smile/v2/ $(URL)/meris/smile/v2/sun_spectral_flux_rr.txt
 auxdata/meris/smile/v2/central_wavelen_rr.txt:
@@ -98,41 +95,10 @@ auxdata/meris/smile/v2/central_wavelen_fr.txt:
 	$(WGET) auxdata/meris/smile/v2/ $(URL)/meris/smile/v2/central_wavelen_fr.txt
 
 
-auxdata_olci: auxdata/olci/LUT.hdf
-	@mkdir -p auxdata/olci
-	@echo 535ab472aca939352c14ff8e9d11eae2  auxdata/olci/LUT.hdf |md5sum -c -
-auxdata/olci/LUT.hdf:
-	$(WGET) auxdata/olci/ $(URL)/olci/LUT.hdf
-
-
-auxdata_modisa: auxdata/modisa/LUTB.hdf
-	@mkdir -p auxdata/modisa
-	@echo 6e098f2ee54daba73147dc93259c23d6  auxdata/modisa/LUTB.hdf |md5sum -c -
-auxdata/modisa/LUTB.hdf:
-	$(WGET) auxdata/modisa/ $(URL)/modisa/LUTB.hdf
-
-
-auxdata_seawifs: auxdata/seawifs/LUT.hdf
-	@mkdir -p auxdata/seawifs
-	@echo 0af6cba18e7db320a11c05ca7f106906  auxdata/seawifs/LUT.hdf |md5sum -c -
-auxdata/seawifs/LUT.hdf:
-	$(WGET) auxdata/seawifs/ $(URL)/seawifs/LUT.hdf
-
-
-auxdata_viirs: auxdata/viirs/LUT.hdf
-	@mkdir -p auxdata/viirs
-	@echo a1232d073512add31c4a0c0e40eb97ba  auxdata/viirs/LUT.hdf |md5sum -c -
-auxdata/viirs/LUT.hdf:
-	$(WGET) auxdata/viirs/ $(URL)/viirs/LUT.hdf
-
-
-auxdata_msi: auxdata/msi/LUT.hdf auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv
+auxdata_msi: auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv
 	@mkdir -p auxdata/msi
-	@echo 2d24fb7f0107518c59544bdb220a6e9d  auxdata/msi/LUT.hdf |md5sum -c -
 	@echo 1f815b74a94246ab99f607894c9483ec  auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv |md5sum -c -
 	@echo 414d614f2d15125498c6d7517c4e2f76  auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv |md5sum -c -
-auxdata/msi/LUT.hdf:
-	$(WGET) auxdata/msi/ $(URL)/msi/LUT.hdf
 auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv:
 	$(WGET) auxdata/msi/ $(URL)/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv
 auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv:
