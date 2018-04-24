@@ -61,8 +61,6 @@ NOTE: The supported operating system is Linux. The code has not been tested unde
 If you are using anaconda, see the script create-anaconda-env.sh which help
 installing all required dependencies in a dedicated environment (recommended method).
 
-See also requirements.txt for installing the required dependencies with pip.
-
 
 1.2 AUXILIARY DATA
     -------------
