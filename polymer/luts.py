@@ -174,7 +174,7 @@ class LUT(object):
             self.names = names
             assert len(names) == self.ndim
 
-        if np.issubdtype(self.data.dtype, np.float):
+        if self.data.dtype in [np.float, np.float32, np.float64]:
             self.formatter = '{:3g}'
         else:
             self.formatter = '{}'
