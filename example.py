@@ -3,21 +3,26 @@
 
 from polymer.main import run_atm_corr, Level1, Level2
 from polymer.level2_hdf import Level2_HDF
+from polymer.level2_nc import Level2_NETCDF
 from polymer.level1_ascii import Level1_ASCII
 from polymer.level1_nasa import Level1_NASA
+from polymer.level1_olci import Level1_OLCI
+from polymer.level1_msi import Level1_MSI
 from pylab import plot
 
 
 def example_meris():
-    # Process a MERIS file
-    # using the generic (autodetecting) Level1 class
-    # and the generic level2 class (hdf4 by default)
+    """
+    Process a MERIS file
+    using the generic (autodetecting) Level1 class
+    and the generic level2 class (hdf4 by default)
 
-    # input file can be obtained with:
-    # wget http://www.brockmann-consult.de/beam/tutorials/BeamJavaWS/data/MERIS-Test-Data.zip
-    # unzip MERIS-Test-Data.zip
+    input file can be obtained with:
+    wget http://www.brockmann-consult.de/beam/tutorials/BeamJavaWS/data/MERIS-Test-Data.zip
+    unzip MERIS-Test-Data.zip
+    """
     run_atm_corr(Level1('MER_RR__1P_TEST.N1'),
-                 Level2(filename='output.hdf'),
+                 Level2(filename='output.hdf'),  # output file name can be explicit, otherwise it is inferred from Level1 file name
                  multiprocessing=-1,   # activate multiprocessing
                  )
 
@@ -27,10 +32,42 @@ def example_meris():
     # * instead of the generic Level1 and Level2 you can use directly
     #   the appropriate Level1 and Level2 classes (see other examples)
 
-def example_modis():
+def example_msi():
+    """
+    Sentinel-2 MSI processing
 
-    # MODIS processing
-    # including some
+    Level1 can be specified as as granule name, like:
+    * S2A_OPER_PRD_MSIL1C_20160318T145513.SAFE/GRANULE/S2A_OPER_MSI_L1C_TL_SGS__20160318T232756_A003854_T19LDC_N02.01/
+        (as downloaded on https://scihub.copernicus.eu/)
+    * L1C_T51RTQ_A010954_20170728T024856/
+        (as downloaded with Sentinelhub: https://github.com/sentinel-hub/sentinelhub-py)
+        
+    """
+    run_atm_corr(
+            Level1_MSI('S2A_OPER_PRD_MSIL1C_20160318T145513.SAFE/GRANULE/S2A_OPER_MSI_L1C_TL_SGS__20160318T232756_A003854_T19LDC_N02.01/',
+                       resolution='10'  # if not provided, use the 60m resolution
+                       ),
+            Level2_NETCDF()  # by default, output in the same folder as input
+            )
+
+def example_olci():
+    """
+    Sentinel-3 OLCI processing
+
+    The name of the Level1 is the uncompressed product folder
+    """
+    run_atm_corr(
+            Level1_OLCI('S3A_OL_1_ERR____20170114T124027_20170114T132421_20170115T181225_2633_013_152______LN1_O_NT_002.SEN3',
+                        sline=9000, eline=10000),
+            Level2_NETCDF(outdir='/tmp/')
+            )
+
+
+def example_modis():
+    """
+    MODIS processing
+    including some custom parameters
+    """
     run_atm_corr(Level1_NASA('A2004181120500.L1C', sensor='MODIS',
                               sline=1500, eline=2000, scol=100, ecol=500),
                  Level2_HDF(outdir='/data/',    # directory for result
@@ -47,11 +84,13 @@ def example_modis():
                  water_model='PR05',
                  )
 
-def example_ascii():
 
-    # Process an ASCII file (MERIS)
-    # using custom calibration coefficients
-    # returns in-memory level2 (do not write file)
+def example_ascii():
+    """
+    Process an ASCII file (here for MERIS)
+    using custom calibration coefficients
+    returns in-memory level2 (do not write file)
+    """
     l2 = run_atm_corr(Level1_ASCII('extraction.csv', square=5, sensor='MERIS'),
                       Level2('memory'),
                       force_initialization=True,
@@ -73,5 +112,5 @@ def example_ascii():
 
 
 if __name__ == "__main__":
-    example_meris()
+    example_msi()
 
