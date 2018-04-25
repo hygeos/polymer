@@ -164,13 +164,14 @@ class Level1_MSI(Level1_base):
 
         wav = srf_data.SR_WL
 
-        self.wav = np.zeros(len(self.band_names), dtype='float32')
-        for i, bn in enumerate(self.band_names.values()):
+        self.wav = {}
+        for b, bn in self.band_names.items():
             col = self.platform + '_SR_AV_' + bn.replace('B0', 'B')
             srf = srf_data[col]
+            # tauray = rod(wav/1000., 400., 45., 0., 1013.25)
             wav_eq = np.trapz(wav*srf)/np.trapz(srf)
-            self.wav[i] = wav_eq
-
+            self.wav[b] = wav_eq
+            # print(list(self.band_names.keys())[i], wav_eq)
 
     def init_ancillary(self):
         self.ozone = self.ancillary.get('ozone', self.date)
@@ -341,7 +342,7 @@ class Level1_MSI(Level1_base):
 
         block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
-            block.wavelen[:,:,iband] = float(band)
+            block.wavelen[:,:,iband] = self.wav[band]
 
         # read surface altitude
         try:
