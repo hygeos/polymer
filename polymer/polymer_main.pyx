@@ -367,7 +367,6 @@ cdef class PolymerMinimizer:
     cdef int N_bands_oc
     cdef int[:] i_oc_read  # index or the 'oc' bands within the 'read' bands
     cdef int N_bands_read
-    cdef float[:] central_wavelength
 
     def __init__(self, watermodel, params):
 
@@ -401,8 +400,6 @@ cdef class PolymerMinimizer:
                 params.bands_oc).astype('int32')
         self.N_bands_read = len(params.bands_read())
 
-        self.central_wavelength = np.array([params.central_wavelength[b]
-                                            for b in params.bands_read()], dtype='float32')
 
     cdef int loop(self, block,
               float[:,:,:,:] A,
@@ -418,6 +415,7 @@ cdef class PolymerMinimizer:
         cdef float[:,:] Rnir = block.Rnir
         cdef float[:,:,:] Tmol = block.Tmol
         cdef float[:,:,:] wav = block.wavelen
+        cdef float[:] cwav = block.cwavelen
         cdef float[:,:] sza = block.sza
         cdef float[:,:] vza = block.vza
         cdef float[:,:] raa = block.raa
@@ -572,7 +570,7 @@ cdef class PolymerMinimizer:
 
                     if self.normalize & 2:
                         # activate wavelength normalization
-                        wav0 = self.central_wavelength
+                        wav0 = cwav
                     else:
                         wav0 = wav[i,j,:]
 
