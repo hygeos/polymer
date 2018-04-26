@@ -13,6 +13,7 @@ from polymer.utils import raiseflag
 from polymer.ancillary import Ancillary_NASA
 from os.path import basename, join, dirname
 from collections import OrderedDict
+import pandas as pd
 
 
 
@@ -123,6 +124,11 @@ class Level1_NETCDF(Level1_base):
                     'SAA': 'sun_azimuth',
                     'VAA': 'view_azimuth_B1',
                     }
+
+            # get platform name
+            metadata = self.root.variables['metadata']
+            self.platform = metadata.getncattr('Level-1C_User_Product:General_Info:Product_Info:Datatake:SPACECRAFT_NAME')
+            self.platform = self.platform.replace('entinel-', '')
         else:
             raise Exception('Could not identify sensor from "{}"'.format(title))
 
@@ -147,9 +153,66 @@ class Level1_NETCDF(Level1_base):
             self.ancillary = ancillary
         if self.ancillary is not None:
             self.init_ancillary()
-        
+
+        self.init_bands()
+
         self.init_landmask()
-    
+
+
+    def init_bands(self):
+        if self.sensor == 'MSI':
+            band_names = {
+                    443 : 'B01', 490 : 'B02',
+                    560 : 'B03', 665 : 'B04',
+                    705 : 'B05', 740 : 'B06',
+                    783 : 'B07', 842 : 'B08',
+                    865 : 'B8A', 940 : 'B09',
+                    1375: 'B10', 1610: 'B11',
+                    2190: 'B12',
+                    }
+            dir_aux_msi = join(dirname(dirname(__file__)), 'auxdata', 'msi')
+            srf_file = join(dir_aux_msi, 'S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_{}.csv'.format(self.platform))
+
+            srf_data = pd.read_csv(srf_file)
+
+            wav = srf_data.SR_WL
+
+            self.wav = OrderedDict()
+            for b, bn in band_names.items():
+                col = self.platform + '_SR_AV_' + bn.replace('B0', 'B')
+                srf = srf_data[col]
+                wav_eq = np.trapz(wav*srf)/np.trapz(srf)
+                self.wav[b] = wav_eq
+
+        elif self.sensor == 'OLCI':
+            self.central_wavelength = {
+                    400 : 400.664  , 412 : 412.076 ,
+                    443 : 443.183  , 490 : 490.713 ,
+                    510 : 510.639  , 560 : 560.579 ,
+                    620 : 620.632  , 665 : 665.3719,
+                    674 : 674.105  , 681 : 681.66  ,
+                    709 : 709.1799 , 754 : 754.2236,
+                    760 : 761.8164 , 764 : 764.9075,
+                    767 : 767.9734 , 779 : 779.2685,
+                    865 : 865.4625 , 885 : 884.3256,
+                    900 : 899.3162 , 940 : 939.02  ,
+                    1020: 1015.9766, 1375: 1375.   ,
+                    1610: 1610.    , 2250: 2250.   ,
+                    }
+        elif self.sensor == 'MERIS':
+            self.central_wavelength = {
+                    412: 412.691 , 443: 442.559,
+                    490: 489.882 , 510: 509.819,
+                    560: 559.694 , 620: 619.601,
+                    665: 664.573 , 681: 680.821,
+                    709: 708.329 , 754: 753.371,
+                    760: 761.508 , 779: 778.409,
+                    865: 864.876 , 885: 884.944,
+                    900: 900.000 ,
+                    }
+        else:
+            raise Exception('Invalid sensor "{}"'.format(self.sensor))
+
     def init_landmask(self):
         if not hasattr(self.landmask, 'get'):
             return
@@ -275,6 +338,7 @@ class Level1_NETCDF(Level1_base):
         # read Rtoa or Ltoa+F0
         # and wavelen
         block.wavelen = np.zeros(size3, dtype='float32') + np.NaN
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
         if self.sensor == 'MSI':
             # read Rtoa
             block.Rtoa = np.zeros(size3) + np.NaN
@@ -292,7 +356,8 @@ class Level1_NETCDF(Level1_base):
 
             # init wavelengths
             for iband, band in enumerate(bands):
-                block.wavelen[:,:,iband] = float(band)
+                block.wavelen[:,:,iband] = self.wav[band]
+                block.cwavelen[iband] = self.wav[band]
 
         elif self.sensor in ['MERIS', 'OLCI']:
             # read Ltoa and F0
@@ -316,6 +381,7 @@ class Level1_NETCDF(Level1_base):
                 for iband, band in enumerate(bands):
                     name = 'lam_band{}'.format(self.band_index[band]-1)   # 0-based
                     block.wavelen[:,:,iband] = self.detector_wavelength[name][detector_index]
+                    block.cwavelen[iband] = self.central_wavelength[band]
 
                     name = 'E0_band{}'.format(self.band_index[band]-1)   # 0-based
                     block.F0[:,:,iband] = self.F0[name][detector_index]
@@ -323,6 +389,7 @@ class Level1_NETCDF(Level1_base):
             elif self.sensor == 'OLCI':  # OLCI
                 for iband, band in enumerate(bands):
                     block.wavelen[:,:,iband] = self.read_band('lambda0_band_{}'.format(self.band_index[band]), size, offset)
+                    block.cwavelen[iband] = self.central_wavelength[band]
                     block.F0[:,:,iband] = self.read_band('solar_flux_band_{}'.format(self.band_index[band]), size, offset)
             else:
                 raise Exception('Invalid sensor "{}"'.format(self.sensor))
