@@ -41,7 +41,6 @@ def example_msi():
         (as downloaded on https://scihub.copernicus.eu/)
     * L1C_T51RTQ_A010954_20170728T024856/
         (as downloaded with Sentinelhub: https://github.com/sentinel-hub/sentinelhub-py)
-        
     """
     run_atm_corr(
             Level1_MSI('S2A_OPER_PRD_MSIL1C_20160318T145513.SAFE/GRANULE/S2A_OPER_MSI_L1C_TL_SGS__20160318T232756_A003854_T19LDC_N02.01/',
@@ -109,6 +108,14 @@ def example_ascii():
                       )
     plot(l2.bands, l2.Rw[0,0,:])  # plot spectrum of pixel at (0,0)
 
+def example_batch_processing():
+    """
+    Batch processing of Sentinel-3 OLCI
+    """
+    from glob import glob
+    for filename in glob('path/to/level1/S3*.SEN3'):
+        run_atm_corr(Level1_OLCI(filename),
+                     Level2_NETCDF(outdir='/path/to/level2/'))
 
 
 if __name__ == "__main__":
