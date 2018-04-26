@@ -24,8 +24,8 @@ class Level1_MERIS(Level1_base):
     ancillary: an ancillary data instance (Ancillary_NASA, Ancillary_ERA)
 
     landmask:
-        * None: don't apply land mask at all
         * 'default': use landmask provided in MERIS Level1
+        * None: don't apply land mask at all
         * a GSW object: use global surface water product (see gsw.py)
     
     altitude: surface altitude in m
@@ -43,7 +43,7 @@ class Level1_MERIS(Level1_base):
                  dir_smile=None,
                  ancillary=None,
                  altitude=0.,
-                 landmask=None,
+                 landmask='default',
                  ):
 
         self.sensor = 'MERIS'
