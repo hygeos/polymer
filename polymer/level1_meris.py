@@ -53,6 +53,17 @@ class Level1_MERIS(Level1_base):
         self.landmask = landmask
         self.altitude = altitude
 
+        self.central_wavelength = {
+                412: 412.691 , 443: 442.559,
+                490: 489.882 , 510: 509.819,
+                560: 559.694 , 620: 619.601,
+                665: 664.573 , 681: 680.821,
+                709: 708.329 , 754: 753.371,
+                760: 761.508 , 779: 778.409,
+                865: 864.876 , 885: 884.944,
+                900: 900.000 ,
+                }
+
         totalwidth = self.prod.get_scene_width()
         totalheight = self.prod.get_scene_height()
 
@@ -202,8 +213,10 @@ class Level1_MERIS(Level1_base):
 
         # calculate detector wavelength for each band
         block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][block.detector_index]
+            block.cwavelen[iband] = self.central_wavelength[band]
 
         # read TOA
         Ltoa = np.zeros((ysize,xsize,nbands)) + np.NaN
@@ -292,6 +305,7 @@ class Level1_MERIS(Level1_base):
         attr['l1_filename'] = self.filename
         attr['start_time'] = self.dstart.strftime(datefmt)
         attr['stop_time'] = self.dstop.strftime(datefmt)
+        attr['central_wavelength'] = self.central_wavelength
 
         attr.update(self.ancillary_files)
 
