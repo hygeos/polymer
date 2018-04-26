@@ -96,6 +96,24 @@ class Level1_OLCI(Level1_base):
                 865 :16, 885: 17, 900 :18, 940: 19,
                 1020:20}
 
+        # central wavelength of the detector (for normalization)
+        # (detector 374 of camera 3)
+        self.central_wavelength = {
+                400 : 400.664  , 412 : 412.076 ,
+                443 : 443.183  , 490 : 490.713 ,
+                510 : 510.639  , 560 : 560.579 ,
+                620 : 620.632  , 665 : 665.3719,
+                674 : 674.105  , 681 : 681.66  ,
+                709 : 709.1799 , 754 : 754.2236,
+                760 : 761.8164 , 764 : 764.9075,
+                767 : 767.9734 , 779 : 779.2685,
+                865 : 865.4625 , 885 : 884.3256,
+                900 : 899.3162 , 940 : 939.02  ,
+                1020: 1015.9766, 1375: 1375.   ,
+                1610: 1610.    , 2250: 2250.   ,
+                }
+
+
         self.F0 = self.get_ncroot('instrument_data.nc').variables['solar_flux'][:]
         self.lam0 = self.get_ncroot('instrument_data.nc').variables['lambda0'][:]
 
@@ -251,8 +269,10 @@ class Level1_OLCI(Level1_base):
 
         # detector wavelength
         block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = self.lam0[self.band_index[band], di]
+            block.cwavelen[iband] = self.central_wavelength[band]
 
         # julian day and month
         block.jday = self.date().timetuple().tm_yday
@@ -330,6 +350,7 @@ class Level1_OLCI(Level1_base):
         attr['l1_filename'] = self.filename
         attr['start_time'] = self.dstart.strftime(datefmt)
         attr['stop_time'] = self.dstop.strftime(datefmt)
+        attr['central_wavelength'] = self.central_wavelength
 
         attr.update(self.ancillary_files)
 
