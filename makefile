@@ -95,6 +95,26 @@ auxdata/meris/smile/v2/central_wavelen_fr.txt:
 	$(WGET) auxdata/meris/smile/v2/ $(URL)/meris/smile/v2/central_wavelen_fr.txt
 
 
+auxdata_modisa: auxdata/modisa/HMODISA_RSRs.txt
+	@mkdir -p auxdata/modisa
+	@echo 2868db4dd5cb9c5782ddc574168e0e29  auxdata/modisa/HMODISA_RSRs.txt |md5sum -c -
+auxdata/modisa/HMODISA_RSRs.txt:
+	$(WGET) auxdata/modisa/ $(URL)/modisa/HMODISA_RSRs.txt
+
+
+auxdata_seawifs: auxdata/seawifs/SeaWiFS_RSRs.txt
+	@mkdir -p auxdata/seawifs
+	@echo a58950c5f1b9be06f862fe1938723ea1 auxdata/seawifs/SeaWiFS_RSRs.txt |md5sum -c -
+auxdata/seawifs/SeaWiFS_RSRs.txt:
+	$(WGET) auxdata/seawifs/ $(URL)/seawifs/SeaWiFS_RSRs.txt
+
+
+auxdata_viirs: auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt
+	@mkdir -p auxdata/viirs
+	@echo 4479d74b44c4423cf8ae192abad6bad2 auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt |md5sum -c -
+auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt:
+	$(WGET) auxdata/viirs/ $(URL)/viirs/VIIRSN_IDPSv3_RSRs.txt
+
 auxdata_msi: auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv
 	@mkdir -p auxdata/msi
 	@echo 1f815b74a94246ab99f607894c9483ec  auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv |md5sum -c -
