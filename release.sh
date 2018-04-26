@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-VERSION='4.7'
+VERSION='4.8'
 
 BASE=`pwd`
 SRC=polymer-v$VERSION.tar.gz

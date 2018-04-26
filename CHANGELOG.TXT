@@ -6,6 +6,70 @@
                            #####################
 
 
+v4.8
+----
+
+Release date: 2018-04-27
+
+* Reworked Rayleigh correction.
+  Now Polymer uses a single Rayleigh Look-Up-Table for all sensors, tabulated
+  in Rayleigh optical thickness instead of sensors spectral bands.
+  This allows better accounting for per-pixel variations of wavelength (MERIS,
+  OLCI) and surface pressure.
+  Surface pressure can now take the elevation into account (see added DEMs).
+  Rayleigh optical thickness is calculated on the fly pixel by pixel using [Bodhaine,99].
+
+* Added Digital Elevation Model interfaces (DEM), used for modulation of
+  Rayleigh optical thickness.
+    - SRTM3: SRTM3 digital elevation model, version 2.1
+      Spatial resolution of 3arc-seconds (93m at equator), 56°S to 60°N
+    - GLOBE: NOAA Global Land One-km Base Elevation Project (GLOBE)
+      Spatial resolution of 1km, global.
+      Can be used as a fallback to SRTM3.
+
+* Added an independent landmask, based on global surface water (GSW: https://global-surface-water.appspot.com/).
+  This is particularly useful for Sentinel-2 which does not have a landmask in L1C.
+  It should be passed as a parameter to Level1 instances. Example:
+      from polymer.gsw import GSW
+      Level1_MSI('<L1C product>', landmask=GSW('<gsw tiles storage directory>'))
+
+* OLCI: avoid duplicate correction for sun-earth distance.
+  This has an impact on the retrieved Rw.
+
+* Use MSI SRF (spectral response functions) to calculate accurate central
+  wavelengths (different for S2A and S2B)
+  This has a significant impact on the water reflectance retrieval, especially
+  in the blue, mainly because of the change in equivalent wavelength of B2
+  (490nm, 60nm wide).
+
+* Optionnally use MODIS, SeaWiFS and VIIRS SRF to calculate central wavelengths
+  for each band. This leads to significant changes of the Rayleigh optical
+  thickness estimation, thus on Rayleigh correction.
+
+* Added the central wavelengths for each band in the product attributes
+
+* Added an anaconda installation helper (automates the installation of anaconda
+  dependencies required by Polymer)
+
+* Bug fixes, in particular avoid an occasional bug when reading pope97.dat
+
+* Caveat: Level1_ASCII does not yet take properly into account spectral
+  information for all sensors in the new Rayleigh correction scheme. A warning
+  is issued when it is the case.
+
+Summary of the impact on products (on Rw) with default options:
+    - MERIS: minor changes
+    - OLCI: moderate changes due to correction of duplicate sun-earth
+      distance correction (bias of a few percents)
+    - MSI: significant changes because of better accounting for spectral information
+    - VIIRS, MODIS, SeaWiFS:
+        - minor change with default options (use_srf=False)
+        - if use_srf=True, significant changes due to different accounting
+          for the sensors spectral response functions for Rayleigh correction).
+          This modification is still experimental. Consolidation and validation
+          are on-going.
+
+
 v4.7
 ----
 
