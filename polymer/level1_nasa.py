@@ -11,6 +11,8 @@ from polymer.common import L2FLAGS
 from collections import OrderedDict
 from polymer.utils import raiseflag
 from polymer.level1 import Level1_base
+from os.path import dirname, join
+import pandas as pd
 
 
 class Level1_NASA(Level1_base):
@@ -22,10 +24,12 @@ class Level1_NASA(Level1_base):
         - MODIS
     '''
     def __init__(self, filename, sensor=None, blocksize=(500, 400),
-                 sline=0, eline=-1, scol=0, ecol=-1, ancillary=None):
+                 sline=0, eline=-1, scol=0, ecol=-1, ancillary=None,
+                 altitude=0.):
         self.sensor = sensor
         self.filename = filename
         self.root = Dataset(filename)
+        self.altitude = altitude
         lat = self.root.groups['navigation_data'].variables['latitude']
         totalheight, totalwidth = lat.shape
         self.blocksize = blocksize
@@ -51,8 +55,9 @@ class Level1_NASA(Level1_base):
         # init dates
         self.__read_date()
 
-        # initialize ancillary data
         self.init_ancillary()
+
+        self.init_wavelengths()
 
 
     def init_ancillary(self):
@@ -65,11 +70,45 @@ class Level1_NASA(Level1_base):
         self.ancillary_files.update(self.wind_speed.filename)
         self.ancillary_files.update(self.surf_press.filename)
 
+    def init_wavelengths(self):
+        # read SRF to initialize effective wavelengths
+        dir_auxdata = dirname(dirname(__file__))
+
+        if self.sensor == 'MODIS':
+            srf_file = join(dir_auxdata, 'auxdata/modisa/HMODISA_RSRs.txt')
+            skiprows = 8
+            bands = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240,1640,2130]
+            thres = 0.05
+        elif self.sensor == 'SeaWiFS':
+            srf_file = join(dir_auxdata, 'auxdata/seawifs/SeaWiFS_RSRs.txt')
+            skiprows = 9
+            bands = [412,443,490,510,555,670,765,865]
+            thres = 0.2
+        elif self.sensor == 'VIIRS':
+            srf_file = join(dir_auxdata, 'auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt')
+            skiprows = 5
+            bands = [410,443,486,551,671,745,862,1238,1601,2257]
+            thres = 0.05
+        else:
+            raise Exception('Invalid sensor "{}"'.format(self.sensor))
+
+        srf = pd.read_csv(srf_file,
+                          skiprows=skiprows, sep=None, engine='python',
+                          skipinitialspace=True, header=None)
+
+        self.central_wavelength = OrderedDict()
+        for i, b in enumerate(bands):
+            SRF = np.array(srf[i+1]).copy()
+            SRF[SRF<thres] = 0.
+            wav_eq = np.trapz(srf[0]*SRF)/np.trapz(SRF)
+            self.central_wavelength[b] = wav_eq
+
 
     def read_block(self, size, offset, bands):
 
         nbands = len(bands)
         size3 = size + (nbands,)
+        (ysize, xsize) = size
 
         SY = slice(offset[0]+self.sline, offset[0]+self.sline+size[0])
         SX = slice(offset[1]+self.scol , offset[1]+self.scol+size[1])
@@ -89,6 +128,12 @@ class Level1_NASA(Level1_base):
         block.saa = self.root.groups['geophysical_data'].variables['sola'][SY, SX]
         block.vaa = self.root.groups['geophysical_data'].variables['sena'][SY, SX]
 
+        if hasattr(block.saa, 'filled'):
+            block.saa = block.saa.filled(fill_value=np.NaN)
+
+        if hasattr(block.vaa, 'filled'):
+            block.vaa = block.vaa.filled(fill_value=np.NaN)
+
         block.Rtoa = np.zeros(size3) + np.NaN
         for iband, band in enumerate(bands):
             Rtoa = self.root.groups['geophysical_data'].variables[
@@ -103,25 +148,40 @@ class Level1_NASA(Level1_base):
         block.bitmask = np.zeros(size, dtype='uint16')
         flags = self.root.groups['geophysical_data'].variables['l2_flags'][SY, SX]
         raiseflag(block.bitmask, L2FLAGS['LAND'],
-                  flags & self.flag_meanings['LAND'] != 0)
+                flags & self.flag_meanings['LAND'] != 0)
 
         ok = block.latitude > -90.
         ok &= block.Rtoa[:,:,0] >= 0
+        ok &= ~np.isnan(block.vaa)
+        ok &= ~np.isnan(block.saa)
         raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], ~ok)
 
         block.ozone = np.zeros_like(ok, dtype='float32')
         block.ozone[ok] = self.ozone[block.latitude[ok], block.longitude[ok]]
         block.wind_speed = np.zeros_like(ok, dtype='float32')
         block.wind_speed[ok] = self.wind_speed[block.latitude[ok], block.longitude[ok]]
-        block.surf_press = np.zeros_like(ok, dtype='float32')
-        block.surf_press[ok] = self.surf_press[block.latitude[ok], block.longitude[ok]]
+        P0 = np.zeros_like(ok, dtype='float32')
+        P0[ok] = self.surf_press[block.latitude[ok], block.longitude[ok]]
+
+        # read surface altitude
+        try:
+            block.altitude = self.altitude.get(lat=block.latitude,
+                                               lon=block.longitude)
+        except AttributeError:
+            # altitude expected to be a float
+            block.altitude = np.zeros((ysize, xsize), dtype='float32') + self.altitude
+
+        # calculate surface altitude
+        block.surf_press = P0 * np.exp(-block.altitude/8000.)
 
         block.jday = self.date().timetuple().tm_yday
         block.month = self.date().timetuple().tm_mon
 
         block.wavelen = np.zeros(size3, dtype='float32') + np.NaN
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
-            block.wavelen[:,:,iband] = float(band)
+            block.wavelen[:,:,iband] = self.central_wavelength[band]
+            block.cwavelen[iband] = self.central_wavelength[band]
 
         return block
 
@@ -155,6 +215,7 @@ class Level1_NASA(Level1_base):
         attr['l1_filename'] = self.filename
         attr['start_time'] = self.dstart.strftime(datefmt)
         attr['stop_time'] = self.dstop.strftime(datefmt)
+        attr['central_wavelength'] = self.central_wavelength
 
         attr.update(self.ancillary_files)
 
