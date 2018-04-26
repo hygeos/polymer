@@ -121,7 +121,7 @@ def process_viirs(filename_l1a):
     assert '.nc' in filename_l1a
     filename_geo = filename_l1a.replace('.L1A_SNPP.nc', '.GEO-M_SNPP.nc')
     filename_l1c = filename_l1a.replace('.L1A_SNPP.nc', '.L1C')
-    
+
     #
     # GEO file
     #
@@ -138,7 +138,7 @@ def process_viirs(filename_l1a):
 
 
 def process_seawifs(filename_l1a):
-    filename_l1c = filename_l1a.replace('.L1A_GAC', '.L1C_GAC')
+    filename_l1c = filename_l1a.replace('.L1A', '.L1C')
     if not exists(filename_l1c):
         with TmpOutput(filename_l1c) as f:
             cmd = 'l2gen ifile={} ofile={} gain="1 1 1 1 1 1 1 1" oformat="netcdf4" l2prod="rhot_nnn polcor_nnn sena senz sola solz latitude longitude"'.format(filename_l1a, f)
@@ -146,9 +146,11 @@ def process_seawifs(filename_l1a):
                 print('exiting l2gen')
                 exit(1)
             f.move()
+    else:
+        print('Skipping existing', filename_l1c)
 
 
 if __name__ == '__main__':
 
-    for l1a in argv[1:]: 
+    for l1a in argv[1:]:
         process(l1a)
