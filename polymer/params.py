@@ -239,7 +239,6 @@ class Params(object):
         self.calib = {}
         self.K_OZ = {}
         self.K_NO2 = {}
-        self.central_wavelength = {}
 
     def defaults_meris(self):
         '''
@@ -298,17 +297,6 @@ class Params(object):
                 900: 5.522E-23 ,
                 }
 
-        self.central_wavelength = {
-                412: 412.691 , 443: 442.559,
-                490: 489.882 , 510: 509.819,
-                560: 559.694 , 620: 619.601,
-                665: 664.573 , 681: 680.821,
-                709: 708.329 , 754: 753.371,
-                760: 761.508 , 779: 778.409,
-                865: 864.876 , 885: 884.944,
-                900: 900.000 ,
-                }
-
     def defaults_olci(self):
         '''
         define default parameters for Sentinel-3/OLCI
@@ -339,23 +327,6 @@ class Params(object):
                 1610: 1.0  , 2250: 1.0,
                 }
 
-
-        # central wavelength of the detector where the Rayleigh optical thickness is calculated
-        # (detector 374 of camera 3)
-        self.central_wavelength = {
-                400 : 400.664  , 412 : 412.076 ,
-                443 : 443.183  , 490 : 490.713 ,
-                510 : 510.639  , 560 : 560.579 ,
-                620 : 620.632  , 665 : 665.3719,
-                674 : 674.105  , 681 : 681.66  ,
-                709 : 709.1799 , 754 : 754.2236,
-                760 : 761.8164 , 764 : 764.9075,
-                767 : 767.9734 , 779 : 779.2685,
-                865 : 865.4625 , 885 : 884.3256,
-                900 : 899.3162 , 940 : 939.02  ,
-                1020: 1015.9766, 1375: 1375.   ,
-                1610: 1610.    , 2250: 2250.   ,
-                }
 
         # from SeaDAS v7.3.2
         self.K_OZ = {
@@ -394,9 +365,6 @@ class Params(object):
         self.bands_rw   = [443,490,560,665,705,740,783,    865,         1610,    ]
 
         self.bands_lut =  [443,490,560,665,705,740,783,842,865,945,1375,1610,2190]
-        self.central_wavelength = dict(map(
-            lambda x: (x, float(x)),
-            [443,490,560,665,705,740,783,842,865,945,1375,1610,2190]))
 
         self.band_cloudmask = 865
 
@@ -457,10 +425,6 @@ class Params(object):
 
         self.band_cloudmask = 862
 
-        self.central_wavelength = dict(map(
-            lambda x: (x, float(x)),
-            [410,443,486,551,671,745,862,1238,1601,2257]))
-
         # self.calib = {  # vicarious calibration R2014.0
                 # 410: 0.9631, 443: 1.0043,
                 # 486: 1.0085, 551: 0.9765,
@@ -506,10 +470,6 @@ class Params(object):
 
         self.band_cloudmask = 865
 
-        self.central_wavelength = dict(map(
-            lambda x: (x, float(x)),
-            [412,443,490,510,555,670,765,865]))
-
         self.calib = {  # OC-CCI VC 20161017
                 412: 0.993524, 443: 0.989207,
                 490: 0.988410, 510: 0.986153,
@@ -545,10 +505,6 @@ class Params(object):
         self.bands_lut  = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240]
 
         self.band_cloudmask = 869
-
-        self.central_wavelength = dict(map(
-            lambda x: (x, float(x)),
-            [412,443,469,488,531,547,555,645,667,678,748,858,869,1240]))
 
         # self.calib = {  # OC_CCI VICARIOUS CALIBRATION 2015 (VIC2, ERA-INTERIM)
                 # 412 : 0.995, 443 : 1.001,
