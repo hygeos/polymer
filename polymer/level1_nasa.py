@@ -122,6 +122,8 @@ class Level1_NASA(Level1_base):
         block.longitude = self.root.groups['navigation_data'].variables[
                 'longitude'][SY, SX]
 
+        ok = block.latitude > -90.
+
         # read geometry
         block.sza = self.root.groups['geophysical_data'].variables['solz'][SY, SX]
         block.vza = self.root.groups['geophysical_data'].variables['senz'][SY, SX]
@@ -129,10 +131,12 @@ class Level1_NASA(Level1_base):
         block.vaa = self.root.groups['geophysical_data'].variables['sena'][SY, SX]
 
         if hasattr(block.saa, 'filled'):
-            block.saa = block.saa.filled(fill_value=np.NaN)
+            ok &= ~block.saa.mask
+            block.saa = block.saa.filled(fill_value=0.)
 
         if hasattr(block.vaa, 'filled'):
-            block.vaa = block.vaa.filled(fill_value=np.NaN)
+            ok &= ~block.vaa.mask
+            block.vaa = block.vaa.filled(fill_value=0.)
 
         block.Rtoa = np.zeros(size3) + np.NaN
         for iband, band in enumerate(bands):
@@ -150,10 +154,7 @@ class Level1_NASA(Level1_base):
         raiseflag(block.bitmask, L2FLAGS['LAND'],
                 flags & self.flag_meanings['LAND'] != 0)
 
-        ok = block.latitude > -90.
         ok &= block.Rtoa[:,:,0] >= 0
-        ok &= ~np.isnan(block.vaa)
-        ok &= ~np.isnan(block.saa)
         raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], ~ok)
 
         block.ozone = np.zeros_like(ok, dtype='float32')
