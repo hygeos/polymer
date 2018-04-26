@@ -55,7 +55,11 @@ class Level1_MSI(Level1_base):
         '''
         Sentinel-2 MSI Level1 reader
 
-        dirname: granule dirname
+        dirname: granule directory. Examples:
+        * S2A_OPER_PRD_MSIL1C_20160318T145513.SAFE/GRANULE/S2A_OPER_MSI_L1C_TL_SGS__20160318T232756_A003854_T19LDC_N02.01/
+            (as downloaded on https://scihub.copernicus.eu/)
+        * L1C_T51RTQ_A010954_20170728T024856/
+            (as downloaded with Sentinelhub: https://github.com/sentinel-hub/sentinelhub-py)
 
         resolution: 60, 20 or 10 (in m)
 
@@ -164,7 +168,7 @@ class Level1_MSI(Level1_base):
 
         wav = srf_data.SR_WL
 
-        self.wav = {}
+        self.wav = OrderedDict()
         for b, bn in self.band_names.items():
             col = self.platform + '_SR_AV_' + bn.replace('B0', 'B')
             srf = srf_data[col]
@@ -200,7 +204,6 @@ class Level1_MSI(Level1_base):
 
         self.lon, self.lat = (proj(X, Y, inverse=True))
 
-        # TODO: what about -180 -> 180 ???
 
     def init_geometry(self):
 
@@ -341,8 +344,10 @@ class Level1_MSI(Level1_base):
         P0 = self.surf_press[block.latitude, block.longitude]
 
         block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = self.wav[band]
+            block.cwavelen[iband] = self.wav[band]
 
         # read surface altitude
         try:
@@ -385,6 +390,7 @@ class Level1_MSI(Level1_base):
         attr['sensing_time'] = self.date.strftime(datefmt)
         attr['L1_TILE_ID'] = str(self.xmlroot.General_Info.find('TILE_ID'))
         attr['L1_DATASTRIP_ID'] = str(self.xmlroot.General_Info.find('DATASTRIP_ID'))
+        attr['central_wavelength'] = str(dict(self.wav))
         return attr
 
 
