@@ -25,11 +25,12 @@ class Level1_NASA(Level1_base):
     '''
     def __init__(self, filename, sensor=None, blocksize=(500, 400),
                  sline=0, eline=-1, scol=0, ecol=-1, ancillary=None,
-                 altitude=0.):
+                 altitude=0., use_srf=False):
         self.sensor = sensor
         self.filename = filename
         self.root = Dataset(filename)
         self.altitude = altitude
+        self.use_srf = use_srf
         lat = self.root.groups['navigation_data'].variables['latitude']
         totalheight, totalwidth = lat.shape
         self.blocksize = blocksize
@@ -79,16 +80,49 @@ class Level1_NASA(Level1_base):
             skiprows = 8
             bands = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240,1640,2130]
             thres = 0.05
+            self.tau_r_seadas = {
+                    412: 3.099E-01,
+                    443: 2.367E-01,
+                    488: 1.592E-01,
+                    531: 1.126E-01,
+                    547: 9.906E-02,
+                    667: 4.443E-02,
+                    678: 4.146E-02,
+                    748: 2.849E-02,
+                    869: 1.540E-02,
+                    }
         elif self.sensor == 'SeaWiFS':
             srf_file = join(dir_auxdata, 'auxdata/seawifs/SeaWiFS_RSRs.txt')
             skiprows = 9
             bands = [412,443,490,510,555,670,765,865]
             thres = 0.2
+            self.tau_r_seadas = {  # as provided in msl12_sensor_info.dat
+                    412: 3.128E-01,
+                    443: 2.329E-01,
+                    490: 1.542E-01,
+                    510: 1.326E-01,
+                    555: 9.444E-02,
+                    670: 4.444E-02,
+                    765: 2.553E-02,
+                    865: 1.690E-02,
+                    }
         elif self.sensor == 'VIIRS':
             srf_file = join(dir_auxdata, 'auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt')
             skiprows = 5
             bands = [410,443,486,551,671,745,862,1238,1601,2257]
             thres = 0.05
+            self.tau_r_seadas = {
+                    410 : 3.175E-01,
+                    443 : 2.328E-01,
+                    486 : 1.600E-01,
+                    551 : 9.738E-02,
+                    671 : 4.395E-02,
+                    745 : 2.865E-02,
+                    862 : 1.594E-02,
+                    1238: 3.650E-03,
+                    1601: 1.305E-03,
+                    2257: 3.294E-04,
+                    }
         else:
             raise Exception('Invalid sensor "{}"'.format(self.sensor))
 
@@ -183,6 +217,11 @@ class Level1_NASA(Level1_base):
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = self.central_wavelength[band]
             block.cwavelen[iband] = self.central_wavelength[band]
+
+        if not self.use_srf:
+            block.tau_ray = np.zeros(size3, dtype='float32') + np.NaN
+            for iband, band in enumerate(bands):
+                block.tau_ray[:,:,iband] = self.tau_r_seadas[band] * block.surf_press/1013.
 
         return block
 

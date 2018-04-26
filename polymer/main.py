@@ -320,9 +320,14 @@ class InitCorr(object):
             # calculate Rayleigh optical thickness
             # for current band
             wav = block.wavelen[ok, i]
-            tau_ray = rod(wav/1000., 400., 45.,
-                          block.altitude[ok],
-                          block.surf_press[ok])
+            if not hasattr(block, 'tau_ray'):
+                # default: calculate Rayleigh optical thickness on the fly
+                tau_ray = rod(wav/1000., 400., 45.,
+                              block.altitude[ok],
+                              block.surf_press[ok])
+            else:
+                # if level1 provides its Rayleigh optical thickness, use it
+                tau_ray = block.tau_ray[ok,i]
 
             Rmolgli = mlut['Rmolgli'][
                     Idx(block.muv[ok]),
