@@ -17,7 +17,7 @@ echo
 
 
 # mandatory dependencies
-deps="python cython numpy pyhdf scipy netcdf4"
+deps="python cython numpy pyhdf scipy netcdf4 pandas"
 
 # MERIS support (optional)
 deps="$deps avalentino::pyepr"
@@ -27,9 +27,6 @@ deps="$deps glymur pyproj lxml"
 
 # GSW support (global surface water landmask - optional)
 deps="$deps gdal"
-
-# ASCII processing support (optional)
-deps="$deps pandas"
 
 # ERA-Interim support (optional)
 deps="$deps pygrib bioconda::ecmwfapi"

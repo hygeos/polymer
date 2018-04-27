@@ -38,12 +38,12 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
   scipy             all            https://pypi.python.org/pypi/scipy
   python-hdf4       all            https://pypi.python.org/pypi/python-hdf4
    (or pyhdf)                      https://pypi.python.org/pypi/pyhdf
+  pandas            all            https://pypi.python.org/pypi/pandas
   pyepr             MERIS          https://pypi.python.org/pypi/pyepr/
   netCDF4           MODIS,SeaWiFS, https://pypi.python.org/pypi/netCDF4
                     VIIRS,OLCI,
                     level2_netcdf,
                     GSW
-  pandas            level1_ascii   https://pypi.python.org/pypi/pandas
   lxml              MSI            https://pypi.python.org/pypi/lxml
   glymur            MSI            https://pypi.python.org/pypi/Glymur/
   pyproj            MSI            https://pypi.python.org/pypi/pyproj
