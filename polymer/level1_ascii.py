@@ -10,6 +10,8 @@ from os.path import join, dirname
 from polymer.level1_meris import BANDS_MERIS
 from polymer.common import L2FLAGS
 from polymer.utils import raiseflag
+from polymer.level1_meris import central_wavelength_meris
+import warnings
 
 # bands stored in the ASCII extractions
 BANDS_MODIS = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240]
@@ -165,6 +167,7 @@ class Level1_ASCII(object):
         block = Block(offset=offset, size=size, bands=bands)
         sl = slice(offset[0]*xsize, (offset[0]+ysize)*xsize)
         block.wavelen = np.zeros((ysize,xsize,nbands), dtype='float32') + np.NaN
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
 
         # coordinates
         block.latitude = self.get_field('LAT', sl, size)
@@ -204,15 +207,18 @@ class Level1_ASCII(object):
                 block.F0[:,:,iband] = self.F0[self.F0_band_names[band]][di]
 
             # detector wavelength
-            block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
             for iband, band in enumerate(bands):
                 block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][di]
+                block.cwavelen[iband] = central_wavelength_meris[band]
+
         else:
             if 'F0' in self.headers:
                 block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
 
             for iband, band in enumerate(bands):
                 block.wavelen[:,:,iband] = float(band)
+                block.cwavelen[iband] = float(band)
+                warnings.warn('Level1_ASCII does not properly take into account spectral information for this sensor.')
 
                 if 'F0' in self.headers:
                     name = self.headers['F0'].format(iband+1)

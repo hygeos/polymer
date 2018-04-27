@@ -15,6 +15,82 @@ from os.path import dirname, join
 import pandas as pd
 
 
+# Rayleigh optical thicknesses as defined in SeaDAS
+tau_r_seadas_modis = {
+        412: 3.099E-01,
+        443: 2.367E-01,
+        488: 1.592E-01,
+        531: 1.126E-01,
+        547: 9.906E-02,
+        667: 4.443E-02,
+        678: 4.146E-02,
+        748: 2.849E-02,
+        869: 1.540E-02,
+        }
+
+tau_r_seadas_seawifs = {
+        412: 3.128E-01,
+        443: 2.329E-01,
+        490: 1.542E-01,
+        510: 1.326E-01,
+        555: 9.444E-02,
+        670: 4.444E-02,
+        765: 2.553E-02,
+        865: 1.690E-02,
+        }
+
+tau_r_seadas_viirs = {
+        410 : 3.175E-01,
+        443 : 2.328E-01,
+        486 : 1.600E-01,
+        551 : 9.738E-02,
+        671 : 4.395E-02,
+        745 : 2.865E-02,
+        862 : 1.594E-02,
+        1238: 3.650E-03,
+        1601: 1.305E-03,
+        2257: 3.294E-04,
+        }
+
+def get_spectral_info(sensor):
+    # read SRF to initialize effective wavelengths
+    dir_auxdata = dirname(dirname(__file__))
+
+    if sensor == 'MODIS':
+        srf_file = join(dir_auxdata, 'auxdata/modisa/HMODISA_RSRs.txt')
+        skiprows = 8
+        bands = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240,1640,2130]
+        thres = 0.05
+        tau_r_seadas = tau_r_seadas_modis
+    elif sensor == 'SeaWiFS':
+        srf_file = join(dir_auxdata, 'auxdata/seawifs/SeaWiFS_RSRs.txt')
+        skiprows = 9
+        bands = [412,443,490,510,555,670,765,865]
+        thres = 0.2
+        tau_r_seadas = tau_r_seadas_seawifs
+    elif sensor == 'VIIRS':
+        srf_file = join(dir_auxdata, 'auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt')
+        skiprows = 5
+        bands = [410,443,486,551,671,745,862,1238,1601,2257]
+        thres = 0.05
+        tau_r_seadas = tau_r_seadas_viirs
+    else:
+        raise Exception('Invalid sensor "{}"'.format(sensor))
+
+    srf = pd.read_csv(srf_file,
+                      skiprows=skiprows, sep=None, engine='python',
+                      skipinitialspace=True, header=None)
+
+    central_wavelength = OrderedDict()
+    for i, b in enumerate(bands):
+        SRF = np.array(srf[i+1]).copy()
+        SRF[SRF<thres] = 0.
+        wav_eq = np.trapz(srf[0]*SRF)/np.trapz(SRF)
+        central_wavelength[b] = wav_eq
+
+    return central_wavelength, tau_r_seadas
+
+
 class Level1_NASA(Level1_base):
     '''
     Interface to NASA level-1C files
@@ -73,69 +149,8 @@ class Level1_NASA(Level1_base):
 
     def init_wavelengths(self):
         # read SRF to initialize effective wavelengths
-        dir_auxdata = dirname(dirname(__file__))
 
-        if self.sensor == 'MODIS':
-            srf_file = join(dir_auxdata, 'auxdata/modisa/HMODISA_RSRs.txt')
-            skiprows = 8
-            bands = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240,1640,2130]
-            thres = 0.05
-            self.tau_r_seadas = {
-                    412: 3.099E-01,
-                    443: 2.367E-01,
-                    488: 1.592E-01,
-                    531: 1.126E-01,
-                    547: 9.906E-02,
-                    667: 4.443E-02,
-                    678: 4.146E-02,
-                    748: 2.849E-02,
-                    869: 1.540E-02,
-                    }
-        elif self.sensor == 'SeaWiFS':
-            srf_file = join(dir_auxdata, 'auxdata/seawifs/SeaWiFS_RSRs.txt')
-            skiprows = 9
-            bands = [412,443,490,510,555,670,765,865]
-            thres = 0.2
-            self.tau_r_seadas = {  # as provided in msl12_sensor_info.dat
-                    412: 3.128E-01,
-                    443: 2.329E-01,
-                    490: 1.542E-01,
-                    510: 1.326E-01,
-                    555: 9.444E-02,
-                    670: 4.444E-02,
-                    765: 2.553E-02,
-                    865: 1.690E-02,
-                    }
-        elif self.sensor == 'VIIRS':
-            srf_file = join(dir_auxdata, 'auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt')
-            skiprows = 5
-            bands = [410,443,486,551,671,745,862,1238,1601,2257]
-            thres = 0.05
-            self.tau_r_seadas = {
-                    410 : 3.175E-01,
-                    443 : 2.328E-01,
-                    486 : 1.600E-01,
-                    551 : 9.738E-02,
-                    671 : 4.395E-02,
-                    745 : 2.865E-02,
-                    862 : 1.594E-02,
-                    1238: 3.650E-03,
-                    1601: 1.305E-03,
-                    2257: 3.294E-04,
-                    }
-        else:
-            raise Exception('Invalid sensor "{}"'.format(self.sensor))
-
-        srf = pd.read_csv(srf_file,
-                          skiprows=skiprows, sep=None, engine='python',
-                          skipinitialspace=True, header=None)
-
-        self.central_wavelength = OrderedDict()
-        for i, b in enumerate(bands):
-            SRF = np.array(srf[i+1]).copy()
-            SRF[SRF<thres] = 0.
-            wav_eq = np.trapz(srf[0]*SRF)/np.trapz(SRF)
-            self.central_wavelength[b] = wav_eq
+        self.central_wavelength, self.tau_r_seadas = get_spectral_info(self.sensor)
 
 
     def read_block(self, size, offset, bands):
