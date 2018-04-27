@@ -53,12 +53,12 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
   gdal              GSW            https://pypi.python.org/pypi/GDAL
 
 
-NOTE: python 2.7 and python 3 (>=3.5) are both supported.
+NOTE: python 2.7 and python 3 (>=3.5) are both supported. Python 3 is recommended.
 
 NOTE: The supported operating system is Linux. The code has not been tested under Windows or Mac OS X.
 
 
-If you are using anaconda, see the script create-anaconda-env.sh which help
+If you are using anaconda, see the script install-anaconda-deps.sh which help
 installing all required dependencies in a dedicated environment (recommended method).
 
 
