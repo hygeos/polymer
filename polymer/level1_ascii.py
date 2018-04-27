@@ -219,6 +219,9 @@ class Level1_ASCII(object):
                 block.wavelen[:,:,iband] = float(band)
                 block.cwavelen[iband] = float(band)
                 warnings.warn('Level1_ASCII does not properly take into account spectral information for this sensor.')
+                # TODO
+                # 1) check that F0 is seasonally corrected here
+                # 2) properly read wavelen and cwavelen
 
                 if 'F0' in self.headers:
                     name = self.headers['F0'].format(iband+1)

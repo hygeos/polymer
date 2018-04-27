@@ -6,7 +6,7 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from polymer.luts import read_mlut_hdf, Idx
-from polymer.utils import stdNxN, raiseflag, coeff_sun_earth_distance
+from polymer.utils import stdNxN, raiseflag
 from polymer.common import L2FLAGS
 from pyhdf.SD import SD
 from multiprocessing import Pool
@@ -99,16 +99,11 @@ class InitCorr(object):
 
         block.Rtoa = np.zeros(block.Ltoa.shape)+np.NaN
 
-        coef = coeff_sun_earth_distance(block.jday)
-
         ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
-
-        if isinstance(coef, np.ndarray):
-            coef = coef[ok]
 
         for i in xrange(block.nbands):
 
-            block.Rtoa[ok,i] = block.Ltoa[ok,i]*np.pi/(block.mus[ok]*block.F0[ok,i]*coef)
+            block.Rtoa[ok,i] = block.Ltoa[ok,i]*np.pi/(block.mus[ok]*block.F0[ok,i])
 
     def apply_calib(self, block):
         '''

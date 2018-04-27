@@ -9,7 +9,7 @@ import numpy as np
 from warnings import warn
 from datetime import datetime
 from polymer.common import L2FLAGS
-from polymer.utils import raiseflag
+from polymer.utils import raiseflag, coeff_sun_earth_distance
 from polymer.ancillary import Ancillary_NASA
 from polymer.level1_meris import central_wavelength_meris
 from polymer.level1_olci import central_wavelength_olci
@@ -366,11 +366,14 @@ class Level1_NETCDF(Level1_base):
                     name = 'E0_band{}'.format(self.band_index[band]-1)   # 0-based
                     block.F0[:,:,iband] = self.F0[name][detector_index]
 
+                coef = coeff_sun_earth_distance(self.date.timetuple().tm_yday)
+                block.F0 *= coef
+
             elif self.sensor == 'OLCI':  # OLCI
                 for iband, band in enumerate(bands):
                     block.wavelen[:,:,iband] = self.read_band('lambda0_band_{}'.format(self.band_index[band]), size, offset)
                     block.cwavelen[iband] = central_wavelength_olci[band]
-                    block.F0[:,:,iband] = self.read_band('solar_flux_band_{}'.format(self.band_index[band]), size, offset)
+                    block.F0[:,:,iband] = self.read_band('solar_flux_band_{}'.format(self.band_index[band]), size, offset)  # should be seasonally corrected
             else:
                 raise Exception('Invalid sensor "{}"'.format(self.sensor))
         else:

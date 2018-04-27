@@ -9,7 +9,7 @@ from datetime import datetime
 from polymer.common import L2FLAGS
 from os.path import basename, join, dirname
 from collections import OrderedDict
-from polymer.utils import raiseflag
+from polymer.utils import raiseflag, coeff_sun_earth_distance
 from polymer.level1 import Level1_base
 
 BANDS_MERIS = [412, 443, 490, 510, 560,
@@ -210,6 +210,8 @@ class Level1_MERIS(Level1_base):
         block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
         for iband, band in enumerate(bands):
             block.F0[:,:,iband] = self.F0[self.F0_band_names[band]][block.detector_index]
+        coef = coeff_sun_earth_distance(self.date.timetuple().tm_yday)
+        block.F0 *= coef
 
         # calculate detector wavelength for each band
         block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN

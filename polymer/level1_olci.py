@@ -263,7 +263,7 @@ class Level1_OLCI(Level1_base):
         # detector index
         di = self.read_band('detector_index', size, offset)
 
-        # solar irradiance
+        # solar irradiance (seasonally corrected)
         block.F0 = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
             block.F0[:,:,iband] = self.F0[self.band_index[band], di]
