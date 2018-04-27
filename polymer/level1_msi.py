@@ -18,7 +18,6 @@ from polymer.ancillary import Ancillary_NASA
 from polymer.common import L2FLAGS
 from polymer.level1 import Level1_base
 from polymer.utils import raiseflag
-from polymer.gsw import GSW
 from polymer.bodhaine import rod
 
 '''
@@ -47,7 +46,7 @@ class Level1_MSI(Level1_base):
     def __init__(self, dirname, blocksize=198, resolution='60',
                  sline=0, eline=-1, scol=0, ecol=-1,
                  ancillary=None,
-                 landmask=GSW(),
+                 landmask=None,
                  altitude=0.,
                  srf_file=None,
                  use_srf=True,
@@ -73,8 +72,8 @@ class Level1_MSI(Level1_base):
         ancillary: an ancillary data instance (Ancillary_NASA, Ancillary_ERA)
 
         landmask:
-            * None: no land mask
-            * A GSW instance (see gsw.py) [default]
+            * None: no land mask [default]
+            * A GSW instance (see gsw.py)
               Example: landmask=GSW(directory='/path/to/gsw_data/')
 
         altitude: surface altitude in m
