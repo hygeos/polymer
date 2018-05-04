@@ -108,7 +108,7 @@ class Params(object):
         self.external_mask = None
 
         # Generic look-up table
-        self.lut_file = 'auxdata/generic/LUT.hdf'
+        self.lut_file = join(self.dir_base, 'auxdata/generic/LUT.hdf')
 
         self.thres_chi2 = 0.005
 
