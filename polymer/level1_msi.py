@@ -359,6 +359,20 @@ class Level1_MSI(Level1_base):
         # surface pressure
         block.surf_press = P0 * np.exp(-block.altitude/8000.)
 
+        if not self.use_srf:
+            block.tau_ray = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
+            for iband, band in enumerate(bands):
+                block.tau_ray[:,:,iband] = {  # first calculations
+                                              # using convolution of ROD using old version of SRF
+                            443: 0.234280641095, 490: 0.149710335414,
+                            560: 0.0905014442489, 665: 0.0450755094234,
+                            705: 0.0356256787869, 740: 0.0290586201022,
+                            783: 0.0232262166776, 842: 0.0181555100059,
+                            865: 0.0155121863123, 940: 0.0108505370873,
+                            1375: 0.00242549670396, 1610: 0.00128165077197,
+                            2190: 0.000383201294006,
+                        }[band] * block.surf_press/1013.
+
         return block
 
 
