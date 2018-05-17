@@ -149,12 +149,21 @@ F0_hico = np.array([    # from SeaDAS 7.3.2
 
 
 class Level1_HICO(object):
+    """
+    HICO Level1 reader
+
+    landmask:
+        * None: no land mask [default]
+        * A GSW instance (see gsw.py)
+            Example: landmask=GSW(directory='/path/to/gsw_data/')
+    """
     def __init__(self, filename, blocksize=200,
                  sline=0, eline=-1, scol=0, ecol=-1,
-                 ancillary=None):
+                 ancillary=None, landmask=None):
         self.h5 = h5py.File(filename)
         self.sensor = 'HICO'
         self.filename = filename
+        self.landmask = landmask
 
         self.Lt = self.h5['products']['Lt']
 
@@ -183,7 +192,7 @@ class Level1_HICO(object):
             self.width = ecol - scol
 
         self.shape = (self.height, self.width)
-        print('Initializing HICO product of size')
+        print('Initializing HICO product of size', self.shape)
 
         self.datetime = self.get_time()
 
@@ -197,6 +206,18 @@ class Level1_HICO(object):
         self.ancillary_files.update(self.wind_speed.filename)
         self.ancillary_files.update(self.surf_press.filename)
 
+        self.init_landmask()
+
+
+    def init_landmask(self):
+        if not hasattr(self.landmask, 'get'):
+            return
+
+        lat = self.h5['navigation']['latitudes'][:,:]
+        lon = self.h5['navigation']['longitudes'][:,:]
+
+        self.landmask_data = self.landmask.get(lat, lon)
+
 
     def get_time(self):
         beg_date = self.h5['metadata']['FGDC']['Identification_Information']['Time_Period_of_Content'].attrs['Beginning_Date'].decode('ascii')
@@ -207,6 +228,8 @@ class Level1_HICO(object):
     def read_block(self, size, offset, bands):
         nbands = len(bands)
         size3 = size + (nbands,)
+        (ysize, xsize) = size
+        (yoffset, xoffset) = offset
         SY = slice(offset[0]+self.sline, offset[0]+self.sline+size[0])
         SX = slice(offset[1]+self.scol , offset[1]+self.scol+size[1])
 
@@ -244,6 +267,7 @@ class Level1_HICO(object):
         # wavelength
         block.wavelen = np.zeros(size3, dtype='float32') + np.NaN
         block.wavelen[:,:,:] = wav_hico[None,None,ibands]
+        block.cwavelen = wav_hico[ibands]
 
         # ancillary data
         block.ozone = np.zeros(size, dtype='float32')
@@ -252,6 +276,15 @@ class Level1_HICO(object):
         block.wind_speed[:] = self.wind_speed[block.latitude, block.longitude]
         block.surf_press = np.zeros(size, dtype='float32')
         block.surf_press[:] = self.surf_press[block.latitude, block.longitude]
+
+        block.altitude = np.zeros(size, dtype='float32')
+
+        if self.landmask is not None:
+            raiseflag(block.bitmask, L2FLAGS['LAND'],
+                      self.landmask_data[
+                          yoffset+self.sline:yoffset+self.sline+ysize,
+                          xoffset+self.scol:xoffset+self.scol+xsize,
+                                         ])
 
         return block
 
