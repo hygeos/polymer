@@ -6,7 +6,7 @@ import numpy as np
 from os.path import join, dirname
 from collections import OrderedDict
 from pyhdf.SD import SD
-from polymer.level1_hico import bands_hico, K_OZ_HICO, K_NO2_HICO, wav_hico
+from polymer.hico import bands_hico, K_OZ_HICO, K_NO2_HICO
 
 # pass these parameters to polymer to obtain the quasi-same results as polymer v3.5
 # polymer(<level>, <level2>, **params_v3_5)
