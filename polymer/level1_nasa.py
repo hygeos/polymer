@@ -91,6 +91,21 @@ def get_spectral_info(sensor):
     return central_wavelength, tau_r_seadas
 
 
+def filled(A, ok=None, fill_value=0):
+    """
+    Returns a filled from a filled or masked array, use fill_value
+    modifies ok (if provided) to take this mask into account
+    """
+    if hasattr(A, 'filled'):
+        # masked array: returns filled array
+        if ok is not None:
+            ok &= ~A.mask
+        return A.filled(fill_value=fill_value)
+    else:
+        # filled array: does nothing
+        return A
+
+
 class Level1_NASA(Level1_base):
     '''
     Interface to NASA level-1C files
@@ -166,40 +181,32 @@ class Level1_NASA(Level1_base):
         block = Block(offset=offset, size=size, bands=bands)
 
         # read lat/lon
-        block.latitude = self.root.groups['navigation_data'].variables[
-                'latitude'][SY, SX]
-        block.longitude = self.root.groups['navigation_data'].variables[
-                'longitude'][SY, SX]
+        block.latitude = filled(self.root.groups['navigation_data'].variables[
+                'latitude'][SY, SX], fill_value=-999.)
+        block.longitude = filled(self.root.groups['navigation_data'].variables[
+                'longitude'][SY, SX], fill_value=-999.)
 
         ok = block.latitude > -90.
 
         # read geometry
-        block.sza = self.root.groups['geophysical_data'].variables['solz'][SY, SX]
-        block.vza = self.root.groups['geophysical_data'].variables['senz'][SY, SX]
-        block.saa = self.root.groups['geophysical_data'].variables['sola'][SY, SX]
-        block.vaa = self.root.groups['geophysical_data'].variables['sena'][SY, SX]
-
-        if hasattr(block.saa, 'filled'):
-            ok &= ~block.saa.mask
-            block.saa = block.saa.filled(fill_value=0.)
-
-        if hasattr(block.vaa, 'filled'):
-            ok &= ~block.vaa.mask
-            block.vaa = block.vaa.filled(fill_value=0.)
+        block.sza = filled(self.root.groups['geophysical_data'].variables['solz'][SY, SX], ok=ok)
+        block.vza = filled(self.root.groups['geophysical_data'].variables['senz'][SY, SX], ok=ok)
+        block.saa = filled(self.root.groups['geophysical_data'].variables['sola'][SY, SX], ok=ok)
+        block.vaa = filled(self.root.groups['geophysical_data'].variables['sena'][SY, SX], ok=ok)
 
         block.Rtoa = np.zeros(size3) + np.NaN
         for iband, band in enumerate(bands):
-            Rtoa = self.root.groups['geophysical_data'].variables[
-                    'rhot_{}'.format(band)][SY, SX]
+            Rtoa = filled(self.root.groups['geophysical_data'].variables[
+                    'rhot_{}'.format(band)][SY, SX], ok=ok)
 
-            polcor = self.root.groups['geophysical_data'].variables[
-                    'polcor_{}'.format(band)][SY, SX]
+            polcor = filled(self.root.groups['geophysical_data'].variables[
+                    'polcor_{}'.format(band)][SY, SX], ok=ok)
 
             block.Rtoa[:,:,iband] = Rtoa/polcor
 
         # bitmask
         block.bitmask = np.zeros(size, dtype='uint16')
-        flags = self.root.groups['geophysical_data'].variables['l2_flags'][SY, SX]
+        flags = filled(self.root.groups['geophysical_data'].variables['l2_flags'][SY, SX])
         raiseflag(block.bitmask, L2FLAGS['LAND'],
                 flags & self.flag_meanings['LAND'] != 0)
 
