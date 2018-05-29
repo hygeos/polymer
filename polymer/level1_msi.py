@@ -322,14 +322,18 @@ class Level1_MSI(Level1_base):
         block.jday = self.date.timetuple().tm_yday
         block.month = self.date.timetuple().tm_mon
 
+        block.bitmask = np.zeros(size, dtype='uint16')
+        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], np.isnan(block.muv))
+
         # read RTOA
         block.Rtoa = np.zeros((ysize,xsize,nbands)) + np.NaN
         for iband, band in enumerate(bands):
             QUANTIF = 10000
-            block.Rtoa[:,:,iband] = self.read_TOA(band, size, offset)/QUANTIF
+            raw_data = self.read_TOA(band, size, offset)
+            if iband == 0:
+                raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], raw_data == 0)
 
-        block.bitmask = np.zeros(size, dtype='uint16')
-        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], np.isnan(block.muv))
+            block.Rtoa[:,:,iband] = raw_data/QUANTIF
 
         if self.landmask is not None:
             raiseflag(block.bitmask, L2FLAGS['LAND'],
