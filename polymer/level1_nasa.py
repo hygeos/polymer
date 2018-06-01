@@ -189,10 +189,15 @@ class Level1_NASA(Level1_base):
         ok = block.latitude > -90.
 
         # read geometry
+        # note: we disactivate automasking because of bad formatting of SeaWiFS L1C, for which azimuth angles >180 are masked
         block.sza = filled(self.root.groups['geophysical_data'].variables['solz'][SY, SX], ok=ok)
         block.vza = filled(self.root.groups['geophysical_data'].variables['senz'][SY, SX], ok=ok)
-        block.saa = filled(self.root.groups['geophysical_data'].variables['sola'][SY, SX], ok=ok)
-        block.vaa = filled(self.root.groups['geophysical_data'].variables['sena'][SY, SX], ok=ok)
+        saa = self.root.groups['geophysical_data'].variables['sola']
+        saa.set_auto_mask(False)
+        block.saa = filled(saa[SY, SX])
+        vaa = self.root.groups['geophysical_data'].variables['sena']
+        vaa.set_auto_mask(False)
+        block.vaa = filled(vaa[SY, SX])
 
         block.Rtoa = np.zeros(size3) + np.NaN
         for iband, band in enumerate(bands):
