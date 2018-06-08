@@ -324,6 +324,9 @@ class Level1_OLCI(Level1_base):
                           xoffset:xoffset+xsize,
                                          ])
 
+        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'],
+                  bitmask & self.quality_flags['invalid'] != 0)
+
         return block
 
     def blocks(self, bands_read):
