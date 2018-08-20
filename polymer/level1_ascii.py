@@ -11,6 +11,7 @@ from polymer.level1_meris import BANDS_MERIS
 from polymer.common import L2FLAGS
 from polymer.utils import raiseflag
 from polymer.level1_meris import central_wavelength_meris
+from polymer.level1_olci import central_wavelength_olci
 import warnings
 
 # bands stored in the ASCII extractions
@@ -24,6 +25,7 @@ BANDS_OLCI = [400 , 412, 443 , 490, 510 , 560, 620 , 665,
 headers_default = {
                    'TOA': 'TOAR_{:02d}',
                    'F0': 'F0_{:02d}',
+                   'LAMBDA0': 'LAMBDA0_{:02d}',
                    'LAT': 'LAT',
                    'LON': 'LON',
                    'DATETIME': 'TIME',
@@ -31,6 +33,7 @@ headers_default = {
                    'OZONE': 'OZONE_ECMWF',
                    'WIND': 'WINDM',
                    'SURFACE_PRESSURE': 'PRESS_ECMWF',
+                   'ALTITUDE':'ALTITUDE',
                    'SZA': 'SUN_ZENITH',
                    'VZA': 'VIEW_ZENITH',
                    'RAA': 'DELTA_AZIMUTH',
@@ -100,16 +103,13 @@ class Level1_ASCII(object):
                                           enumerate(BANDS)))
             self.wav_band_names = dict(map(lambda b: (b[1], 'lam_band{:d}'.format(b[0])),
                                            enumerate(BANDS)))
-        if sensor in ['OLCI']:
-            self.F0 = dict(map(lambda b: (b[1], self.headers['F0'].format(b[0]+1)),
-                                   enumerate(BANDS)))
-
+        
         #
         # read the csv file (only the required columns)
         #
         columns = []
         for c in ['LAT', 'LON', 'DATETIME',
-                  'OZONE', 'SURFACE_PRESSURE',
+                  'OZONE', 'SURFACE_PRESSURE','ALTITUDE',
                   'SZA', 'VZA']:
             columns.append(self.headers[c])
         if self.relative_azimuth:
@@ -130,6 +130,8 @@ class Level1_ASCII(object):
             columns.append(self.headers['DETECTOR_INDEX'])
         if 'F0' in self.headers:
             columns += map(lambda b: self.headers['F0'].format(b[0]+1), enumerate(BANDS))
+        if 'LAMBDA0' in self.headers:
+            columns += map(lambda b: self.headers['LAMBDA0'].format(b[0]+1), enumerate(BANDS))
 
         columns += additional_headers
         columns += self.band_names.values()
@@ -210,7 +212,16 @@ class Level1_ASCII(object):
             for iband, band in enumerate(bands):
                 block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][di]
                 block.cwavelen[iband] = central_wavelength_meris[band]
-
+        elif self.sensor in ['OLCI']:
+            block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
+            for iband, band in enumerate(bands):
+                # F0
+                name = self.headers['F0'].format(BANDS_OLCI.index(band)+1)
+                block.F0[:,:,iband] = self.csv[name][sl].values.reshape(size)
+                # detector wavelength
+                name = self.headers['LAMBDA0'].format(BANDS_OLCI.index(band)+1)
+                block.wavelen[:,:,iband] = self.csv[name][sl].values.reshape(size)
+                block.cwavelen[iband] = float(band)#central_wavelength_olci[band]"""
         else:
             if 'F0' in self.headers:
                 block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
@@ -254,6 +265,9 @@ class Level1_ASCII(object):
 
         # surface pressure
         block.surf_press = self.csv[self.headers['SURFACE_PRESSURE']][sl].values.reshape(size)
+
+        # altitude
+        block.altitude = self.csv[self.headers['ALTITUDE']][sl].values.reshape(size)
 
         return block
 
