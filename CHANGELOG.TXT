@@ -6,6 +6,29 @@
                            #####################
 
 
+v4.9
+----
+
+Release date: 2018-11-22
+
+* Updated OLCI vicarious calibration gains
+  This leads to a significant improvement of the validation results in the blue bands
+* Added HICO processing [EXPERIMENTAL]
+  The HICO reader is the class Level1_HICO in module Level1_hico.py
+* Added bands 681 and 709 by default for MERIS and OLCI
+* Other fixes:
+    * Fix Level1_NASA with netCDF-1.4
+    * Fix flagging of MSI out-of-swath pixels
+    * Fix flagging of OLCI invalid pixels
+    * Fix a bug in Leve1_ASCII when reading OLCI extracted data
+    * Deal with a formatting issue of SeaWiFS Level 1C
+      https://oceancolor.gsfc.nasa.gov/forum/oceancolor/topic_show.pl?tid=8804
+
+Summary of the impact on products (water reflectance) with default options:
+    - OLCI: significant changes
+    - Others: no change
+
+
 v4.8
 ----
 
