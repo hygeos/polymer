@@ -12,6 +12,7 @@ from polymer.common import L2FLAGS
 from polymer.utils import raiseflag
 from polymer.level1_meris import central_wavelength_meris
 from polymer.level1_olci import central_wavelength_olci
+from polymer.level1_nasa import tau_r_seadas_modis, tau_r_seadas_seawifs, tau_r_seadas_viirs
 import warnings
 
 # bands stored in the ASCII extractions
@@ -23,9 +24,9 @@ BANDS_OLCI = [400 , 412, 443 , 490, 510 , 560, 620 , 665,
               865 , 885, 900 , 940, 1020]
 
 headers_default = {
-                   'TOA': 'TOAR_{:02d}',
-                   'F0': 'F0_{:02d}',
-                   'LAMBDA0': 'LAMBDA0_{:02d}',
+                   'TOA': lambda i, b: 'TOAR_{:02d}'.format(i+1),
+                   'F0': lambda i, b: 'F0_{:02d}'.format(i+1),
+                   'LAMBDA0': lambda i, b: 'LAMBDA0_{:02d}'.format(i+1),
                    'LAT': 'LAT',
                    'LON': 'LON',
                    'DATETIME': 'TIME',
@@ -50,12 +51,16 @@ class Level1_ASCII(object):
     arguments:
         * additional_headers (list of strings): additional datasets to read in
           the ASCII file and store in self.csv
-        * TOAR: 'radiance' or 'reflectance'
+        * TOAR: 'radiance', 'reflectance' or 'reflectance_L1C'  (division by polcor in NASA L1C)
         * relative_azimuth: boolean
         * wind_module: if True, read the wind module
                        else read the zonal and meridinal wind speeds
                        or float to use a constant value
         * headers: dictionary
+                   for spectral columns (ex: RTOA), use a function (index, band) -> string
+                   examples:
+                       'RTOA': lambda i, b: 'Rtoa_{}'.format(b)    # will translate to {412: 'Rtoa_412', ...}
+                       'RTOA': lambda i, b: 'Rtoa_{02d}'.format(i+1)  # will translate to {412: 'Rtoa_01', ...}
     '''
     def __init__(self, filename, square=1, blocksize=100,
                  additional_headers=[], dir_smile=None,
@@ -63,6 +68,7 @@ class Level1_ASCII(object):
                  headers=headers_default,
                  relative_azimuth=True,
                  wind_module=True,
+                 na_values=None,
                  datetime_fmt='%Y%m%dT%H%M%SZ', verbose=True,
                  sep=';', skiprows=0):
 
@@ -85,8 +91,7 @@ class Level1_ASCII(object):
                     'OLCI': BANDS_OLCI
                     }[sensor]
 
-        self.band_names = dict(map(lambda b: (b[1], self.headers['TOA'].format(b[0]+1)),
-                                   enumerate(BANDS)))
+        self.toa_band_names = dict([(b, self.headers['TOA'](i, b)) for (i, b) in enumerate(BANDS)])
 
         if sensor in ['MERIS', 'MERIS_RR', 'MERIS_FR']:
             if dir_smile is None:
@@ -109,7 +114,7 @@ class Level1_ASCII(object):
         #
         columns = []
         for c in ['LAT', 'LON', 'DATETIME',
-                  'OZONE', 'SURFACE_PRESSURE','ALTITUDE',
+                  'OZONE', 'SURFACE_PRESSURE',
                   'SZA', 'VZA']:
             columns.append(self.headers[c])
         if self.relative_azimuth:
@@ -128,13 +133,17 @@ class Level1_ASCII(object):
 
         if sensor in ['MERIS', 'MERIS_RR', 'MERIS_FR']:
             columns.append(self.headers['DETECTOR_INDEX'])
+        if 'ALTITUDE' in self.headers:
+            columns.append(self.headers['ALTITUDE'])
         if 'F0' in self.headers:
-            columns += map(lambda b: self.headers['F0'].format(b[0]+1), enumerate(BANDS))
+            columns += self.F0_band_names.values()
         if 'LAMBDA0' in self.headers:
-            columns += map(lambda b: self.headers['LAMBDA0'].format(b[0]+1), enumerate(BANDS))
+            columns += self.wav_band_names.values()
+        if TOAR == 'reflectance_L1C':
+            columns += ['polcor_{}'.format(b) for b in BANDS]
 
         columns += additional_headers
-        columns += self.band_names.values()
+        columns += self.toa_band_names.values()
         if self.verbose:
             print('Reading from CSV file "{}"...'.format(filename))
             print('{} columns: {}'.format(len(columns), str(columns)))
@@ -142,6 +151,7 @@ class Level1_ASCII(object):
                 sep=sep,
                 usecols = columns,
                 skiprows=skiprows,
+                na_values=na_values,
                 )
         nrows = self.csv.shape[0]
         if self.verbose:
@@ -187,7 +197,7 @@ class Level1_ASCII(object):
         # read TOA
         TOA = np.zeros((ysize,xsize,nbands)) + np.NaN
         for iband, band in enumerate(bands):
-            name = self.band_names[band]
+            name = self.toa_band_names[band]
             TOA[:,:,iband] = self.csv[name][sl].values.reshape(size)
 
         if self.TOAR == 'reflectance':
@@ -196,10 +206,17 @@ class Level1_ASCII(object):
         elif self.TOAR == 'radiance':
             block.Ltoa = TOA
 
+        elif self.TOAR == 'reflectance_L1C':
+            block.Rtoa = TOA
+            # apply polarization correction
+            for iband, band in enumerate(bands):
+                name = 'polcor_{}'.format(band)
+                TOA[:,:,iband] /= self.csv[name][sl].values.reshape(size)
+
         else:
             raise Exception('Invalid TOAR type "{}"'.format(self.TOAR))
 
-        # detector index
+        # detector index and spectral information
         if self.sensor in ['MERIS', 'MERIS_FR', 'MERIS_RR']:
             di = self.csv[self.headers['DETECTOR_INDEX']][sl].values.reshape(size).astype('int')
 
@@ -216,27 +233,40 @@ class Level1_ASCII(object):
             block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
             for iband, band in enumerate(bands):
                 # F0
-                name = self.headers['F0'].format(BANDS_OLCI.index(band)+1)
+                name = self.headers['F0'](BANDS_OLCI.index(band), band)
                 block.F0[:,:,iband] = self.csv[name][sl].values.reshape(size)
                 # detector wavelength
-                name = self.headers['LAMBDA0'].format(BANDS_OLCI.index(band)+1)
+                name = self.headers['LAMBDA0'](BANDS_OLCI.index(band), band)
                 block.wavelen[:,:,iband] = self.csv[name][sl].values.reshape(size)
                 block.cwavelen[iband] = float(band)#central_wavelength_olci[band]"""
-        else:
-            if 'F0' in self.headers:
-                block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
+        if self.sensor in ['SeaWiFS', 'MODIS', 'VIIRS']:
+            # central wavelength for NASA sensors
+            dir_auxdata = dirname(dirname(__file__))
+            if self.sensor == 'MODIS':
+                srf_file = join(dir_auxdata, 'auxdata/modisa/HMODISA_RSRs.txt')
+                skiprows = 8
+                bands_ = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240,1640,2130]
+                thres = 0.05
+            elif self.sensor == 'SeaWiFS':
+                srf_file = join(dir_auxdata, 'auxdata/seawifs/SeaWiFS_RSRs.txt')
+                skiprows = 9
+                bands_ = [412,443,490,510,555,670,765,865]
+                thres = 0.2
+            elif self.sensor == 'VIIRS':
+                srf_file = join(dir_auxdata, 'auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt')
+                skiprows = 5
+                bands_ = [410,443,486,551,671,745,862,1238,1601,2257]
+                thres = 0.05
+            srf = pd.read_csv(srf_file,
+                            skiprows=skiprows, sep=None, engine='python',
+                            skipinitialspace=True, header=None)
+            for i, b in enumerate(bands):
+                SRF = np.array(srf[bands_.index(b)+1]).copy()
+                SRF[SRF<thres] = 0.
+                central_wavelength = np.trapz(srf[0]*SRF)/np.trapz(SRF)
 
-            for iband, band in enumerate(bands):
-                block.wavelen[:,:,iband] = float(band)
-                block.cwavelen[iband] = float(band)
-                warnings.warn('Level1_ASCII does not properly take into account spectral information for this sensor.')
-                # TODO
-                # 1) check that F0 is seasonally corrected here
-                # 2) properly read wavelen and cwavelen
-
-                if 'F0' in self.headers:
-                    name = self.headers['F0'].format(iband+1)
-                    block.F0[:,:,iband] = self.csv[name][sl].values.reshape(size)
+                block.wavelen[:,:,i] = central_wavelength
+                block.cwavelen[i] = central_wavelength
 
         block.jday = np.array([x.timetuple().tm_yday for x in self.dates[sl]]).reshape(size)
 
@@ -251,6 +281,9 @@ class Level1_ASCII(object):
         block.ozone = self.csv[self.headers['OZONE']][sl].values.reshape(size)
         if self.sensor == 'OLCI':
             block.ozone /= 2.1415e-5  # convert kg/m2 to DU
+        elif self.sensor in ['MODIS', 'SeaWiFS', 'VIIRS']:
+            # ozone assumed to be in cm.atm: convert to DU
+            block.ozone *= 1000.  # convert kg/m2 to DU
 
         # wind speed
         if isinstance(self.wind_module, float):
@@ -267,8 +300,22 @@ class Level1_ASCII(object):
         block.surf_press = self.csv[self.headers['SURFACE_PRESSURE']][sl].values.reshape(size)
 
         # altitude
-        block.altitude = self.csv[self.headers['ALTITUDE']][sl].values.reshape(size)
+        if 'ALTITUDE' in self.headers:
+            block.altitude = self.csv[self.headers['ALTITUDE']][sl].values.reshape(size)
+        else:
+            block.altitude = np.zeros(size)
 
+        # tau_ray
+        if self.sensor in ['SeaWiFS', 'MODIS', 'VIIRS']:
+            tau_r_seadas = {
+                    'MODIS': tau_r_seadas_modis,
+                    'SeaWiFS': tau_r_seadas_seawifs,
+                    'VIIRS': tau_r_seadas_viirs,
+                }[self.sensor]
+            block.tau_ray = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
+            for iband, band in enumerate(bands):
+                block.tau_ray[:,:,iband] = tau_r_seadas[band] * block.surf_press/1013.
+        
         return block
 
     def blocks(self, bands_read):
