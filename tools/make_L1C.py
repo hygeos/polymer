@@ -119,8 +119,13 @@ def process_viirs(filename_l1a):
     '''
 
     assert '.nc' in filename_l1a
-    filename_geo = filename_l1a.replace('.L1A_SNPP.nc', '.GEO-M_SNPP.nc')
-    filename_l1c = filename_l1a.replace('.L1A_SNPP.nc', '.L1C')
+    filename_geo, filename_l1c = filename_l1a, filename_l1a
+    for sensor in ['SNPP', 'JPSS1']:
+        filename_geo = filename_geo.replace('.L1A_{}.nc'.format(sensor), '.GEO-M_{}.nc'.format(sensor))
+        filename_l1c = filename_l1c.replace('.L1A_{}.nc'.format(sensor), '.L1C')
+
+    print(filename_geo)
+    print(filename_l1c)
 
     #
     # GEO file
