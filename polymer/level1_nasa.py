@@ -52,45 +52,6 @@ tau_r_seadas_viirs = {
         2257: 3.294E-04,
         }
 
-def get_spectral_info(sensor):
-    # read SRF to initialize effective wavelengths
-    dir_auxdata = dirname(dirname(__file__))
-
-    if sensor == 'MODIS':
-        srf_file = join(dir_auxdata, 'auxdata/modisa/HMODISA_RSRs.txt')
-        skiprows = 8
-        bands = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240,1640,2130]
-        thres = 0.05
-        tau_r_seadas = tau_r_seadas_modis
-    elif sensor == 'SeaWiFS':
-        srf_file = join(dir_auxdata, 'auxdata/seawifs/SeaWiFS_RSRs.txt')
-        skiprows = 9
-        bands = [412,443,490,510,555,670,765,865]
-        thres = 0.2
-        tau_r_seadas = tau_r_seadas_seawifs
-    elif sensor == 'VIIRS':
-        srf_file = join(dir_auxdata, 'auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt')
-        skiprows = 5
-        bands = [410,443,486,551,671,745,862,1238,1601,2257]
-        thres = 0.05
-        tau_r_seadas = tau_r_seadas_viirs
-    else:
-        raise Exception('Invalid sensor "{}"'.format(sensor))
-
-    srf = pd.read_csv(srf_file,
-                      skiprows=skiprows, sep=None, engine='python',
-                      skipinitialspace=True, header=None)
-
-    central_wavelength = OrderedDict()
-    for i, b in enumerate(bands):
-        SRF = np.array(srf[i+1]).copy()
-        SRF[SRF<thres] = 0.
-        wav_eq = np.trapz(srf[0]*SRF)/np.trapz(SRF)
-        central_wavelength[b] = wav_eq
-
-    return central_wavelength, tau_r_seadas
-
-
 def filled(A, ok=None, fill_value=0):
     """
     Returns a filled from a filled or masked array, use fill_value
@@ -116,12 +77,11 @@ class Level1_NASA(Level1_base):
     '''
     def __init__(self, filename, sensor=None, blocksize=(500, 400),
                  sline=0, eline=-1, scol=0, ecol=-1, ancillary=None,
-                 altitude=0., use_srf=False):
+                 altitude=0.):
         self.sensor = sensor
         self.filename = filename
         self.root = Dataset(filename)
         self.altitude = altitude
-        self.use_srf = use_srf
         lat = self.root.groups['navigation_data'].variables['latitude']
         totalheight, totalwidth = lat.shape
         self.blocksize = blocksize
@@ -149,7 +109,7 @@ class Level1_NASA(Level1_base):
 
         self.init_ancillary()
 
-        self.init_wavelengths()
+        self.init_spectral_info()
 
 
     def init_ancillary(self):
@@ -162,10 +122,22 @@ class Level1_NASA(Level1_base):
         self.ancillary_files.update(self.wind_speed.filename)
         self.ancillary_files.update(self.surf_press.filename)
 
-    def init_wavelengths(self):
-        # read SRF to initialize effective wavelengths
+    def init_spectral_info(self):
+        # NOTE: central wavelengths are from SeaDAS
 
-        self.central_wavelength, self.tau_r_seadas = get_spectral_info(self.sensor)
+        if self.sensor == 'MODIS':
+            bands = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240,1640,2130]
+            self.tau_r_seadas = tau_r_seadas_modis
+        elif self.sensor == 'SeaWiFS':
+            self.tau_r_seadas = tau_r_seadas_seawifs
+            bands = [412,443,490,510,555,670,765,865]
+        elif self.sensor == 'VIIRS':
+            self.tau_r_seadas = tau_r_seadas_viirs
+            bands = [410,443,486,551,671,745,862,1238,1601,2257]
+        else:
+            raise Exception('Invalid sensor "{}"'.format(self.sensor))
+
+        self.central_wavelength = dict([(b, float(b)) for b in bands])
 
 
     def read_block(self, size, offset, bands):
@@ -245,10 +217,9 @@ class Level1_NASA(Level1_base):
             block.wavelen[:,:,iband] = self.central_wavelength[band]
             block.cwavelen[iband] = self.central_wavelength[band]
 
-        if not self.use_srf:
-            block.tau_ray = np.zeros(size3, dtype='float32') + np.NaN
-            for iband, band in enumerate(bands):
-                block.tau_ray[:,:,iband] = self.tau_r_seadas[band] * block.surf_press/1013.
+        block.tau_ray = np.zeros(size3, dtype='float32') + np.NaN
+        for iband, band in enumerate(bands):
+            block.tau_ray[:,:,iband] = self.tau_r_seadas[band] * block.surf_press/1013.
 
         return block
 

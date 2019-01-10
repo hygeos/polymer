@@ -107,7 +107,7 @@ class Level1_ASCII(object):
                                           enumerate(BANDS)))
             self.wav_band_names = dict(map(lambda b: (b[1], 'lam_band{:d}'.format(b[0])),
                                            enumerate(BANDS)))
-        
+
         #
         # read the csv file (only the required columns)
         #
@@ -238,34 +238,13 @@ class Level1_ASCII(object):
                 name = self.headers['LAMBDA0'](BANDS_OLCI.index(band), band)
                 block.wavelen[:,:,iband] = self.csv[name][sl].values.reshape(size)
                 block.cwavelen[iband] = float(band)#central_wavelength_olci[band]"""
-        if self.sensor in ['SeaWiFS', 'MODIS', 'VIIRS']:
-            # central wavelength for NASA sensors
-            dir_auxdata = dirname(dirname(__file__))
-            if self.sensor == 'MODIS':
-                srf_file = join(dir_auxdata, 'auxdata/modisa/HMODISA_RSRs.txt')
-                skiprows = 8
-                bands_ = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240,1640,2130]
-                thres = 0.05
-            elif self.sensor == 'SeaWiFS':
-                srf_file = join(dir_auxdata, 'auxdata/seawifs/SeaWiFS_RSRs.txt')
-                skiprows = 9
-                bands_ = [412,443,490,510,555,670,765,865]
-                thres = 0.2
-            elif self.sensor == 'VIIRS':
-                srf_file = join(dir_auxdata, 'auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt')
-                skiprows = 5
-                bands_ = [410,443,486,551,671,745,862,1238,1601,2257]
-                thres = 0.05
-            srf = pd.read_csv(srf_file,
-                            skiprows=skiprows, sep=None, engine='python',
-                            skipinitialspace=True, header=None)
-            for i, b in enumerate(bands):
-                SRF = np.array(srf[bands_.index(b)+1]).copy()
-                SRF[SRF<thres] = 0.
-                central_wavelength = np.trapz(srf[0]*SRF)/np.trapz(SRF)
 
-                block.wavelen[:,:,i] = central_wavelength
-                block.cwavelen[i] = central_wavelength
+        if self.sensor in ['SeaWiFS', 'MODIS', 'VIIRS']:
+            for i, b in enumerate(bands):
+                # take the band identifier as central wavelength
+                # (same values as in SeaDAS)
+                block.wavelen[:,:,i] = float(b)
+                block.cwavelen[i] = float(b)
 
         block.jday = np.array([x.timetuple().tm_yday for x in self.dates[sl]]).reshape(size)
 
