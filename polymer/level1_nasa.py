@@ -59,7 +59,7 @@ def get_spectral_info(sensor):
     if sensor == 'MODIS':
         srf_file = join(dir_auxdata, 'auxdata/modisa/HMODISA_RSRs.txt')
         skiprows = 8
-        bands = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240,1640,2130]
+        bands = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240,1640,2130]
         thres = 0.05
         tau_r_seadas = tau_r_seadas_modis
     elif sensor == 'SeaWiFS':

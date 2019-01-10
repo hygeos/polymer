@@ -13,10 +13,9 @@ from polymer.utils import raiseflag
 from polymer.level1_meris import central_wavelength_meris
 from polymer.level1_olci import central_wavelength_olci
 from polymer.level1_nasa import tau_r_seadas_modis, tau_r_seadas_seawifs, tau_r_seadas_viirs
-import warnings
 
 # bands stored in the ASCII extractions
-BANDS_MODIS = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240]
+BANDS_MODIS = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240]
 BANDS_SEAWIFS = [412,443,490,510,555,670,765,865]
 BANDS_VIIRS = [410,443,486,551,671,745,862,1238,1601,2257]
 BANDS_OLCI = [400 , 412, 443 , 490, 510 , 560, 620 , 665,
@@ -245,7 +244,7 @@ class Level1_ASCII(object):
             if self.sensor == 'MODIS':
                 srf_file = join(dir_auxdata, 'auxdata/modisa/HMODISA_RSRs.txt')
                 skiprows = 8
-                bands_ = [412,443,469,488,531,547,555,645,667,678,748,858,869,1240,1640,2130]
+                bands_ = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240,1640,2130]
                 thres = 0.05
             elif self.sensor == 'SeaWiFS':
                 srf_file = join(dir_auxdata, 'auxdata/seawifs/SeaWiFS_RSRs.txt')
