@@ -42,7 +42,7 @@ class Level1(object):
         if (b.startswith('MER_RR') or b.startswith('MER_FR')) and b.endswith('.N1'):
             self.sensor = 'meris'
 
-        elif b.startswith('S3A_OL_1') and b.endswith('.SEN3'):
+        elif (b.startswith('S3A_OL_1') or b.startswith('S3B_OL_1')) and b.endswith('.SEN3'):
             self.sensor = 'olci'
 
         elif b.startswith('V') and '.L1C' in b:
