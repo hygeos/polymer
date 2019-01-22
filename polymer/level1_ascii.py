@@ -60,6 +60,7 @@ class Level1_ASCII(object):
                    examples:
                        'RTOA': lambda i, b: 'Rtoa_{}'.format(b)    # will translate to {412: 'Rtoa_412', ...}
                        'RTOA': lambda i, b: 'Rtoa_{02d}'.format(i+1)  # will translate to {412: 'Rtoa_01', ...}
+        * ozone_unit: 'DU' (default), 'kg/m2', 'cm.atm'
     '''
     def __init__(self, filename, square=1, blocksize=100,
                  additional_headers=[], dir_smile=None,
@@ -68,6 +69,7 @@ class Level1_ASCII(object):
                  relative_azimuth=True,
                  wind_module=True,
                  na_values=None,
+                 ozone_unit='DU',
                  datetime_fmt='%Y%m%dT%H%M%SZ', verbose=True,
                  sep=';', skiprows=0):
 
@@ -78,6 +80,8 @@ class Level1_ASCII(object):
         self.relative_azimuth = relative_azimuth
         self.wind_module = wind_module
         self.verbose = verbose
+        self.ozone_unit = ozone_unit
+        assert ozone_unit in ['DU', 'kg/m2', 'cm.atm']
 
         if BANDS is None:
             BANDS = {
@@ -257,9 +261,9 @@ class Level1_ASCII(object):
 
         # ozone
         block.ozone = self.csv[self.headers['OZONE']][sl].values.reshape(size)
-        if self.sensor == 'OLCI':
+        if self.ozone_unit == 'kg/m2':
             block.ozone /= 2.1415e-5  # convert kg/m2 to DU
-        elif self.sensor in ['MODIS', 'SeaWiFS', 'VIIRS']:
+        elif self.ozone_unit == 'cm.atm':
             # ozone assumed to be in cm.atm: convert to DU
             block.ozone *= 1000.  # convert kg/m2 to DU
 
