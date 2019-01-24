@@ -9,12 +9,13 @@
 v4.10
 -----
 
-Release date: 2019-01-10
+Release date: 2019-01-24
 
 * SeaWiFS, MODIS, VIIRS: Updated central wavelengths to be equal to the values
   provided in SeaDAS (disactivate dynamic central wavelength calculation from
   SRF files)
-* Updated Level1_ASCII to be able to process SeaWiFS, MODIS and VIIRS extractions
+* Updated Level1_ASCII to be able to process SeaWiFS, MODIS and VIIRS extractions.
+  Allow specifying units of ozone if Level1_ASCII.
 
 Summary of the impact on products (water reflectance) with default options:
 - MODIS, SeaWiFS, VIIRS: small changes
