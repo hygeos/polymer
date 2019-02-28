@@ -1,86 +1,79 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
 import numpy as np
 import datetime
 
 
-class Landsat8_metadata:
+def node(raw, data):
+    if 'END_GROUP' in raw[0]:
+        return raw[1:] 
 
-    def __init__(self, filename):
-        self._filename = filename
-
-    def parser(self, raw):
-        data = {}
-        subdata = data
-            
-        if 'GROUP' in raw[0] and 'GROUP' in raw[1]:
-            key = raw[0].split('=')[1].strip()
-            data[key] = {}
-            subdata = data[key]
-            raw = raw[1:]
-
-        while len(raw)!=0:
-            raw = self.node(raw, subdata)
-            if raw[0][:3]=='END':
-                break
-
-        return data
-
-    def node(self, raw, data):
-
-        if 'END_GROUP' in raw[0]:
-            return raw[1:] 
-
-        if 'GROUP' in raw[0]:
-            key = raw[0].split('=')[1].strip()
-            data[key] = {}
-            raw = self.node(raw[1:], data[key])
-            return raw
-
-        else:
-            key, value, raw = self.leaf(raw)
-            data[key] = value
-            raw = self.node(raw[1:], data)
-
+    if 'GROUP' in raw[0]:
+        key = raw[0].split('=')[1].strip()
+        data[key] = {}
+        raw = node(raw[1:], data[key])
         return raw
 
-    def leaf(self, raw):
-        key = raw[0].split('=')[0].strip()
-        value = raw[0].split('=')[1].strip()
+    else:
+        key, value, raw = leaf(raw)
+        data[key] = value
+        raw = node(raw[1:], data)
 
-        if value[0] == '"': # string
-            value = value[1:-1]
-        elif value[0] == '(':
-            tmp = [float(a) for a in value[1:-1].split(',')]
+    return raw
 
-            while value[-1] != ')': # list
-                raw = raw[1:]
-                value = raw[0].strip()
-                tmp += [float(a) for a in value[1:-1].split(',')]
+def leaf(raw):
+    key = raw[0].split('=')[0].strip()
+    value = raw[0].split('=')[1].strip()
 
-            value = tmp
-        else:
-            try:
-                if '.' in value: #float
-                    value = float(value)
-                else:
-                    value = int(value)
-            except ValueError:
-                value = np.datetime64(value).astype(datetime.datetime)
+    if value[0] == '"': # string
+        value = value[1:-1]
+    elif value[0] == '(':
+        tmp = [float(a) for a in value[1:-1].split(',')]
 
-        return key, value, raw
+        while value[-1] != ')': # list
+            raw = raw[1:]
+            value = raw[0].strip()
+            tmp += [float(a) for a in value[1:-1].split(',')]
 
-    def open(self):
-        with open(self._filename) as pf:
-            raw = pf.readlines()
+        value = tmp
+    else:
+        try:
+            if '.' in value: #float
+                value = float(value)
+            else:
+                value = int(value)
+        except ValueError:
+            value = np.datetime64(value).astype(datetime.datetime)
 
-        data = self.parser(raw)
+    return key, value, raw
 
-        return data
+def parser(raw):
+    data = {}
+    subdata = data
 
+    if 'GROUP' in raw[0] and 'GROUP' in raw[1]:
+        key = raw[0].split('=')[1].strip()
+        data[key] = {}
+        subdata = data[key]
+        raw = raw[1:]
 
-if __name__=='__main__':
-    filename = '/rfs/user/francois/TESTCASES/L8_OLI/Lake_Canada/LC80140282017275LGN00/LC08_L1TP_014028_20171002_20171014_01_T1_ANG.txt'
-#    filename = '/rfs/user/francois/TESTCASES/L8_OLI/Lake_Canada/LC80140282017275LGN00/LC08_L1TP_014028_20171002_20171014_01_T1_MTL.txt'
-    meta = Landsat8_metadata(filename)
-    data = meta.open()
-    print(data)
-    print(data.keys())
+    while len(raw)!=0:
+        raw = node(raw, subdata)
+        if raw[0][:3]=='END':
+            break
+
+    return data
+
+def read_meta(filename):
+    '''
+    A parser for Landsat8 metadata and angles file in ODL (Object Desription Language)
+    '''
+    with open(filename) as pf:
+        raw = pf.readlines()
+
+    data = parser(raw)
+
+    return data
+
