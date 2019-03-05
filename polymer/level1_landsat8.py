@@ -148,7 +148,7 @@ class Level1_OLI(Level1_base):
 
     def date(self):
         d = self.data_mtl['PRODUCT_METADATA']['DATE_ACQUIRED']
-        t = datetime.strptime(self.data_mtl['PRODUCT_METADATA']['SCENE_CENTER_TIME'], '%H:%M:%S.%f0Z')
+        t = datetime.strptime(self.data_mtl['PRODUCT_METADATA']['SCENE_CENTER_TIME'][:8], '%H:%M:%S')
         return datetime.combine(d, time(t.hour, t.minute, t.second))
 
     def init_ancillary(self):
@@ -293,13 +293,15 @@ class Level1_OLI(Level1_base):
         # quality flags
         block.bitmask = np.zeros(size, dtype='uint16')
 
-        # laandmask
+        # landmask
         if self.landmask is not None:
             raiseflag(block.bitmask, L2FLAGS['LAND'],
                       self.landmask_data[
                           yoffset:yoffset+ysize,
                           xoffset:xoffset+xsize,
                                          ])
+        # invalid level1
+        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], block.Rtoa[:,:,0] == 0)
 
         return block
 
