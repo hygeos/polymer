@@ -7,6 +7,7 @@ from os.path import join, dirname
 from collections import OrderedDict
 from pyhdf.SD import SD
 from polymer.hico import bands_hico, K_OZ_HICO, K_NO2_HICO
+from scipy.interpolate import interp1d
 
 # pass these parameters to polymer to obtain the quasi-same results as polymer v3.5
 # polymer(<level>, <level2>, **params_v3_5)
@@ -224,6 +225,8 @@ class Params(object):
             self.defaults_seawifs()
         elif sensor == 'HICO':
             self.defaults_hico()
+        elif sensor == 'OLI':
+            self.defaults_oli()
         elif sensor == 'GENERIC':
             self.defaults_generic()
         else:
@@ -516,7 +519,7 @@ class Params(object):
         self.bands_corr = [412,443,    488,531,547,        667,678,748,    869,    ]
         self.bands_oc   = [412,443,    488,531,547,        667,678,748,    869,    ]
         self.bands_rw   = [412,443,    488,531,547,        667,678,748,    869,    ]
-        self.bands_lut  = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240]
+        self.bands_lut  = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240]    # TODO: deprecate all bands_lut?
 
         self.band_cloudmask = 869
 
@@ -623,6 +626,73 @@ class Params(object):
 
         self.band_cloudmask = 862
 
+    def defaults_oli(self):
+        '''
+        Landsat8/OLI defaults
+        '''
+        import xlrd
+        import pandas as pd
+
+        self.bands_corr = [440, 480, 560, 655, 865      ]
+        self.bands_oc   = [440, 480, 560, 655, 865      ]
+        self.bands_rw   = [440, 480, 560, 655, 865      ]
+        self.bands_lut = [440, 480, 560, 655, 865, 1610]
+
+        self.calib = {
+                440: 1.,
+                480: 1.,
+                560: 1.,
+                655: 1.,
+                865: 1.,
+                }
+
+
+        # Ozone optical depth for 1000 DU
+        self.K_OZ = OrderedDict()
+        srf_file = join(self.dir_base, 'auxdata', 'oli',
+                        'Ball_BA_RSR.v1.2.xlsx')
+        wb = xlrd.open_workbook(srf_file)
+
+        solar_spectrum_file = join(self.dir_common, 'SOLAR_SPECTRUM_WMO_86')
+        solar_data = pd.read_csv(solar_spectrum_file, sep=' ')
+
+        k_oz_data = pd.read_csv(join(self.dir_common, 'k_oz.csv'),
+                                skiprows=1)
+        k_oz = interp1d(k_oz_data.wavelength, k_oz_data.K_OZ,
+                        bounds_error=False, fill_value=0.)
+        F0 = interp1d(solar_data['lambda(nm)'], solar_data['Sl(W.m-2.nm-1)'])
+
+        for b, bname in [(440, 'CoastalAerosol'),
+                         (480, 'Blue'),
+                         (560, 'Green'),
+                         (655, 'Red'),
+                         (865, 'NIR')]:
+            sh = wb.sheet_by_name(bname)
+
+            wav, srf = [], []
+
+            i=0
+            while True:
+                i += 1
+                try:
+                    wav.append(sh.cell(i, 0).value)
+                    srf.append(sh.cell(i, 1).value)
+                except IndexError:
+                    break
+
+            wav, srf = np.array(wav), np.array(srf)
+
+            self.K_OZ[b] = np.trapz(k_oz(wav)*srf*F0(wav))/np.trapz(srf*F0(wav))
+
+        self.K_NO2 = {
+                440: 0.,
+                480: 0.,
+                560: 0.,
+                655: 0.,
+                865: 0.,
+                }
+
+        self.band_cloudmask = 865
 
     def bands_read(self):
         assert (np.diff(self.bands_corr) > 0).all()
