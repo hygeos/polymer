@@ -23,7 +23,7 @@ ancillary:
 	mkdir -p ANCILLARY/METEO/
 
 
-auxdata_all: auxdata_common auxdata_meris auxdata_olci auxdata_modisa auxdata_seawifs auxdata_viirs auxdata_msi
+auxdata_all: auxdata_common auxdata_meris auxdata_olci auxdata_modisa auxdata_seawifs auxdata_viirs auxdata_msi auxdata_oli
 
 auxdata_common: directories auxdata/generic/LUT.hdf auxdata/common/no2_climatology.hdf auxdata/common/trop_f_no2_200m.hdf auxdata/common/morel_fq.dat auxdata/common/AboveRrs_gCoef_w0.dat auxdata/common/AboveRrs_gCoef_w10.dat auxdata/common/AboveRrs_gCoef_w5.dat auxdata/common/aph_bricaud_1995.txt auxdata/common/aph_bricaud_1998.txt auxdata/common/morel_buiteveld_bsw.txt auxdata/common/palmer74.dat auxdata/common/pope97.dat auxdata/common/raman_westberry13.txt auxdata/common/astarmin_average_2015_SLSTR.txt auxdata/common/astarmin_average.txt auxdata/common/Matsuoka11_aphy_Table1_JGR.csv
 	@echo "b88aadd272734634b756922ad5b6f439  auxdata/common/no2_climatology.hdf"            |md5sum -c -
@@ -123,6 +123,12 @@ auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv:
 	$(WGET) auxdata/msi/ $(URL)/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv
 auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv:
 	$(WGET) auxdata/msi/ $(URL)/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv
+
+auxdata_oli: auxdata/oli/Ball_BA_RSR.v1.2.xlsx
+	@mkdir -p auxdata/oli
+	@echo "3bd7911f9544917130d1feb45f0ef31e auxdata/oli/Ball_BA_RSR.v1.2.xlsx" |md5sum -c -
+auxdata/oli/Ball_BA_RSR.v1.2.xlsx:
+	$(WGET) auxdata/oli/ $(URL)/oli/Ball_BA_RSR.v1.2.xlsx
 
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
