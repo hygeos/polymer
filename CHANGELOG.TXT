@@ -6,6 +6,18 @@
                            #####################
 
 
+v4.11-beta1
+-----------
+
+This is a beta version.
+
+* Add landsat8 processing
+  from polymer.level1_landsat8 import Level1_OLI
+  Landsat8 processing requires prior angle generation for band 1 in ENVI format.
+
+
+
+
 v4.10
 -----
 
