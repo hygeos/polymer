@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 from __future__ import print_function, division, absolute_import
+from polymer.level1 import Level1_base
+from polymer.level1_nasa import filled
 from polymer.block import Block
 from polymer.hico import bands_hico, wav_hico, F0_hico
 import numpy as np
-import h5py
+from warnings import warn
+#import h5py
+from netCDF4 import Dataset
 from datetime import datetime
 from polymer.ancillary import Ancillary_NASA
 from polymer.utils import raiseflag
 from polymer.common import L2FLAGS
-from numpy import interp
+#from numpy import interp
+from os.path import basename, join, dirname
 from collections import OrderedDict
-
-
 
 class Level1_HICO(object):
     """
@@ -28,14 +30,15 @@ class Level1_HICO(object):
     def __init__(self, filename, blocksize=200,
                  sline=0, eline=-1, scol=0, ecol=-1,
                  ancillary=None, landmask=None):
-        self.h5 = h5py.File(filename)
+        self.nc=Dataset(filename)
         self.sensor = 'HICO'
         self.filename = filename
         self.landmask = landmask
 
-        self.Lt = self.h5['products']['Lt']
+        self.Lt = self.nc.groups['products']['Lt']
 
         self.totalheight, self.totalwidth, nlam = self.Lt.shape
+
         self.blocksize = blocksize
         self.sline = sline
         self.scol = scol
@@ -73,23 +76,22 @@ class Level1_HICO(object):
         self.ancillary_files.update(self.ozone.filename)
         self.ancillary_files.update(self.wind_speed.filename)
         self.ancillary_files.update(self.surf_press.filename)
-
         self.init_landmask()
 
 
     def init_landmask(self):
         if not hasattr(self.landmask, 'get'):
             return
-
-        lat = self.h5['navigation']['latitudes'][:,:]
-        lon = self.h5['navigation']['longitudes'][:,:]
+        lat = filled(self.nc.groups['navigation']['latitudes'][:,:])
+        lon = filled(self.nc.groups['navigation']['longitudes'][:,:])
 
         self.landmask_data = self.landmask.get(lat, lon)
 
 
     def get_time(self):
-        beg_date = self.h5['metadata']['FGDC']['Identification_Information']['Time_Period_of_Content'].attrs['Beginning_Date'].decode('ascii')
-        beg_time = self.h5['metadata']['FGDC']['Identification_Information']['Time_Period_of_Content'].attrs['Beginning_Time'].decode('ascii')
+        metadata = self.nc.groups['metadata']['FGDC']['Identification_Information']['Time_Period_of_Content']
+        beg_date = metadata.getncattr('Beginning_Date')
+        beg_time = metadata.getncattr('Beginning_Time')
         return datetime.strptime(beg_date + beg_time, '%Y%m%d%H%M%S')
 
 
@@ -105,28 +107,27 @@ class Level1_HICO(object):
         block.jday = self.datetime.timetuple().tm_yday
         block.month = self.datetime.timetuple().tm_mon
 
-        block.latitude = self.h5['navigation']['latitudes'][SY, SX]
-        block.longitude = self.h5['navigation']['longitudes'][SY, SX]
-        block.sza = self.h5['navigation']['solar_zenith'][SY, SX]
-        block.vza = self.h5['navigation']['sensor_zenith'][SY, SX]
-        block.saa = self.h5['navigation']['solar_azimuth'][SY, SX]
-        block.vaa = self.h5['navigation']['sensor_azimuth'][SY, SX]
-
-        assert len(self.Lt.attrs['wavelengths']) == len(bands_hico)
-
+        block.latitude = filled(self.nc.groups['navigation']['latitudes'][SY, SX])
+        block.longitude = filled(self.nc.groups['navigation']['longitudes'][SY, SX])
+        block.sza = filled(self.nc.groups['navigation']['solar_zenith'][SY, SX])
+        block.vza = filled(self.nc.groups['navigation']['sensor_zenith'][SY, SX])
+        block.saa = filled(self.nc.groups['navigation']['solar_azimuth'][SY, SX])
+        block.vaa = filled(self.nc.groups['navigation']['sensor_azimuth'][SY, SX])
+        
+        assert len(self.Lt.getncattr('wavelengths')) == len(bands_hico)
         ibands = np.array([bands_hico.index(b) for b in bands])
 
         # read TOA
         block.Ltoa = np.zeros(size3) + np.NaN
-        slope = self.Lt.attrs['slope']
-        intercept = self.Lt.attrs['intercept']
+        slope = self.Lt.getncattr('scale_factor')
+        intercept= self.Lt.getncattr('add_offset')
         assert intercept == 0.
-        block.Ltoa = slope * self.Lt[SY, SX, ibands]/10.  # convert
+        assert self.Lt.getncattr('units') == 'W/m^2/micrometer/sr'
+        block.Ltoa = filled(slope * self.Lt[SY, SX, ibands])
+        block.Ltoa *= 10.  # convert W/m^2/um/sr -> mW/cm^2/um/sr
 
         # read bitmask
         block.bitmask = np.zeros(size, dtype='uint16')
-        # flags = self.h5['quality']['flags'][SY, SX]
-        # raiseflag(block.bitmask, L2FLAGS['LAND'], flags & 1 != 0)
 
         # read solar irradiance
         block.F0 = np.zeros(size3) + np.NaN
