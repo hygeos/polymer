@@ -240,7 +240,6 @@ class Params(object):
         self.bands_corr = []
         self.bands_oc =   []
         self.bands_rw =   []
-        self.bands_lut = []
         self.band_cloudmask = -999
         self.calib = {}
         self.K_OZ = {}
@@ -254,8 +253,6 @@ class Params(object):
         self.bands_corr = [412,443,490,510,560,620,665,        754,    779,865]
         self.bands_oc =   [412,443,490,510,560,620,665,        754,    779,865]
         self.bands_rw =   [412,443,490,510,560,620,665,681,709,754,    779,865]
-
-        self.bands_lut = [412,443,490,510,560,620,665,681,709,754,760,779,865,885,900]
 
         self.band_cloudmask = 865
 
@@ -315,10 +312,6 @@ class Params(object):
         self.bands_oc   = [    412,443,490,510,560,620,665,        754,779,865]
         self.bands_rw   = [400,412,443,490,510,560,620,665,681,709,754,779,865,1020]
 
-        self.bands_lut = [400,412,443,490,510,560,620,665,674,681,
-                          709,754,760,764,767,779,865,885,900,940,
-                          1020,1375,1610,2250]
-
         self.band_cloudmask = 865
 
         self.calib = {   # SVC Constant Aug18
@@ -372,8 +365,6 @@ class Params(object):
         self.bands_corr = [443,490,560,665,705,740,783,    865,                  ]
         self.bands_oc   = [443,490,560,665,705,740,783,    865,                  ]
         self.bands_rw   = [443,490,560,665,705,740,783,    865,         1610,    ]
-
-        self.bands_lut =  [443,490,560,665,705,740,783,842,865,945,1375,1610,2190]
 
         self.band_cloudmask = 865
 
@@ -430,7 +421,6 @@ class Params(object):
         self.bands_corr = [    443,486,551,671,745,862               ]
         self.bands_oc   = [    443,486,551,671,745,862               ]
         self.bands_rw   = [410,443,486,551,671,745,862               ]
-        self.bands_lut  = [410,443,486,551,671,745,862,1238,1601,2257]
 
         self.band_cloudmask = 862
 
@@ -483,8 +473,6 @@ class Params(object):
         self.bands_oc   = [412,443,490,510,555,670,    865]
         self.bands_rw   = [412,443,490,510,555,670,    865]
 
-        self.bands_lut  = [412,443,490,510,555,670,765,865]
-
         self.band_cloudmask = 865
 
         self.calib = {  # OC-CCI VC 20161017
@@ -519,7 +507,6 @@ class Params(object):
         self.bands_corr = [412,443,    488,531,547,        667,678,748,    869,    ]
         self.bands_oc   = [412,443,    488,531,547,        667,678,748,    869,    ]
         self.bands_rw   = [412,443,    488,531,547,        667,678,748,    869,    ]
-        self.bands_lut  = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240]    # TODO: deprecate all bands_lut?
 
         self.band_cloudmask = 869
 
@@ -583,7 +570,6 @@ class Params(object):
 
 
     def defaults_hico(self):
-        self.bands_lut = bands_hico
         bands_to_use = [
                                                                         410,
             416,  421,  427,  433,  438,  444,  450,  456,  461,  467,  473,
@@ -636,7 +622,6 @@ class Params(object):
         self.bands_corr = [440, 480, 560, 655, 865      ]
         self.bands_oc   = [440, 480, 560, 655, 865      ]
         self.bands_rw   = [440, 480, 560, 655, 865      ]
-        self.bands_lut = [440, 480, 560, 655, 865, 1610]
 
         self.calib = {
                 440: 1.,

@@ -265,14 +265,26 @@ class InitCorr(object):
         raiseflag(block.bitmask, L2FLAGS['EXCEPTION'], nightpixel)
 
         inir_block = block.bands.index(params.band_cloudmask)
-        inir_lut = params.bands_lut.index(params.band_cloudmask)
+
+        # calculate Rayleigh optical thickness
+        # for NIR band
+        inir_read = params.bands_read().index(params.band_cloudmask)
+        wav = block.wavelen[ok, inir_read]
+        if not hasattr(block, 'tau_ray'):
+            # default: calculate Rayleigh optical thickness on the fly
+            tau_ray = rod(wav/1000., 400., 45.,
+                          block.altitude[ok],
+                          block.surf_press[ok])
+        else:
+            # if level1 provides its Rayleigh optical thickness, use it
+            tau_ray = block.tau_ray[ok, inir_read]
 
         block.Rnir = np.zeros(block.size, dtype='float32')
         block.Rnir[ok] = block.Rtoa_gc[:,:,inir_block][ok] - self.mlut['Rmol'][
                 Idx(block.muv[ok]),
                 Idx(block.raa[ok]),
                 Idx(block.mus[ok]),
-                inir_lut]
+                Idx(tau_ray)]
 
         if params.thres_Rcloud >= 0:
             cloudmask = block.Rnir > params.thres_Rcloud
