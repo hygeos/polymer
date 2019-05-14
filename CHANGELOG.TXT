@@ -6,16 +6,39 @@
                            #####################
 
 
-v4.11-beta1
------------
+v4.11
+-----
 
-This is a beta version.
+Release date: 2019-05-14
 
-* Add landsat8 processing
+* OLCI: updated spectral bands usage.
+  Band 412 is not used for atmospheric correction anymore (but still provided
+  as an output), following what is done for VIIRS.
+  This solves occasional unstability issues.
+  SVC coefficients for OLCI are reset to 1 until OLCI SVC is re-generated.
+
+* SeaWiFS, MODIS, VIIRS: updated System Vicarious Coefficients (SVC) by
+  Constant Mazeran with NASA Reprocessing R2018, updated in-situ database and ERA-Interim parameters.
+  Only use this version with L1C files generated with SeaDAS configured for R2018!
+  Previous versions should only use L1C files generated with SeaDAS configured for R2014.
+
+* Add landsat8 reader
   from polymer.level1_landsat8 import Level1_OLI
   Landsat8 processing requires prior angle generation for band 1 in ENVI format.
 
+* HICO: Level1 reader is updated to the newer NetCDF format.
 
+* Fix a bug affecting Polymer's (basic) cloud mask
+  Rayleigh correction of the NIR bands used for cloud masking was affected by a
+  bug, resulting in over-correction, and therefore cloud mask was 
+  This bug was introduced in version 4.8.
+
+Summary of the product evolution:
+    * All NASA sensors (MODIS, SeaWiFS, VIIRS) are affected by SVC gains update
+      and concomitant Level1 update
+    * OLCI is affected by bands configuration update and concomitant SVC gains reset
+    * MERIS and MSI results do not evolve, but:
+    * Change in Polymer's cloud mask for all sensors
 
 
 v4.10
