@@ -217,8 +217,10 @@ class Params(object):
             self.defaults_msi()
         elif sensor == 'OLCI':
             self.defaults_olci()
-        elif sensor == 'VIIRS':
-            self.defaults_viirs()
+        elif sensor in ['VIIRS', 'VIIRSN']:
+            self.defaults_viirsn()
+        elif sensor == 'VIIRSJ1':
+            self.defaults_viirsj1()
         elif sensor == 'MODIS':
             self.defaults_modis()
         elif sensor == 'SeaWiFS':
@@ -418,7 +420,7 @@ class Params(object):
                 2190: 0.,
                 }
 
-    def defaults_viirs(self):
+    def defaults_viirsn(self):
 
         self.bands_corr = [    443,486,551,671,745,862               ]
         self.bands_oc   = [    443,486,551,671,745,862               ]
@@ -474,6 +476,47 @@ class Params(object):
                 1238:0.000E+00,
                 }
 
+    def defaults_viirsj1(self):
+
+        self.bands_corr = [    445,489,556,667,746,868               ]
+        self.bands_oc   = [    445,489,556,667,746,868               ]
+        self.bands_rw   = [411,445,489,556,667,746,868               ]
+
+        self.band_cloudmask = 868
+
+        # SeaDAS gains 7.5.3
+        # self.calib = {
+        #     411 : 1.0017, 445 : 1.0160, 489 : 1.0222,
+        #     556 : 1.0115, 667 : 1.0088, 746 : 1.0099,
+        #     868 : 1.0, 1238: 1.0, 1604: 1.0, 2258: 1.0,
+        #     }
+
+        self.calib = None
+
+        self.K_OZ = {  # from SeaDAS
+                411 : 2.618E-04,
+                445 : 3.220E-03,
+                489 : 2.129E-02,
+                556 : 9.965E-02,
+                667 : 4.771E-02,
+                746 : 1.083E-02,
+                868 : 2.062E-03,
+                1238: 3.897E-14,
+                1604: 2.357E-14,
+                2258: 1.388E-13,
+                }
+        self.K_NO2 = {  # from SeaDAS
+                411 : 6.006E-19,
+                445 : 4.932E-19,
+                489 : 2.886E-19,
+                556 : 8.767E-20,
+                667 : 8.008E-21,
+                746 : 1.820E-21,
+                868 : 6.223E-23,
+                1238: 0.000E+00,
+                1604: 0.000E+00,
+                2258: 0.000E+00,
+                }
 
     def defaults_seawifs(self):
         self.bands_corr = [412,443,490,510,555,670,    865]

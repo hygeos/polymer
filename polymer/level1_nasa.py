@@ -39,7 +39,7 @@ tau_r_seadas_seawifs = {
         865: 1.690E-02,
         }
 
-tau_r_seadas_viirs = {
+tau_r_seadas_viirsn = {
         410 : 3.175E-01,
         443 : 2.328E-01,
         486 : 1.600E-01,
@@ -51,6 +51,20 @@ tau_r_seadas_viirs = {
         1601: 1.305E-03,
         2257: 3.294E-04,
         }
+
+tau_r_seadas_viirsj1 = {
+        411 : 3.210E-01,
+        445 : 2.312E-01,
+        489 : 1.573E-01,
+        556 : 9.252E-02,
+        667 : 4.420E-02,
+        746 : 2.815E-02,
+        868 : 1.533E-02,
+        1238: 3.650E-03,
+        1604: 1.296E-03,
+        2258: 3.285E-04,
+        }
+
 
 def filled(A, ok=None, fill_value=0):
     """
@@ -131,9 +145,12 @@ class Level1_NASA(Level1_base):
         elif self.sensor == 'SeaWiFS':
             self.tau_r_seadas = tau_r_seadas_seawifs
             bands = [412,443,490,510,555,670,765,865]
-        elif self.sensor == 'VIIRS':
-            self.tau_r_seadas = tau_r_seadas_viirs
+        elif self.sensor in ['VIIRS', 'VIIRSN']:
+            self.tau_r_seadas = tau_r_seadas_viirsn
             bands = [410,443,486,551,671,745,862,1238,1601,2257]
+        elif self.sensor == 'VIIRSJ1':
+            self.tau_r_seadas = tau_r_seadas_viirsj1
+            bands = [411,445,489,556,667,746,868,1238,1604,2258]
         else:
             raise Exception('Invalid sensor "{}"'.format(self.sensor))
 
@@ -269,8 +286,14 @@ class Level1_NASA(Level1_base):
 class Level1_VIIRS(Level1_NASA):
     ''' Interface to VIIRS Level-1C '''
     def __init__(self, filename, **kwargs):
+        root = Dataset(filename)
+        platform = root.getncattr('platform')
+        sensor = {
+                'Suomi-NPP':'VIIRSN',
+                'JPSS-1': 'VIIRSJ1',
+                }[platform]
         super(self.__class__, self).__init__(
-                filename, sensor='VIIRS', **kwargs)
+                filename, sensor=sensor, **kwargs)
 
 class Level1_SeaWiFS(Level1_NASA):
     ''' Interface to SeaWiFS Level-1C '''
