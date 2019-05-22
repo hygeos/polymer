@@ -262,6 +262,8 @@ class Level1_OLI(Level1_base):
             data = band.ReadAsArray(xoff=self.scol+xoffset, yoff=self.sline+yoffset,
                                     win_xsize=xsize, win_ysize=ysize)
             block.Rtoa[:,:,iband] = (M*data + A)/np.cos(np.radians(block.sza))
+            block.Rtoa[:,:,iband][data == 0] = np.NaN
+
 
         # spectral info
         block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
@@ -301,7 +303,8 @@ class Level1_OLI(Level1_base):
                           xoffset:xoffset+xsize,
                                          ])
         # invalid level1
-        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], block.Rtoa[:,:,0] == 0)
+        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'],
+                  np.isnan(block.Rtoa[:,:,0]))
 
         return block
 
