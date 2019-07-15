@@ -42,9 +42,9 @@ class Level1_MERIS(Level1_base):
     altitude: surface altitude in m
         * a float
         * a DEM instance such as:
-            SRTM(cache_dir=...)  # srtm.py
+            SRTM3(cache_dir=...)  # srtm.py
             GLOBE(directory=...)  # globe.py
-            SRTM(..., missing=GLOBE(...))
+            SRTM3(..., missing=GLOBE(...))
     """
 
     def __init__(self, filename,

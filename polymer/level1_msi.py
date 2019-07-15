@@ -79,9 +79,9 @@ class Level1_MSI(Level1_base):
         altitude: surface altitude in m
             * a float
             * a DEM instance such as:
-                SRTM(cache_dir=...)  # srtm.py
+                SRTM3(cache_dir=...)  # srtm.py
                 GLOBE(directory=...)  # globe.py
-                SRTM(..., missing=GLOBE(...))
+                SRTM3(..., missing=GLOBE(...))
 
         srf_file: spectral response function. By default, it will use:
             auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv for S2A
