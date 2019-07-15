@@ -17,7 +17,7 @@ echo
 
 
 # mandatory dependencies
-deps="python cython numpy pyhdf scipy netcdf4 pandas"
+deps="python=3 cython numpy pyhdf scipy netcdf4 pandas"
 
 # MERIS support (optional)
 deps="$deps avalentino::pyepr"
