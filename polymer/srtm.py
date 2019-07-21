@@ -11,7 +11,6 @@ except ImportError:  # python2
     from urllib2 import urlopen, HTTPError
 import numpy as np
 import io
-from geoutils.misc import ListOnDisk
 from os.path import exists, join
 from os import makedirs, rename
 import sys
