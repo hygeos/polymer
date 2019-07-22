@@ -124,7 +124,7 @@ class Level1_HICO(object):
         assert intercept == 0.
         assert self.Lt.getncattr('units') == 'W/m^2/micrometer/sr'
         block.Ltoa = filled(slope * self.Lt[SY, SX, ibands])
-        block.Ltoa *= 10.  # convert W/m^2/um/sr -> mW/cm^2/um/sr
+        block.Ltoa /= 10.  # convert W/m^2/um/sr -> mW/cm^2/um/sr
 
         # read bitmask
         block.bitmask = np.zeros(size, dtype='uint16')
