@@ -119,11 +119,8 @@ class Level1_HICO(object):
 
         # read TOA
         block.Ltoa = np.zeros(size3) + np.NaN
-        slope = self.Lt.getncattr('scale_factor')
-        intercept= self.Lt.getncattr('add_offset')
-        assert intercept == 0.
         assert self.Lt.getncattr('units') == 'W/m^2/micrometer/sr'
-        block.Ltoa = filled(slope * self.Lt[SY, SX, ibands])
+        block.Ltoa[:] = filled(self.Lt[SY, SX, ibands])
         block.Ltoa /= 10.  # convert W/m^2/um/sr -> mW/cm^2/um/sr
 
         # read bitmask
