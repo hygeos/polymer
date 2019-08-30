@@ -175,7 +175,9 @@ class Level1_HICO(object):
             yield self.read_block(size, offset, bands_read)
 
     def attributes(self, datefmt):
-        return OrderedDict()
+        attr = OrderedDict()
+        attr['datetime'] = self.datetime
+        return attr
 
     def __enter__(self):
         return self
