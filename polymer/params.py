@@ -98,7 +98,7 @@ class Params(object):
 
         # cloud masking (negative values disactivate)
         self.thres_Rcloud = 0.2
-        self.thres_Rcloud_std = 0.04
+        self.thres_Rcloud_std = 0.04  # may be overridden by sensor-specific options
 
         # optimization parameters
         self.force_initialization = False
@@ -439,6 +439,8 @@ class Params(object):
 
         self.band_cloudmask = 862
 
+        self.thres_Rcloud_std = 0.005
+
         # self.calib = {  # vicarious calibration R2014.0
                 # 410: 0.9631, 443: 1.0043,
                 # 486: 1.0085, 551: 0.9765,
@@ -460,6 +462,7 @@ class Params(object):
         #         862 : 1.0, 1238: 1.0,
         #         1601: 1.0, 2257: 1.0,
         #     }
+
         self.calib = {  # OC-CCI SVC 20190430 (ERA) for NASA R2018 (L1C generated with g=1)
                 410: 0.975200, 443: 0.955771,
                 486: 0.983928, 551: 0.978784,
@@ -494,6 +497,8 @@ class Params(object):
         self.bands_rw   = [411,445,489,556,667,746,868               ]
 
         self.band_cloudmask = 868
+
+        self.thres_Rcloud_std = 0.005
 
         # SeaDAS gains 7.5.3
         # self.calib = {
