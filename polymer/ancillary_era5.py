@@ -23,16 +23,19 @@ class Ancillary_ERA5(object):
     Arguments:
     * directory: base directory for storing the ERA5 files
     * pattern: pattern for storing the ERA5 files in NetCDF format
+    * offline (bool, default False).
+        If true, sets offline mode: don't download anything and fail upon missing file.
     '''
     def __init__(self,
                  directory='ANCILLARY/ERA5/',
                  pattern='%Y/%m/%d/era5_%Y%m%d_%H%M%S.nc',
                  time_resolution=1,
+                 offline=False,
                  ):
         self.time_resolution = time_resolution
         self.directory = directory
         self.pattern = pattern
-        self.ERA5 = ERA5(directory=directory, pattern=pattern)
+        self.ERA5 = ERA5(directory=directory, pattern=pattern, offline=offline)
 
     def get(self, param, date):
         '''
