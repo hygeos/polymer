@@ -31,6 +31,9 @@ deps="$deps gdal"
 # ERA-Interim support (optional)
 deps="$deps pygrib bioconda::ecmwfapi"
 
+# ERA5 support (optional)
+deps="$deps cdsapi xarray"
+
 # python2 support (optional)
 deps="$deps urllib3"
 
