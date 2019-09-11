@@ -5,6 +5,36 @@
                            #                   #
                            #####################
 
+v4.12
+-----
+
+Release date: 2019-09-11
+
+* Updated OLCI-A SVC
+  Note: OLCI-A gains are also applied by default to OLCI-B.
+
+* Ancillary data: added support for ECMWF ERA5 in polymer/ancillary_era5.py
+  (https://www.ecmwf.int/en/forecasts/datasets/reanalysis-datasets/era5)
+  
+* VIIRS: use more stringent cloud masking options by default
+  (thres_Rcloud_std = 0.005)
+
+* Add support for VIIRS/JPSS1
+  
+* README file: add a summary of the recommended flags for each sensor
+
+* Fix a problem with flagging of invalid pixels in landsat8 reader
+
+* Fix a bug in HICO reader
+
+Summary of the product evolution:
+* OLCI: significant changes due to updated SVC.
+  Improved stability in the sun glint.
+  Water reflectances may be slightly overestimated.
+* VIIRS: evolution of the default cloud mask
+* HICO: major improvement due to bugfix
+* Other sensors: no evolution
+
 
 v4.11
 -----
