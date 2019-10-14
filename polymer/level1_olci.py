@@ -170,6 +170,7 @@ class Level1_OLCI(Level1_base):
             return self.nc_datasets[filename]
 
         self.nc_datasets[filename] = Dataset(os.path.join(self.dirname, filename))
+        self.nc_datasets[filename].set_auto_mask(False)
 
         return self.nc_datasets[filename]
 
