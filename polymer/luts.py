@@ -18,10 +18,13 @@ from __future__ import print_function, division, absolute_import
 import sys
 import numpy as np
 from scipy.interpolate import interp1d
+import xarray as xr
 from os.path import exists
 from os import remove
 from collections import OrderedDict
+from numpy.ma import filled
 import warnings
+import itertools
 if sys.version_info[:2] >= (3, 0): # python2/3 compatibility
     unicode = str
     xrange = range
@@ -62,17 +65,24 @@ def uniq(seq):
     return [ x for x in seq if not (x in seen or seen_add(x))]
 
 
-def bin_edges(x):
+def bin_edges(x, min=None, max=None):
     '''
     calculate n+1 bin edges from n bin centers in x
     '''
     assert x.ndim == 1
     if len(x) == 1:
-        return np.array([x-0.5, x+0.5])
+        ret = np.array([x-0.5, x+0.5])
     else:
         first = (3*x[0] - x[1])/2.
         last = (3*x[-1] - x[-2])/2.
-        return np.append(np.append(first, 0.5*(x[1:]+x[:-1])), last)
+        ret = np.append(np.append(first, 0.5*(x[1:]+x[:-1])), last)
+    
+    if min is not None:
+        ret = np.maximum(ret, min)
+    if max is not None:
+        ret = np.minimum(ret, max)
+    
+    return ret
 
 
 class LUT(object):
@@ -404,7 +414,7 @@ class LUT(object):
             else:  # scalar
                 index0.append(0)
 
-        shp_res = np.zeros(1).reshape([1]*self.ndim)[index0].shape
+        shp_res = np.zeros(1).reshape([1]*self.ndim)[tuple(index0)].shape
 
         # determine the interpolation axes
         # and for those axes, determine the lower index (inf) and the weight
@@ -963,6 +973,52 @@ class LUT(object):
     def transect2D(self, *args, **kwargs):
         transect2D(self, *args, **kwargs)
         return self
+    
+    def rename_axis(self, ax1, ax2):
+        if self.names is None:
+            raise Exception("Requested rename_axis on a LUT that has no named axes")
+        else:
+            self.names = [ax2 if x == ax1 else x for x in self.names]
+
+        return self
+
+    def to_xarray(self, deduplicate={}):
+        """
+        Convert LUT to `xr.DataArray`
+
+        Arguments:
+        ----------
+
+        deduplicate: dictionary used to rename duplicate dimensions within the LUT
+            ex: {'a': ['a0', 'a1']}
+                rename duplicate dimension 'a' to 'a0', 'a1'
+        """
+        idim = itertools.count()
+        new_dims = [x
+                    if x is not None
+                    else f'dim_{next(idim)}'
+                    for x in self.names]
+        for d in deduplicate:
+            idedup = itertools.count()
+            new_dims = [x
+                        if x not in deduplicate
+                        else deduplicate[x][next(idedup)]
+                        for x in new_dims]
+
+        da = xr.DataArray(
+            self.data,
+            dims=new_dims,
+            )
+        for i, name in enumerate(self.names):
+            if (name is None) or (self.axes[i] is None):
+                continue
+            if name in deduplicate:
+                for n in deduplicate[name]:
+                    da = da.assign_coords(**{n: self.axes[i]})
+            else:
+                da = da.assign_coords(**{name: self.axes[i]})
+        da.attrs = self.attrs
+        return da
 
 
 def Idx(value, name=None, round=False, fill_value=None):
@@ -1268,7 +1324,7 @@ def plot_polar(lut, index=None, vmin=None, vmax=None, rect='211', sub='212',
         cmap.set_under('black')
         cmap.set_over('white')
         cmap.set_bad('0.5') # grey 50%
-    r, t = np.meshgrid(bin_edges(ax2_scaled), bin_edges(ax1_scaled))
+    r, t = np.meshgrid(bin_edges(ax2_scaled, min=0, max=90), bin_edges(ax1_scaled))
     masked_data = np.ma.masked_where(np.isnan(data) | np.isinf(data), data)
     im = aux_ax_polar.pcolormesh(t, r, masked_data, cmap=cmap, vmin=vmin, vmax=vmax)
 
@@ -1299,7 +1355,7 @@ def plot_polar(lut, index=None, vmin=None, vmax=None, rect='211', sub='212',
                 ax_cart.plot(-ax2, data[mirror_index,:],'--'+color)
 
     # add colorbar
-    fig.colorbar(im, orientation='horizontal', extend='both', ticks=np.linspace(vmin, vmax, 5))
+    fig.colorbar(im, orientation='horizontal', extend='both', ticks=np.linspace(vmin, vmax, 5), shrink=0.7)
     if lut.desc is not None:
         ax_polar.set_title(lut.desc, weight='bold', position=(0.05,0.97))
 
@@ -2159,6 +2215,41 @@ class MLUT(object):
         display(VBox(wid))
         update()
 
+    def rename_axis(self, ax1, ax2):
+        '''
+        Rename axis ax1 to ax2 (in place)
+        '''
+        # modify axes
+        self.axes = OrderedDict(((ax2 if k == ax1 else k, v) for k, v in self.axes.items()))
+
+        # modify data
+        self.data = [(name,
+                      array,
+                      None if axnames is None else [ax2 if x == ax1 else x for x in axnames],
+                      attributes)
+                     for (name, array, axnames, attributes) in self.data]
+
+        return self
+
+    def to_xarray(self):
+        """
+        Convert LUT to `xr.Dataset`
+        """
+        ds = xr.Dataset()
+
+        idim = itertools.count()
+
+        for (name, array, axnames, attributes) in self.data:
+            ds[name] = xr.DataArray(
+                array,
+                dims=[x if x is not None else f'dim_{next(idim)}' for x in axnames],
+            )
+            ds[name].attrs = attributes
+        
+        ds = ds.assign_coords(**self.axes)
+        ds.attrs = self.attrs
+
+        return ds
 
 
 def read_mlut(filename, fmt=None):
@@ -2199,7 +2290,7 @@ def read_mlut_netcdf4(filename):
     # read axes
     for dim in root.dimensions:
         if (not dim.startswith('dummy')) and (dim in root.variables):
-            m.add_axis(str(dim), root.variables[dim][:])
+            m.add_axis(str(dim), filled(root.variables[dim][:]))
 
     # read datasets
     for varname in root.variables:
@@ -2212,7 +2303,7 @@ def read_mlut_netcdf4(filename):
         for a in var.ncattrs():
             attrs[a] = var.getncattr(a)
 
-        m.add_dataset(varname, var[:], [str(x) for x in var.dimensions], attrs=attrs)
+        m.add_dataset(varname, filled(var[:]), [str(x) for x in var.dimensions], attrs=attrs)
 
     # read global attributes
     for a in root.ncattrs():
@@ -2236,7 +2327,7 @@ def read_mlut_hdf5(filename, datasets=None, lazy=False, group=None):
     '''
     import h5py
 
-    ff = h5py.File(filename)
+    ff = h5py.File(filename,"r")
 
     if group:
         f = ff[group]
@@ -2245,7 +2336,7 @@ def read_mlut_hdf5(filename, datasets=None, lazy=False, group=None):
 
     # set the list of dataset
     if datasets is None:
-        ls_datasets = f['data'].keys()
+        ls_datasets = list(f['data'].keys())
     else:
         ls_datasets = datasets
 
@@ -2258,7 +2349,11 @@ def read_mlut_hdf5(filename, datasets=None, lazy=False, group=None):
                 print('Missing -dimensions- Attr in dataset "{}" '.format(dataset))
                 raise Exception('Missing dimensions Attr in dataset')
             else:
-                dimensions = f['data'][dataset].attrs.get('dimensions').split(',')
+                dimensions = f['data'][dataset].attrs.get('dimensions')
+                if isinstance(dimensions, bytes):
+                    dimensions = dimensions.decode().split(',')
+                else:
+                    dimensions = dimensions.split(',')
                 axis_data.append(dimensions)
                 for aa in dimensions:
                     ls_axis.append(aa)
@@ -2377,6 +2472,36 @@ def read_mlut_hdf(filename, datasets=None):
         m.set_attr(k, v)
 
     return m
+
+def from_xarray(A):
+    """
+    Convert xarray object `A` (`Dataset` or `DataArray`) to MLUT or LUT.
+    """
+    if isinstance(A, xr.Dataset):
+        m = MLUT()
+
+        for x in A:
+            m.add_dataset(
+                x,
+                A[x].data,
+                A[x].dims,
+                attrs=A[x].attrs)
+        
+        for x in A.coords:
+            m.add_axis(x, A.coords[x].data)
+
+        return m
+
+    elif isinstance(A, xr.DataArray):
+        return LUT(
+            A.data,
+            axes=[A.coords[x].data for x in A.dims],
+            names=A.dims,
+            desc=A.name,
+            attrs=A.attrs)
+
+    else:
+        raise Exception(f'Invalid class passed to `from_xarray` ({A.__class__})')
 
 
 
