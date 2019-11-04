@@ -37,6 +37,9 @@ deps="$deps cdsapi xarray"
 # python2 support (optional)
 deps="$deps urllib3"
 
+# testing support (optional)
+deps="$deps pytest"
+
 
 cmd="conda install -c conda-forge $deps"
 echo 'The following command will be executed:'
