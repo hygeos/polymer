@@ -233,8 +233,10 @@ def atm_func(block, params, bands):
     '''
     # bands for atmospheric fit
     Nlam = len(bands)
+    assert Nlam > 0
     shp = block.size
     Ncoef = params.Ncoef   # number of polynomial coefficients
+    assert Ncoef > 0
 
     # correction bands wavelengths
     idx = np.searchsorted(params.bands_read(), bands)
