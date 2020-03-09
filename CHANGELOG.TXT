@@ -83,7 +83,7 @@ Release date: 2019-05-14
 
 * Fix a bug affecting Polymer's (basic) cloud mask
   Rayleigh correction of the NIR bands used for cloud masking was affected by a
-  bug, resulting in over-correction, and therefore cloud mask was 
+  bug, resulting in over-correction, and therefore cloud mask was less strict than it should have.
   This bug was introduced in version 4.8.
 
 Summary of the product evolution:
