@@ -629,7 +629,7 @@ cdef class PolymerMinimizer:
 
         # calculate glint reflectance from wind speed
         ok = (block.bitmask & self.BITMASK_INVALID) == 0
-        block.Rgli = np.zeros_like(block.wind_speed) + np.NaN
+        block.Rgli = np.zeros_like(block.wind_speed, dtype='float32') + np.NaN
         block.Rgli[ok] = glitter(block.wind_speed[ok],
                                  block.mus[ok], block.muv[ok],
                                  block.scattering_angle[ok], phi=None, phi_vent=None)
