@@ -292,11 +292,22 @@ class Ancillary_NASA(object):
 
         with LockFile(lock):
 
-            cmd = 'wget -nv {} -O {}'.format(url, target+'.tmp')
+            # follows https://support.earthdata.nasa.gov/index.php?/Knowledgebase/Article/View/43/21/how-to-access-urs-gated-data-with-curl-and-wget
+            cmd = 'wget -nv --load-cookies ~/.urs_cookies --save-cookies ~/.urs_cookies --keep-session-cookies --auth-no-challenge {} -O {}'.format(url, target+'.tmp')
             ret = system(cmd)
             if ret == 0:
+                # sanity check
+                # raise an error in case of authentication error
+                # check that downloaded file is not HTML
+                with open(target+'.tmp', 'rb') as fp:
+                    errormsg = 'Error authenticating to NASA EarthData for downloading ancillary data. ' \
+                    'Please provide authentication through .netrc. See more information on ' \
+                    'https://support.earthdata.nasa.gov/index.php?/Knowledgebase/Article/View/43/21/how-to-access-urs-gated-data-with-curl-and-wget'
+                    assert not fp.read(100).startswith(b'<!DOCTYPE html>'), errormsg
+
                 cmd = 'mv {} {}'.format(target+'.tmp', target)
                 system(cmd)
+
             else:
                 if exists(target+'.tmp'):
                     system('rm {}'.format(target+'.tmp'))
