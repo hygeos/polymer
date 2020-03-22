@@ -89,8 +89,8 @@ class Ancillary_ERA5(object):
         # Temporal interpolation
         D = LUT_LatLon((1-x)*D1 + x*D2)
         D.date = date
-        D.filename = {'ERA_INTERIM_1': file1,
-                      'ERA_INTERIM_2': file2,
+        D.filename = {'ERA5_1': file1,
+                      'ERA5_2': file2,
                      }
 
         return D
