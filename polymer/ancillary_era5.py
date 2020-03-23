@@ -85,6 +85,9 @@ class Ancillary_ERA5(object):
         else:
             raise Exception('Invalid parameter "{}"'.format(param))
 
+        # roll => lons from -180..180 instead of 0..360
+        D1 = np.roll(D1, D1.shape[1]//2, axis=1)
+        D2 = np.roll(D2, D2.shape[1]//2, axis=1)
 
         # Temporal interpolation
         D = LUT_LatLon((1-x)*D1 + x*D2)
