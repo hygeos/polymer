@@ -5,6 +5,29 @@
                            #                   #
                            #####################
 
+
+v4.13
+-----
+
+Release date: 2020-03-25
+
+This release fixes some bugs, and do not involve product modification
+(except when using ERA5 ancillary data)
+
+* OLCI: Fix a bug involving masked arrays when using ancillary data
+
+* ERA5 ancillary data: fix a bug in the interpolation of ERA5 ancillary data
+
+* NASA ancillary data: support EarthData authentication
+
+Minor changes:
+* MSI: Add band 842 by default in the outputs
+* Consistently use float32 dtype for Rgli output variable
+
+Summary of products evolution:
+* No impact, except when using ERA5 ancillary data.
+
+
 v4.12
 -----
 
