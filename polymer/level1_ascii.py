@@ -12,7 +12,7 @@ from polymer.common import L2FLAGS
 from polymer.utils import raiseflag
 from polymer.level1_meris import central_wavelength_meris
 from polymer.level1_olci import central_wavelength_olci
-from polymer.level1_nasa import tau_r_seadas_modis, tau_r_seadas_seawifs, tau_r_seadas_viirs
+from polymer.level1_nasa import tau_r_seadas_modis, tau_r_seadas_seawifs, tau_r_seadas_viirsn
 
 # bands stored in the ASCII extractions
 BANDS_MODIS = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240]
@@ -111,6 +111,13 @@ class Level1_ASCII(object):
                                           enumerate(BANDS)))
             self.wav_band_names = dict(map(lambda b: (b[1], 'lam_band{:d}'.format(b[0])),
                                            enumerate(BANDS)))
+        elif sensor == 'OLCI':
+            """self.F0_band_names = dict(map(lambda b: (b[1], 'F0_{:02d}'.format(b[0]+1)),
+                                          enumerate(BANDS)))
+            self.wav_band_names = dict(map(lambda b: (b[1], 'LAMBDA0_{:02d}'.format(b[0]+1)),
+                                           enumerate(BANDS)))"""
+            self.F0_band_names = dict([(b, self.headers['F0'](i, b)) for (i, b) in enumerate(BANDS)])
+            self.wav_band_names = dict([(b, self.headers['LAMBDA0'](i, b)) for (i, b) in enumerate(BANDS)])
 
         #
         # read the csv file (only the required columns)
@@ -134,7 +141,7 @@ class Level1_ASCII(object):
             columns.append(self.headers['ZONAL_WIND'])
             columns.append(self.headers['MERID_WIND'])
 
-        if sensor in ['MERIS', 'MERIS_RR', 'MERIS_FR']:
+        if sensor in ['MERIS', 'MERIS_RR', 'MERIS_FR', 'OLCI']:
             columns.append(self.headers['DETECTOR_INDEX'])
         if 'ALTITUDE' in self.headers:
             columns.append(self.headers['ALTITUDE'])
@@ -297,6 +304,9 @@ class Level1_ASCII(object):
             block.tau_ray = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
             for iband, band in enumerate(bands):
                 block.tau_ray[:,:,iband] = tau_r_seadas[band] * block.surf_press/1013.
+
+        # Add detector index to output
+        block.detector_index = self.csv[self.headers['DETECTOR_INDEX']][sl].values.reshape(size).astype(np.int16)
         
         return block
 
