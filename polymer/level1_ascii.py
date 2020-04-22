@@ -9,10 +9,9 @@ from datetime import datetime
 from os.path import join, dirname
 from polymer.level1_meris import BANDS_MERIS
 from polymer.common import L2FLAGS
-from polymer.utils import raiseflag
+from polymer.utils import raiseflag, coeff_sun_earth_distance
 from polymer.level1_meris import central_wavelength_meris
-from polymer.level1_olci import central_wavelength_olci
-from polymer.level1_nasa import tau_r_seadas_modis, tau_r_seadas_seawifs, tau_r_seadas_viirsn
+from polymer.level1_nasa import tau_r_seadas_modis, tau_r_seadas_seawifs, tau_r_seadas_viirsn, tau_r_seadas_viirsj1
 
 # bands stored in the ASCII extractions
 BANDS_MODIS = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240]
@@ -96,7 +95,7 @@ class Level1_ASCII(object):
 
         self.toa_band_names = dict([(b, self.headers['TOA'](i, b)) for (i, b) in enumerate(BANDS)])
 
-        if sensor in ['MERIS', 'MERIS_RR', 'MERIS_FR']:
+        if sensor in ['MERIS', 'MERIS_RR', 'MERIS_FR'] and not ('F0' in self.headers):
             if dir_smile is None:
                 dir_smile = join(dirname(dirname(__file__)), 'auxdata/meris/smile/v2/')
 
@@ -111,7 +110,7 @@ class Level1_ASCII(object):
                                           enumerate(BANDS)))
             self.wav_band_names = dict(map(lambda b: (b[1], 'lam_band{:d}'.format(b[0])),
                                            enumerate(BANDS)))
-        elif sensor == 'OLCI':
+        elif (sensor == 'OLCI') or (sensor in ['MERIS'] and 'F0' in self.headers) :
             """self.F0_band_names = dict(map(lambda b: (b[1], 'F0_{:02d}'.format(b[0]+1)),
                                           enumerate(BANDS)))
             self.wav_band_names = dict(map(lambda b: (b[1], 'LAMBDA0_{:02d}'.format(b[0]+1)),
@@ -226,27 +225,32 @@ class Level1_ASCII(object):
         else:
             raise Exception('Invalid TOAR type "{}"'.format(self.TOAR))
 
+        block.jday = np.array([x.timetuple().tm_yday for x in self.dates[sl]]).reshape(size)
+        block.month = np.array([x.timetuple().tm_mon for x in self.dates[sl]]).reshape(size)
+
         # detector index and spectral information
-        if self.sensor in ['MERIS', 'MERIS_FR', 'MERIS_RR']:
+        if self.sensor in ['MERIS', 'MERIS_FR', 'MERIS_RR'] and (not 'F0' in self.headers):
             di = self.csv[self.headers['DETECTOR_INDEX']][sl].values.reshape(size).astype('int')
 
             # F0
+            coef = coeff_sun_earth_distance(block.jday)
             block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
             for iband, band in enumerate(bands):
                 block.F0[:,:,iband] = self.F0[self.F0_band_names[band]][di]
+                block.F0[:,:,iband] *= coef
 
             # detector wavelength
             for iband, band in enumerate(bands):
                 block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][di]
                 block.cwavelen[iband] = central_wavelength_meris[band]
-        elif self.sensor in ['OLCI']:
+        elif (self.sensor in ['OLCI']) or (self.sensor in ['MERIS'] and 'F0' in self.headers):
             block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
             for iband, band in enumerate(bands):
                 # F0
-                name = self.headers['F0'](BANDS_OLCI.index(band), band)
+                name = self.F0_band_names[band]
                 block.F0[:,:,iband] = self.csv[name][sl].values.reshape(size)
                 # detector wavelength
-                name = self.headers['LAMBDA0'](BANDS_OLCI.index(band), band)
+                name = self.wav_band_names[band]
                 block.wavelen[:,:,iband] = self.csv[name][sl].values.reshape(size)
                 block.cwavelen[iband] = float(band)#central_wavelength_olci[band]"""
 
@@ -257,9 +261,7 @@ class Level1_ASCII(object):
                 block.wavelen[:,:,i] = float(b)
                 block.cwavelen[i] = float(b)
 
-        block.jday = np.array([x.timetuple().tm_yday for x in self.dates[sl]]).reshape(size)
 
-        block.month = np.array([x.timetuple().tm_mon for x in self.dates[sl]]).reshape(size)
 
         block.bitmask = np.zeros(size, dtype='uint16')
         invalid = np.isnan(block.raa)
@@ -295,11 +297,13 @@ class Level1_ASCII(object):
             block.altitude = np.zeros(size)
 
         # tau_ray
-        if self.sensor in ['SeaWiFS', 'MODIS', 'VIIRS']:
+        if self.sensor in ['SeaWiFS', 'MODIS', 'VIIRS', 'VIIRSN', 'VIIRSJ1']:
             tau_r_seadas = {
                     'MODIS': tau_r_seadas_modis,
                     'SeaWiFS': tau_r_seadas_seawifs,
-                    'VIIRS': tau_r_seadas_viirs,
+                    'VIIRS': tau_r_seadas_viirsn,
+                    'VIIRSN': tau_r_seadas_virrsn,
+                    'VIIRSJ1': tau_r_seadas_viirsj1
                 }[self.sensor]
             block.tau_ray = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
             for iband, band in enumerate(bands):
