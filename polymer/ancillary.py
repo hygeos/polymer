@@ -1,31 +1,40 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, division, absolute_import
 from os.path import isdir
 from datetime import datetime, timedelta
-from pyhdf.SD import SD
 import numpy as np
 from os import makedirs, system, remove
 from os.path import join, exists, dirname, basename
+from pyhdf.SD import SD
 from polymer.luts import LUT, Idx
 from warnings import warn
 import sys
 import bz2
 import tempfile
+from .utils import closest, round_date
 
 
-default_met_patterns = ['N%Y%j%H_MET_NCEPR2_6h.hdf.bz2', # reanalysis 2 (best)
-                        'N%Y%j%H_MET_NCEP_6h.hdf.bz2', # NRT
-                        'N%Y%j%H_MET_NCEP_6h.hdf', # NRT
-                        'N%Y%j%H_MET_NCEP_1440x720_f12.hdf', # 12hr forecast
-                         ]
+# resources are a list of functions taking the date, and returning a list of
+# closest or bracketing resources, defined by (pattern, date)
+forecast_resources = [
+    lambda date: [('N%Y%j%H_MET_NCEP_1440x0721_f{}.hdf'.format(
+                   '012' if (d.hour % 2 == 0) else '015'), d)
+                  for d in round_date(date, 3)]
+]
 
-default_oz_patterns = ['N%Y%j00_O3_AURAOMI_24h.hdf',
-                       'N%Y%j00_O3_TOMSOMI_24h.hdf',
-                       'S%Y%j00%j23_TOAST.OZONE',
-                       'S%Y%j00%j23_TOVS.OZONE',
-                       ]
+default_met_resources = [
+    lambda date: [('N%Y%j%H_MET_NCEPR2_6h.hdf.bz2', d) for d in round_date(date, 6)],
+    lambda date: [('N%Y%j%H_MET_NCEP_6h.hdf.bz2', d) for d in round_date(date, 6)],
+    lambda date: [('N%Y%j%H_MET_NCEP_6h.hdf', d) for d in round_date(date, 6)],
+]
+
+default_oz_resources = [
+    lambda date: [('N%Y%j00_O3_AURAOMI_24h.hdf', closest(date, 24))],
+    lambda date: [('N%Y%j00_O3_TOMSOMI_24h.hdf', closest(date, 24))],
+    lambda date: [('S%Y%j00%j23_TOAST.OZONE', closest(date, 24))],
+    lambda date: [('S%Y%j00%j23_TOVS.OZONE', closest(date, 24))],
+]
 
 
 class LUT_LatLon(object):
@@ -134,30 +143,43 @@ class Ancillary_NASA(object):
              (don't activate interpolation)
     * directory: local directory for ancillary data storage
     * offline (bool):  If offline, does not try to download
-    * delta (float): number of acceptable days before and after scene date, for
-                     ancillary data searching.
-    * met_patterns (list): patterns for meteorological data.  Will be checked
-                           in order. strftime compatible placeholders will be
-                           substituted.
-                           if None (default), use default patterns
-    * ozone_patterns (list): patterns for meteorological data.  Will be checked
-                             in order. strftime compatible placeholders will be
-                             substituted
-                           if None (default), use default patterns
+    * allow_forecast: bool, default True
+        allow to use NCEP forecast data for NRT production
+    * allow_standard bool, default True
+        allow to use other non-forecast data
     '''
     def __init__(self, meteo=None, ozone=None,
-                 directory='ANCILLARY/METEO/', offline=False, delta=0.,
+                 directory='ANCILLARY/METEO/',
+                 offline=False,
+                 allow_standard=True,
+                 allow_forecast=True,
+                 delta=None,
                  met_patterns=None, ozone_patterns=None):
+        self.met_resources = []
+        self.ozone_resources = []
+        if allow_standard:
+            self.met_resources += default_met_resources
+            self.ozone_resources += default_oz_resources
+        if allow_forecast:
+            self.met_resources += forecast_resources
+            self.ozone_resources += forecast_resources
+
         self.meteo = meteo
-        self.met_patterns = default_met_patterns if (met_patterns is None) else met_patterns
         self.ozone = ozone
-        self.ozone_patterns = default_oz_patterns if (ozone_patterns is None) else ozone_patterns
         self.directory = directory
         self.offline = offline
-        self.delta = timedelta(days=delta)
+
         self.url = 'https://oceandata.sci.gsfc.nasa.gov/cgi/getfile/'
 
         assert isdir(directory), 'Directory {} does not exist. Please create it, by default it will be automatically populated with ancillary data. Please see help for class Ancillary_NASA for more details.'.format(directory)
+
+        # arguments to be deprecated
+        if delta is not None:
+            raise DeprecationWarning('The `delta` parameter has been deprecated.')
+        if met_patterns is not None:
+            raise DeprecationWarning('The `met_patterns` parameter has been deprecated.')
+        if ozone_patterns is not None:
+            raise DeprecationWarning('The `ozone_patterns` parameter has been deprecated.')
 
 
     def read(self, param, filename,
@@ -233,20 +255,20 @@ class Ancillary_NASA(object):
         '''
         if param in ['wind_speed', 'surf_press']:
             if self.meteo is None:
-                res = self.find_meteo(date)
+                res = self.find(date, self.met_resources)
             else:
-                res = self.meteo
+                res = [self.meteo]
 
         elif param in ['ozone']:
             if self.ozone is None:
-                res = self.find_ozone(date)
+                res = self.find(date, self.ozone_resources)
             else:
-                res = self.ozone
+                res = [self.ozone]
 
         else:
             raise Exception('Invalid parameter "{}"'.format(param))
 
-        if isinstance(res, tuple):
+        if len(res) > 1:
             # interpolation
             D1 = self.read(param, res[0])
             D2 = self.read(param, res[1])
@@ -275,7 +297,7 @@ class Ancillary_NASA(object):
         else:
             # res is a single file name (string)
             # deactivate interpolation
-            return self.read(param, res)
+            return self.read(param, res[0])
 
 
     def download(self, url, target):
@@ -315,60 +337,38 @@ class Ancillary_NASA(object):
         return ret
 
 
-    def try_resources(self, patterns, dates):
-        '''
-        Try to access offline or online resource defined by patterns (list of
-        strings), in 'dates' (list of dates).
-        '''
+    
+    def try_resource(self, pattern, date):
+        """
+        Try to access pattern (string, like 'N%Y%j%H_MET_NCEP_1440x0721_f015.hdf')
+        at a given date
+        """
+        target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
+        if exists(target):
+            return target
+        url = date.strftime(self.url+pattern)
 
-        # first, try local files
-        for date in dates:
-            for pattern in patterns:
-                target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
-                if exists(target):
-                    return target
-
-        # then try to download if requested
-        if not self.offline:  # If offline flag set, don't download
-            for date in dates:
-                for pattern in patterns:
-                    url = date.strftime(self.url+pattern)
-                    target = date.strftime(join(self.directory, '%Y/%j/'+pattern))
-
-                    print('Trying to download', url, '... ')
-                    sys.stdout.flush()
-                    ret = self.download(url, target)
-                    if ret == 0:
-                        target = verify(target)
-                        return target
-                    else:
-                        print('failure ({})'.format(ret))
+        if not self.offline:
+            print('Trying to download', url, '... ')
+            sys.stdout.flush()
+            ret = self.download(url, target)
+            if ret == 0:
+                target = verify(target)
+                return target
+            else:
+                print('failure ({})'.format(ret))
 
         return None
 
-    def find_meteo(self, date):
-        # find closest files before and after
-        day = datetime(date.year, date.month, date.day)
-        t0 = day + timedelta(hours=6*int(date.hour/6.))
-        t1 = day + timedelta(hours=6*(int(date.hour/6.)+1))
-        f1 = self.try_resources(self.met_patterns, perdelta(t0, t0-self.delta, -timedelta(hours=6)))
-        f2 = self.try_resources(self.met_patterns, perdelta(t1, t1+self.delta,  timedelta(hours=6)))
 
-        # if file after acquisition is not present, use only file before the acquisition
-        if (f2 is None) and (f1 is not None):
-            f2 = f1
-        if None in [f1, f2]:
-            raise Exception('Could not find meteo files for {}'.format(date))
+    def find(self, date, patterns):
+        '''
+        Try to access offline or online resource defined by patterns,
+        at `date`
+        '''
+        for pattern in patterns:
+            res = [self.try_resource(pat, d) for pat, d in pattern(date)]
 
-        return (f1, f2)
-
-    def find_ozone(self, date):
-        # find the matching date or the closest possible, before or after
-
-        t0 = datetime(date.year, date.month, date.day)
-        f1 = self.try_resources(self.ozone_patterns, rolling(t0, self.delta, timedelta(days=1)))
-        if f1 is None:
-            raise Exception('Could not find any valid ozone file for {}'.format(date))
-
-        return f1
+            if None not in res:
+                return res
 
