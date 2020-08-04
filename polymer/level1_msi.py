@@ -220,23 +220,23 @@ class Level1_MSI(Level1_base):
         vaa = {}
         for e in self.tileangles.findall('Viewing_Incidence_Angles_Grids'):
 
-           # read zenith angles
-           data = read_xml_block(e.find('Zenith').find('Values_List'))
-           bandid = int(e.attrib['bandId'])
-           if not bandid in vza:
-               vza[bandid] = data
-           else:
-               ok = ~np.isnan(data)
-               vza[bandid][ok] = data[ok]
+            # read zenith angles
+            data = read_xml_block(e.find('Zenith').find('Values_List'))
+            bandid = int(e.attrib['bandId'])
+            if not bandid in vza:
+                vza[bandid] = data
+            else:
+                ok = ~np.isnan(data)
+                vza[bandid][ok] = data[ok]
 
-           # read azimuth angles
-           data = read_xml_block(e.find('Azimuth').find('Values_List'))
-           bandid = int(e.attrib['bandId'])
-           if not bandid in vaa:
-               vaa[bandid] = data
-           else:
-               ok = ~np.isnan(data)
-               vaa[bandid][ok] = data[ok]
+            # read azimuth angles
+            data = read_xml_block(e.find('Azimuth').find('Values_List'))
+            bandid = int(e.attrib['bandId'])
+            if not bandid in vaa:
+                vaa[bandid] = data
+            else:
+                ok = ~np.isnan(data)
+                vaa[bandid][ok] = data[ok]
 
         self.vza = np.zeros(shp, dtype='float32')
         self.vaa = np.zeros(shp, dtype='float32')
