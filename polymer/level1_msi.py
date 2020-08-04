@@ -198,8 +198,8 @@ class Level1_MSI(Level1_base):
                 XDIM = int(e.find('XDIM').text)
                 YDIM = int(e.find('YDIM').text)
 
-        X, Y = np.meshgrid(ULX + XDIM*np.arange(self.totalheight), 
-                           ULY + YDIM*np.arange(self.totalwidth))
+        X, Y = np.meshgrid(ULX + XDIM//2 + XDIM*np.arange(self.totalheight), 
+                           ULY + YDIM//2 + YDIM*np.arange(self.totalwidth))
 
         self.lon, self.lat = (proj(X, Y, inverse=True))
 
