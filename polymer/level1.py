@@ -57,6 +57,9 @@ class Level1(object):
         elif self.detect_msi():
             self.sensor = 'msi'
 
+        elif b.startswith('LC8'):
+            self.sensor = 'landsat8'
+
         else:
             raise Exception('Unable to detect sensor for file "{}"'.format(b))
 
@@ -99,6 +102,10 @@ class Level1(object):
         elif self.sensor == 'msi':
             from polymer.level1_msi import Level1_MSI
             L1 = Level1_MSI
+
+        elif self.sensor == 'landsat8':
+            from polymer.level1_landsat8 import Level1_OLI
+            L1 = Level1_OLI
 
         else:
             raise Exception('Invalid sensor name "{}"'.format(self.sensor))
