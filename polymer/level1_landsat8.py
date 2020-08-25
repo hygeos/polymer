@@ -24,6 +24,8 @@ band_index = {
         560: 3,
         655: 4,
         865: 5,
+        1610: 6,
+        2200: 7,
         }
 
 
@@ -188,7 +190,9 @@ class Level1_OLI(Level1_base):
                          (480, 'Blue'),
                          (560, 'Green'),
                          (655, 'Red'),
-                         (865, 'NIR')]:
+                         (865, 'NIR'),
+                         (1610, 'SWIR1'),
+                         (2200, 'SWIR2')]:
             sh = wb.sheet_by_name(bname)
 
             wav, srf = [], []

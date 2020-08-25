@@ -710,6 +710,8 @@ class Params(object):
                 560: 1.,
                 655: 1.,
                 865: 1.,
+                1610: 1.,
+                2200: 1.,
                 }
 
 
@@ -732,7 +734,9 @@ class Params(object):
                          (480, 'Blue'),
                          (560, 'Green'),
                          (655, 'Red'),
-                         (865, 'NIR')]:
+                         (865, 'NIR'),
+                         (1610, 'SWIR1'),
+                         (2200, 'SWIR2')]:
             sh = wb.sheet_by_name(bname)
 
             wav, srf = [], []
@@ -756,6 +760,8 @@ class Params(object):
                 560: 0.,
                 655: 0.,
                 865: 0.,
+                1610: 0.,
+                2200: 0.,
                 }
 
         self.band_cloudmask = 865
