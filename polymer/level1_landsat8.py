@@ -10,6 +10,7 @@ from polymer.common import L2FLAGS
 from datetime import datetime, time
 from collections import OrderedDict
 from osgeo import gdal
+import osgeo
 import osr
 from glob import glob
 import numpy as np
@@ -17,6 +18,7 @@ import os
 from os.path import dirname, join
 import xlrd
 
+gdal_major_version = int(osgeo.__version__.split('.')[0])
 
 band_index = {
         440: 1,
@@ -74,6 +76,9 @@ class Level1_OLI(Level1_base):
 
         ds = gdal.Open(file_B1)
         old_cs= osr.SpatialReference()
+        if gdal_major_version >= 3:
+            # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
+            old_cs.SetAxisMappingStrategy(osgeo.osr.OAMS_TRADITIONAL_GIS_ORDER)
         old_cs.ImportFromWkt(ds.GetProjectionRef())
 
         # create the new coordinate system
@@ -89,6 +94,9 @@ class Level1_OLI(Level1_base):
                 AUTHORITY["EPSG","9122"]],
             AUTHORITY["EPSG","4326"]]"""
         new_cs = osr.SpatialReference()
+        if gdal_major_version >= 3:
+            # GDAL 3 changes axis order: https://github.com/OSGeo/gdal/issues/1546
+            new_cs.SetAxisMappingStrategy(osgeo.osr.OAMS_TRADITIONAL_GIS_ORDER)
         new_cs.ImportFromWkt(wgs84_wkt)
 
         # create a transform object to convert between coordinate systems
