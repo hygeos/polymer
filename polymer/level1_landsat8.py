@@ -48,6 +48,9 @@ class Level1_OLI(Level1_base):
 
     Note: requires angle files generated with:
         l8_angles LC08_..._ANG.txt BOTH 1 -b 1
+
+        l8_angles is available at:
+        https://www.usgs.gov/land-resources/nli/landsat/solar-illumination-and-sensor-viewing-angle-coefficient-files
     '''
     def __init__(self, dirname,
                  sline=0, eline=-1,
