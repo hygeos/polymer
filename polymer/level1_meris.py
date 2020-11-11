@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-from __future__ import print_function, division, absolute_import
+from polymer.level1_safe import Level1_SAFE
 import epr
 from polymer.block import Block
 import numpy as np
@@ -27,10 +27,35 @@ central_wavelength_meris = {
         900: 900.000 ,
         }
 
+band_names = {
+    412: 'M01_radiance' , 443: 'M02_radiance',
+    490: 'M03_radiance' , 510: 'M04_radiance',
+    560: 'M05_radiance' , 620: 'M06_radiance',
+    665: 'M07_radiance' , 681: 'M08_radiance',
+    709: 'M09_radiance' , 754: 'M10_radiance',
+    760: 'M11_radiance' , 779: 'M12_radiance',
+    865: 'M13_radiance' , 885: 'M13_radiance',
+    900: 'M15_radiance' ,
+    }
 
-class Level1_MERIS(Level1_base):
+band_index = {
+    412: 0  , 443: 1, 490: 2  , 510: 3,
+    560: 4  , 620: 5, 665: 6  , 681: 7,
+    709: 8  , 754: 9, 760: 10 , 779: 11,
+    865: 12 , 885: 12, 900: 14 ,
+    }
+
+def Level1_MERIS(filename,
+                 sline=0, eline=-1,
+                 scol=0, ecol=-1,
+                 blocksize=100,
+                 dir_smile=None,
+                 ancillary=None,
+                 altitude=0.,
+                 landmask='default',
+    ):
     """
-    MERIS Level1 class
+    MERIS Level1 class (ENVISAT format)
 
     ancillary: an ancillary data instance (Ancillary_NASA, Ancillary_ERA)
 
@@ -47,6 +72,36 @@ class Level1_MERIS(Level1_base):
             SRTM3(..., missing=GLOBE(...))
     """
 
+    if filename.endswith('.N1'):
+        return Level1_MERIS_ENVISAT(filename,
+            sline=sline, eline=eline,
+            scol=scol, ecol=ecol,
+            blocksize=blocksize,
+            dir_smile=dir_smile,
+            ancillary=ancillary,
+            altitude=altitude,
+            landmask=landmask,
+        )
+    else:
+        return Level1_SAFE(
+            filename,
+            sline=sline, eline=eline,
+            scol=scol, ecol=ecol,
+            blocksize=blocksize,
+            ancillary=ancillary,
+            altitude=altitude,
+            landmask=landmask,
+            sensor='MERIS',
+            central_wavelength=central_wavelength_meris,
+            band_names=band_names,
+            band_index=band_index,
+        )
+
+
+class Level1_MERIS_ENVISAT(Level1_base):
+    """
+    MERIS Level1 class (ENVISAT format)
+    """
     def __init__(self, filename,
                  sline=0, eline=-1,
                  scol=0, ecol=-1,
