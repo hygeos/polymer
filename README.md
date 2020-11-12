@@ -108,6 +108,17 @@ run_atm_corr(Level1('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000
 See `example.py` for more details...
 
 
+**Multiprocessing**
+
+One option is `multiprocessing`, which controls the number of threads available for Polymer processing (by default, multiprocessing is disactivated). To activate the processing on as many threads as there are cores on the CPU, pass the value `-1`:
+```
+run_atm_corr(..., multiprocessing=-1)
+```
+
+This option controls the parallelization of the core Polymer processing. However, Polymer relies on numpy, which can also use parallel processing, and results in a moderate usage of multiple cores. To also disactivate numpy multiprocessing, you can pass the environment variable `OMP_NUM_THREADS=1` (or use the [threadpoolctl](https://github.com/joblib/threadpoolctl) library)
+
+
+
 ### 2.2 Ancillary data
 
 #### 2.2.1 NASA Ancillary data
