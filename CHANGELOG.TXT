@@ -6,6 +6,26 @@
                            #####################
 
 
+
+v4.14beta1
+----------
+
+Release date: 2020-03-25
+
+* Added support for MERIS 4th reprocessing. The class `Level1_MERIS` can be used for both 3rd and 4th reprocessing
+
+* Ancillary_NASA: General rework of the module, allowing support for NCEP forcast files.
+
+* Fixes for Landsat8:
+  - Fixed lat/lon swapping when using gdal v3
+  - Added support for Landsat8 SWIR bands
+  - Added autodetection in Level1 class
+
+* Sentinel-2 MSI: fixed an offset of half a pixel in lat/lon
+
+* Fixes in Level1_ASCII
+
+
 v4.13
 -----
 
