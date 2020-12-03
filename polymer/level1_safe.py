@@ -260,12 +260,39 @@ class Level1_SAFE(Level1_base):
         block.jday = self.date().timetuple().tm_yday
         block.month = self.date().timetuple().tm_mon
 
+        # quality flags
+        bitmask = self.read_band('quality_flags', size, offset)
+        block.bitmask = np.zeros(size, dtype='uint16')
+        if self.landmask == 'default':
+            raiseflag(block.bitmask, L2FLAGS['LAND'],
+                      bitmask & self.quality_flags['land'] != 0)
+        elif self.landmask is None:
+            pass
+        else:  # assume GSW-like object
+            raiseflag(block.bitmask, L2FLAGS['LAND'],
+                      self.landmask_data[
+                          yoffset:yoffset+ysize,
+                          xoffset:xoffset+xsize,
+                                         ])
+
+        l1_invalid = bitmask & self.quality_flags['invalid'] != 0
+        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], l1_invalid)
+
         # read ancillary data
         if self.ancillary is not None:
             # external ancillary files
-            block.ozone = self.ozone[block.latitude, block.longitude]
-            block.wind_speed = self.wind_speed[block.latitude, block.longitude]
-            P0 = self.surf_press[block.latitude, block.longitude]
+            block.ozone = np.zeros_like(block.latitude, dtype=self.ozone.dtype) + np.NaN
+            block.ozone[~l1_invalid] = self.ozone[
+                block.latitude[~l1_invalid],
+                block.longitude[~l1_invalid]]
+            block.wind_speed = np.zeros_like(block.latitude, dtype=self.wind_speed.dtype) + np.NaN
+            block.wind_speed[~l1_invalid] = self.wind_speed[
+                block.latitude[~l1_invalid],
+                block.longitude[~l1_invalid]]
+            P0 = np.zeros_like(block.latitude, dtype=self.surf_press.dtype) + np.NaN
+            P0[~l1_invalid] = self.surf_press[
+                block.latitude[~l1_invalid],
+                block.longitude[~l1_invalid]]
 
         else: # ancillary files embedded in level1
 
@@ -289,24 +316,6 @@ class Level1_SAFE(Level1_base):
 
         # calculate surface altitude
         block.surf_press = P0 * np.exp(-block.altitude/8000.)
-
-        # quality flags
-        bitmask = self.read_band('quality_flags', size, offset)
-        block.bitmask = np.zeros(size, dtype='uint16')
-        if self.landmask == 'default':
-            raiseflag(block.bitmask, L2FLAGS['LAND'],
-                      bitmask & self.quality_flags['land'] != 0)
-        elif self.landmask is None:
-            pass
-        else:  # assume GSW-like object
-            raiseflag(block.bitmask, L2FLAGS['LAND'],
-                      self.landmask_data[
-                          yoffset:yoffset+ysize,
-                          xoffset:xoffset+xsize,
-                                         ])
-
-        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'],
-                  bitmask & self.quality_flags['invalid'] != 0)
 
         return block
 

@@ -56,6 +56,7 @@ class LUT_LatLon(object):
                 axes=[np.linspace(90, -90, h),
                       np.linspace(-180, 180, w+1)]
                 )
+        self.dtype = A.dtype
 
     def __getitem__(self, coords):
         '''
