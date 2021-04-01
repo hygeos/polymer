@@ -8,9 +8,9 @@ echo "the current anaconda environment."
 echo "Please edit this script if you do not want to install all dependencies."
 echo "If you want to create a new environment now, please"
 echo "quit this script and use a command such as:"
-echo "   conda create -n <envname>"
+echo "   conda create -n <envname> mamba"
 echo "for example:"
-echo "   conda create -n polymer"
+echo "   conda create -n polymer mamba"
 echo "and then activate this environment with:"
 echo "   conda activate polymer"
 echo
@@ -20,7 +20,7 @@ echo
 deps="python=3 cython numpy pyhdf scipy netcdf4 pandas"
 
 # MERIS support (optional)
-deps="$deps avalentino::pyepr"
+deps="$deps pyepr"
 
 # S2-MSI support (optional)
 deps="$deps glymur pyproj lxml"
@@ -41,7 +41,7 @@ deps="$deps urllib3"
 deps="$deps pytest"
 
 
-cmd="conda install -c conda-forge $deps"
+cmd="mamba install -c conda-forge $deps"
 echo 'The following command will be executed:'
 echo "$cmd"
 echo
