@@ -230,7 +230,6 @@ Level1_VIIRS('V2013339115400.L1C')
 #### 2.3.4 MSI/Sentinel-2
 
 The name of the level1 product is the name of the granule directory.
-Warning: MSI data processing is in development.
 
 Example:
 
