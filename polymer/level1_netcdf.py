@@ -285,7 +285,7 @@ class Level1_NETCDF(Level1_base):
                         'OLCI': 'Kg.m-2',
                         }[self.sensor]
 
-            if ozone_unit == 'Kg.m-2':
+            if ozone_unit.lower() == 'kg.m-2':
                 data /= 2.1415e-5  # convert kg/m2 to DU
             elif ozone_unit == 'DU':
                 pass
