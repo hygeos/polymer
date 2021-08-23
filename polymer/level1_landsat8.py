@@ -11,7 +11,7 @@ from datetime import datetime, time
 from collections import OrderedDict
 from osgeo import gdal
 import osgeo
-import osr
+from osgeo import osr
 from glob import glob
 import numpy as np
 import os
