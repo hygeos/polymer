@@ -160,10 +160,8 @@ class Level1_OLI(Level1_base):
 
 
     def date(self):
-        #d = self.data_mtl['PRODUCT_METADATA']['DATE_ACQUIRED']
-        #t = datetime.strptime(self.data_mtl['PRODUCT_METADATA']['SCENE_CENTER_TIME'][:8], '%H:%M:%S')
-        d = self.data_mtl['IMAGE_ATTRIBUTES']['DATE_ACQUIRED']
-        t = datetime.strptime(self.data_mtl['IMAGE_ATTRIBUTES']['SCENE_CENTER_TIME'][:8], '%H:%M:%S')
+        d = self.attr_date['DATE_ACQUIRED']
+        t = datetime.strptime(self.attr_date['SCENE_CENTER_TIME'][:8], '%H:%M:%S')
         return datetime.combine(d, time(t.hour, t.minute, t.second))
 
     def init_ancillary(self):
@@ -181,13 +179,26 @@ class Level1_OLI(Level1_base):
         files_mtl = glob(os.path.join(self.dirname, 'LC*_MTL.txt'))
         assert len(files_mtl) == 1
         file_mtl = files_mtl[0]
-        #self.data_mtl = read_meta(file_mtl)['L1_METADATA_FILE']
-        self.data_mtl = read_meta(file_mtl)['LANDSAT_METADATA_FILE']
+        meta = read_meta(file_mtl)
+        if 'L1_METADATA_FILE' in meta:
+            # Collection 1
+            self.level1_meta = meta['L1_METADATA_FILE']
+            self.attr_product = self.level1_meta['PRODUCT_METADATA']
+            self.file_ang = self.attr_product['ANGLE_COEFFICIENT_FILE_NAME']
+            self.attr_rescaling = self.level1_meta['RADIOMETRIC_RESCALING']
+            self.attr_date = self.level1_meta['PRODUCT_METADATA']
+        else:
+            # Collection 2
+            self.level1_meta = meta['LANDSAT_METADATA_FILE']
+            self.attr_product = self.level1_meta['PRODUCT_CONTENTS']
+            self.file_ang = self.attr_product['FILE_NAME_ANGLE_COEFFICIENT']
+            self.attr_rescaling = self.level1_meta['LEVEL1_RADIOMETRIC_RESCALING']
+            self.attr_date = self.level1_meta['IMAGE_ATTRIBUTES']
+
         # read angles file
         file_ang = os.path.join(
                 self.dirname,
-                #self.data_mtl['PRODUCT_METADATA']['ANGLE_COEFFICIENT_FILE_NAME']
-                self.data_mtl['PRODUCT_CONTENTS']['FILE_NAME_ANGLE_COEFFICIENT']
+                self.file_ang
                 )
         self.data_ang = read_meta(file_ang)
 
@@ -268,15 +279,12 @@ class Level1_OLI(Level1_base):
         # TOA reflectance
         block.Rtoa = np.zeros((ysize,xsize,nbands)) + np.NaN
         for iband, band in enumerate(bands):
-            #M = self.data_mtl['RADIOMETRIC_RESCALING']['REFLECTANCE_MULT_BAND_{}'.format(band_index[band])]
-            #A = self.data_mtl['RADIOMETRIC_RESCALING']['REFLECTANCE_ADD_BAND_{}'.format(band_index[band])]
-            M = self.data_mtl['LEVEL1_RADIOMETRIC_RESCALING']['REFLECTANCE_MULT_BAND_{}'.format(band_index[band])]
-            A = self.data_mtl['LEVEL1_RADIOMETRIC_RESCALING']['REFLECTANCE_ADD_BAND_{}'.format(band_index[band])]
+            M = self.attr_rescaling['REFLECTANCE_MULT_BAND_{}'.format(band_index[band])]
+            A = self.attr_rescaling['REFLECTANCE_ADD_BAND_{}'.format(band_index[band])]
 
             filename = os.path.join(
                     self.dirname,
-                    #self.data_mtl['PRODUCT_METADATA']['FILE_NAME_BAND_{}'.format(band_index[band])])
-                    self.data_mtl['PRODUCT_CONTENTS']['FILE_NAME_BAND_{}'.format(band_index[band])])
+                    self.attr_product['FILE_NAME_BAND_{}'.format(band_index[band])])
             dset = gdal.Open(filename)
             band = dset.GetRasterBand(1)
             data = band.ReadAsArray(xoff=self.scol+xoffset, yoff=self.sline+yoffset,
