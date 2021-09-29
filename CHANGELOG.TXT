@@ -6,6 +6,31 @@
                            #####################
 
 
+v4.14beta3
+----------
+
+Release date: 2021-09-29
+
+Various fixes and updates:
+
+* Updated dependencies installation script
+
+* Fix ozone unit in Level1_NETCDF
+
+* Support land bands in MODIS (not in default output)
+
+* Landsat8: support level1 products from collection 2
+
+* Fixed Level1_ASCII
+
+
+v4.14beta2
+----------
+
+Release date: 2020-12-03
+
+Fix MERIS 4th reprocessing reader.
+
 
 v4.14beta1
 ----------
