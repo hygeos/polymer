@@ -264,8 +264,10 @@ class Level1_SAFE(Level1_base):
         bitmask = self.read_band('quality_flags', size, offset)
         block.bitmask = np.zeros(size, dtype='uint16')
         if self.landmask == 'default':
+            # raise LAND mask when land is raised but not fresh_inland_water
+            bval = self.quality_flags['land'] + self.quality_flags['fresh_inland_water']
             raiseflag(block.bitmask, L2FLAGS['LAND'],
-                      bitmask & self.quality_flags['land'] != 0)
+                      bitmask & bval == self.quality_flags['land'])
         elif self.landmask is None:
             pass
         else:  # assume GSW-like object
