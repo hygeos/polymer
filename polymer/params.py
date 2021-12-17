@@ -225,6 +225,9 @@ class Params(object):
 
         self.dbg_pt = [-1, -1]
 
+        # uncertainties
+        self.uncertainties = 0
+
     def sensor_specific(self, sensor):
         '''
         define sensor-specific default parameters

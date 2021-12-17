@@ -44,6 +44,8 @@ class Level1_SAFE(Level1_base):
                  central_wavelength=None,
                  band_names=None,
                  band_index=None,
+                 Ltyp=None,
+                 sigma_typ=None,
                  ):
 
         self.sensor = sensor
@@ -54,6 +56,8 @@ class Level1_SAFE(Level1_base):
         self.central_wavelength = central_wavelength
         self.band_names = band_names
         self.band_index = band_index
+        self.sigma_typ = sigma_typ
+        self.Ltyp = Ltyp
 
         if not os.path.isdir(dirname):
             dirname = os.path.dirname(dirname)
@@ -318,6 +322,11 @@ class Level1_SAFE(Level1_base):
 
         # calculate surface altitude
         block.surf_press = P0 * np.exp(-block.altitude/8000.)
+
+        if self.Ltyp is not None:
+            block.Ltyp = np.array([self.Ltyp[b] for b in bands], dtype='float32')
+        if self.sigma_typ is not None:
+            block.sigma_typ = np.array([self.sigma_typ[b] for b in bands], dtype='float32')
 
         return block
 

@@ -18,6 +18,7 @@ from polymer.bodhaine import rod
 from polymer.polymer_main import PolymerMinimizer
 from polymer.water import ParkRuddick, MorelMaritorena
 from warnings import warn
+from polymer.uncertainties import toa_uncertainties
 
 import sys
 if sys.version_info[:2] >= (3, 0):
@@ -86,7 +87,12 @@ class InitCorr(object):
                       self.params.external_mask[ox:ox+sx,
                                                 oy:oy+sy] != 0
                       )
-
+        
+        #
+        # Add TOA uncertainties
+        #
+        if self.params.uncertainties:
+            toa_uncertainties(block)
 
 
     def convert_reflectance(self, block):

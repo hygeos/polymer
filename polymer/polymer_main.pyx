@@ -7,7 +7,7 @@ from cpython.exc cimport PyErr_CheckSignals
 import pandas as pd
 from pathlib import Path
 
-from neldermead cimport NelderMeadMinimizer
+from neldermead cimport NelderMeadMinimizer, dot
 from water cimport WaterModel
 from glint import glitter
 
@@ -396,6 +396,7 @@ cdef class PolymerMinimizer:
     cdef int N_bands_oc
     cdef int[:] i_oc_read  # index or the 'oc' bands within the 'read' bands
     cdef int N_bands_read
+    cdef int uncertainties
     cdef int Ncoef
 
     def __init__(self, watermodel, params):
@@ -420,6 +421,7 @@ cdef class PolymerMinimizer:
         self.L2_FLAG_EXCEPTION = L2FLAGS['EXCEPTION']
         self.L2_FLAG_ANOMALY_RWMOD_BLUE = L2FLAGS['ANOMALY_RWMOD_BLUE']
         self.params = params
+        self.uncertainties = params.uncertainties
         self.normalize = params.normalize
         self.force_initialization = params.force_initialization
         self.reinit_rw_neg = params.reinit_rw_neg
@@ -483,12 +485,33 @@ cdef class PolymerMinimizer:
         block.Ci = np.zeros(block.size+(self.Ncoef,), dtype='float32')
         cdef float[:,:,:] Ci = block.Ci
 
-        cdef int i, j, ib, ioc, i_fguess, ii
+        cdef float[:,:] logchl_unc
+        cdef float[:,:] logfb_unc
+        cdef float[:,:,:] rho_w_unc
+        cdef float[:,:,:] Rtoa_var
+        cdef float[:,:] rho_w_mod_cov
+        cdef float[:,:] d_rw_x_cov
+        cdef float[:,:] d_rw_x
+        if self.uncertainties:
+            block.logchl_unc = np.zeros(block.size, dtype='float32') + np.NaN
+            logchl_unc = block.logchl_unc
+            block.logfb_unc = np.zeros(block.size, dtype='float32') + np.NaN
+            logfb_unc = block.logfb_unc
+            block.rho_w_unc = np.zeros(block.size+(block.nbands,), dtype='float32') + np.NaN
+            rho_w_unc = block.rho_w_unc
+            Rtoa_var = block.Rtoa_var
+            d_rw_x = np.zeros((block.nbands, self.Nparams), dtype='float32') + np.NaN
+            rho_w_mod_cov = np.zeros((block.nbands, block.nbands), dtype='float32') + np.NaN
+            d_rw_x_cov = np.zeros((block.nbands, self.Nparams), dtype='float32') + np.NaN
+
+        cdef int i, j, ib, ioc, i_fguess, ii, iparam
         cdef float v_fguess, vmin_fguess
         cdef int flag_reinit
         cdef float Rw_max
         cdef float[:] wav0
         cdef float sza0, vza0, raa0
+        cdef float sigmasq
+        cdef float delta = 0.05
 
 
         #
@@ -567,6 +590,8 @@ cdef class PolymerMinimizer:
                         if not in_bounds(self.f.xmin, self.bounds):
                             raiseflag(bitmask, i, j, self.L2_FLAG_OUT_OF_BOUNDS)
                             break
+            
+
 
                 # update water model with final parameters
                 self.f.w.calc_rho(self.f.xmin)
@@ -592,6 +617,41 @@ cdef class PolymerMinimizer:
                     Rwmod[i,j,ib] = self.f.Rwmod[ib]
 
                     Ratm[i,j,ib] = self.f.Ratm[ib]
+                
+                if self.uncertainties:
+                    # 1) Uncertainty on the marine parameters
+                    # normalize by sigma² = y_min/(N-n), with N = number of observations,
+                    # and n = number of parameters fitted
+                    # see [Nelder Mead, 1965]
+                    sigmasq = self.f.fsim[0]/(self.N_bands_oc-self.Nparams-self.params.Ncoef)
+                    self.f.calc_cov(2*sigmasq)
+
+                    logchl_unc[i,j] = self.f.cov[0, 0]
+                    logfb_unc[i,j] = self.f.cov[1, 1]
+
+                    # 2) calculate the sensitivity of Rw to the marine parameters
+                    for iparam in range(self.Nparams):
+                        x0[iparam] = self.f.xmin[iparam]
+                    for iparam in range(self.Nparams):
+                        x0[iparam] += delta
+                        self.f.eval(x0)
+                        for ib in range(self.N_bands_read):
+                            # the variation of Rw is equal to the opposite of the variation of Ratm
+                            d_rw_x[ib, iparam] = (Ratm[i,j,ib] - self.f.Ratm[ib])/delta
+                        x0[iparam] = self.f.xmin[iparam]
+
+                    # 3) calculate rho_w_mod_cov from the Jacobian matrix of the model
+                    # (eq 55 - 58 of E3UB)
+                    # rho_w_mod_cov = d_rw_x . f.cov . d_rw_x'
+                    #    [NbxNb]      [NbxNp] [NpxNp] [NpxNb]
+                    dot(d_rw_x_cov, d_rw_x, self.f.cov, 0)
+                    dot(rho_w_mod_cov, d_rw_x_cov, d_rw_x, 1)
+
+                    for ib in range(self.N_bands_read):
+                        rho_w_unc[i,j,ib] = sqrt(rho_w_mod_cov[ib, ib] + Rtoa_var[i,j,ib])/Tmol[i,j,ib]
+
+                    self.f.w.calc_rho(self.f.xmin)
+
                 
                 # Store Ci coefficients
                 for ib in range(self.Ncoef):

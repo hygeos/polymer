@@ -10,6 +10,14 @@ cdef class NelderMeadMinimizer:
     cdef float eval(self, float[:] x) except? -999
     cdef int[:] ind
     cdef float[:] center
+
+    cdef float[:,:] cov
+    cdef float[:,:] B
+    cdef float[:,:] Binv
+    cdef float[:,:] fmid
+    cdef float[:,:] Q
+    cdef float[:,:] Q_Binv
+
     cdef float size(self)
     cdef init(self,
             float[:] x0,
@@ -21,3 +29,6 @@ cdef class NelderMeadMinimizer:
                 float[:] dx,
                 float size_end_iter,
                 int maxiter=*)
+    cdef calc_cov(self, float coef)
+
+cdef dot(float[:,:] C, float[:,:] A, float[:,:] B, int transpose_B)

@@ -1,7 +1,8 @@
 import numpy as np
 cimport numpy as np
 from cython cimport floating
-from libc.math cimport abs, sqrt
+from libc.math cimport abs, sqrt, nan
+import sys
 
 
 cdef class NelderMeadMinimizer:
@@ -23,6 +24,14 @@ cdef class NelderMeadMinimizer:
         self.xr = np.zeros(N, dtype='float32')
         self.xe = np.zeros(N, dtype='float32')
         self.center = np.zeros(N, dtype='float32')
+
+        # covariance matyix calculation
+        self.cov = np.zeros((N, N), dtype='float32') + np.NaN
+        self.B = np.zeros((N, N), dtype='float32') + np.NaN
+        self.Binv = np.zeros((N, N), dtype='float32') + np.NaN
+        self.fmid = np.zeros((N+1, N+1), dtype='float32') + np.NaN
+        self.Q = np.zeros((N, N), dtype='float32') + np.NaN
+        self.Q_Binv = np.zeros((N, N), dtype='float32') + np.NaN
 
     cdef float eval(self, float[:] x) except? -999:
         raise Exception('NelderMeadMinimizer.eval() shall be implemented')
@@ -204,7 +213,109 @@ cdef class NelderMeadMinimizer:
 
 
         return self.xmin
+    
+    cdef calc_cov(self, float coef):
+        """
+        Calculate the variance-covariance matrix at the minimum
+        see Nelder and Mead, 1965, appendix
+        (https://people.duke.edu/~hpgavin/cee201/Nelder+Mead-ComputerJournal-1965.pdf)
 
+        The simplex points are sim[N+1,N], and the corresponding function values are fsim[N+1]
+
+        `coef` is a normalization coefficient that is multiplied to the final matrix
+        """
+        cdef int i, j, k
+        cdef int reset_cov = 0
+
+        # calculate the midpoint values (fmid)
+        for i in range(self.N+1):
+            for j in range(self.N+1):
+                if i >= j:
+                    continue
+                for k in range(self.N):
+                    self.y[k] = 0.5*(self.sim[i,k] + self.sim[j,k])
+                self.fmid[i,j] = self.eval(self.y)
+        
+        # transfer matrix Q
+        for i in range(self.N):
+            for k in range(self.N):
+                self.Q[i,k] = self.sim[i+1,k] - self.sim[0,k]
+
+        # calculate the quadratic approximation
+        # (only matrix B is necessary)
+        for i in range(self.N):
+            # diagonal terms
+            self.B[i,i] = 2*(self.fsim[i+1] + self.fsim[0]
+                             - 2*self.fmid[0,i+1])
+            for j in range(self.N):
+                # off-diagonal terms
+                if i >= j:
+                    continue
+                self.B[i,j] = 2*(
+                    self.fmid[i+1,j+1]
+                    + self.fsim[0]
+                    - self.fmid[0,i+1]
+                    - self.fmid[0,j+1])
+                self.B[j,i] = self.B[i,j]
+        
+        # Calculate the variance-covariance matrix
+        invert(self.Binv, self.B)
+
+        # cov = Q.B^-1.Q'
+        dot(self.Q_Binv, self.Q, self.Binv, 0)
+        dot(self.cov, self.Q_Binv, self.Q, 1)
+
+        # Apply normalization coefficient
+        for i in range(self.N):
+            for j in range(self.N):
+                self.cov[i,j] *= coef
+            if self.cov[i,i] < 0:
+                reset_cov = 1
+
+        if reset_cov:
+            for i in range(self.N):
+                for j in range(self.N):
+                    self.cov[i,j] = 0.
+
+
+cdef invert(float[:,:] Ainv, float[:,:] A):
+    """
+    Invert matrix A to Ainv
+    """
+    if (A.shape[0] != 2) or A.shape[1] != 2:
+        print('Error in neldermead.invert')
+        sys.exit(1)
+    
+    cdef float det = A[0,0]*A[1,1] - A[1,0]*A[0,1]
+    Ainv[0,0] = A[1,1]/det
+    Ainv[1,1] = A[0,0]/det
+    Ainv[0,1] = -A[1,0]/det
+    Ainv[1,0] = -A[0,1]/det
+
+
+cdef dot(float[:,:] C, float[:,:] A, float[:,:] B, int transpose_B):
+    """
+    Matrix product C = A.B
+    (or C=A.B')
+    """
+    cdef int i, j, k
+    if not transpose_B:
+        if ((C.shape[0] != A.shape[0]) or (A.shape[1] != B.shape[0]) or (C.shape[1] != B.shape[1])):
+            print('Shape error in neldermead.dot')
+            sys.exit(1)
+    else:
+        if ((C.shape[0] != A.shape[0]) or (A.shape[1] != B.shape[1]) or (C.shape[1] != B.shape[0])):
+            print('Shape error in neldermead.dot')
+            sys.exit(1)
+
+    for i in range(C.shape[0]):
+        for j in range(C.shape[1]):
+            C[i, j] = 0
+            for k in range(A.shape[1]):
+                if not transpose_B:
+                    C[i, j] += A[i,k]*B[k,j]
+                else:
+                    C[i, j] += A[i,k]*B[j,k]
 
 cdef combsort(float[:] inp, int N, int[:] ind):
     '''
