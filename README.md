@@ -272,9 +272,32 @@ sensor at nadir) and other self-explanatory parameters.
 
 ### 2.6 Flagging
 
-The recommended flagging of output pixels is the following:
-Valid pixels should verify "bitmask & 1023 == 0" where '&' represents the bitwise AND operator.
-Additional cloud masking using IdePix (https://github.com/bcdev/snap-idepix) is also recommended.
+The Polymer flags are the following:
+
+```
+---------------------------------------------------------------------------------
+| Flag name          | Flag value  | Description                                |
+|--------------------|-------------|--------------------------------------------|
+| LAND               | 1           | Land mask                                  |
+| CLOUD_BASE         | 2           | Polymer's basic cloud mask                 |
+| L1_INVALID         | 4           | Invalid level1 pixel                       |
+| NEGATIVE_BB        | 8           | (deprecated flag)                          |
+| OUT_OF_BOUNDS      | 16          | Retrieved marine parameters are outside    |
+|                    |             | valid bounds                               |
+| EXCEPTION          | 32          | A processing error was encountered         |
+| THICK_AEROSOL      | 64          | Thick aerosol flag                         |
+| HIGH_AIR_MASS      | 128         | Air mass exceeds 5                         |
+| EXTERNAL_MASK      | 512         | Pixel was masked using external mask       |
+| CASE2              | 1024        | Pixel was processed in "case2" mode        |
+| INCONSISTENCY      | 2048        | Inconsistent result was detected           |
+|                    |             | (atmospheric reflectance out of bounds     |
+| ANOMALY_RWMOD_BLUE | 4096        | Excessive difference was found at 412nm    |
+|                    |             | between Rw and Rwmod                       |
+--------------------------------------------------------------------------------|
+```
+
+The recommended flagging of output pixels is the following ('&'
+represents the bitwise AND operator):
 
 ```
 ------------------------------------------------------------------------------
@@ -299,6 +322,7 @@ Additional cloud masking using IdePix (https://github.com/bcdev/snap-idepix) is 
 |          |                              | results at high SZA              |
 -----------------------------------------------------------------------------|
 ```
+Note: additional cloud masking using IdePix (https://github.com/bcdev/snap-idepix) is recommended.
 
 ## 3. Licencing information
 
