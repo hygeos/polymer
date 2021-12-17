@@ -1,0 +1,41 @@
+# This file can be used to update the current anaconda environment
+# to install all dependencies required by Polymer:
+#     mamba env update -f environment.yml
+# (The use of mamba is recommended over conda)
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python<3.9
+  - scipy
+  - xarray
+  - cython
+  - pyhdf
+  - netcdf4
+
+  # For MERIS:
+  - pyepr
+
+  # For GSW and Landsat8:
+  - gdal
+
+  # For ERA5
+  - cdsapi
+
+  # For ERA5-Interim
+  - pygrib
+  - bioconda::ecmwfapi
+
+  # for Landsat8:
+  - xlrd<2
+
+  # For Sentinel-2:
+  - glymur
+  - pyproj
+  - lxml
+
+  # Testing:
+  - pytest
+  - pytest-html
+  - pytest-xdist
+  - matplotlib

@@ -23,42 +23,17 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
 
 ### 1.1 Dependencies
 
+Polymer is written in python3. It is highly recommended to use [anaconda](http://anaconda.org)
+to install all required dependencies. The [miniconda](https://docs.conda.io/en/latest/miniconda.html) version is sufficient.
+The file `environment.yml` can be used to install the dependencies, either in your current
+anaconda environment, or in a new one.
+
+To create a new anaconda environment (independent python installation) with Polymer dependencies:
 ```
-  SOFTWARE          REQUIRED FOR   URL
-  python            all            http://www.python.org/
-  cython            all            http://cython.org/
-  gcc               all            https://gcc.gnu.org/
-
-  PYTHON MODULES    REQUIRED FOR   URL
-  numpy             all            https://pypi.python.org/pypi/numpy/
-  scipy             all            https://pypi.python.org/pypi/scipy
-  python-hdf4       all            https://pypi.python.org/pypi/python-hdf4
-   (or pyhdf)                      https://pypi.python.org/pypi/pyhdf
-  pandas            all            https://pypi.python.org/pypi/pandas
-  pyepr             MERIS          https://pypi.python.org/pypi/pyepr/
-  netCDF4           MODIS,SeaWiFS, https://pypi.python.org/pypi/netCDF4
-                    VIIRS,OLCI,
-                    level2_netcdf,
-                    GSW
-  lxml              MSI            https://pypi.python.org/pypi/lxml
-  glymur            MSI            https://pypi.python.org/pypi/Glymur/
-  pyproj            MSI            https://pypi.python.org/pypi/pyproj
-  ecmwf-api-client  Ancillary_ERA  https://pypi.python.org/pypi/ecmwf-api-client
-                    (on-the-fly download)
-  cdsapi            Ancillary_ERA5 https://pypi.org/project/cdsapi/
-  xarray            Ancillary_ERA5 https://pypi.org/project/xarray/
-  pygrib            Ancillary_ERA  https://pypi.python.org/pypi/pygrib
-  gdal              GSW            https://pypi.python.org/pypi/GDAL
+  conda create -n polymer -c conda-forge mamba
+  conda activate polymer
+  mamba env update -f environment.yml
 ```
-
-
-**NOTE**: support for python2 is being discontinued. It is highly recommended to use python3.
-
-**NOTE**: The supported operating system is Linux. The code has not been tested under Windows or Mac OS X.
-
-If you are using anaconda, see the script install-anaconda-deps.sh which help
-installing all required dependencies in a dedicated environment (recommended method).
-
 
 ### 1.2 Auxiliary data
 
