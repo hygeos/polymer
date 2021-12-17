@@ -6,50 +6,42 @@
                            #####################
 
 
-v4.14beta3
-----------
+v4.14
+-----
 
-Release date: 2021-09-29
+Release date: 2021-12-17
 
 Various fixes and updates:
 
-* Updated dependencies installation script
+* Added support for MERIS 4th reprocessing. The class `Level1_MERIS` can be used for both 3rd and 4th reprocessing
 
-* Fix ozone unit in Level1_NETCDF
+* Add a flag called ANOMALY_RWMOD_BLUE (value 4096), designed to filter anomalous pixels on MODIS, especially
+  for recent years and high sun zenith angles. Improved the README section regarding the quality flags.
 
-* Support land bands in MODIS (not in default output)
+* OLCI: avoid flagging inland waters by default
+
+* Ancillary_NASA: General rework of the module, allowing support for NCEP forecast files.
+
+* Updated dependencies installation script (see README)
 
 * Landsat8: support level1 products from collection 2
 
+Other fixes:
+* Fix ozone unit in Level1_NETCDF
+* Support land bands in MODIS
+  MODIS land bands (469, 555... ) are now supported, though not provided by default in the output
+  They can be processed by tuning the parameter `bands_rw`.
 * Fixed Level1_ASCII
-
-
-v4.14beta2
-----------
-
-Release date: 2020-12-03
-
-Fix MERIS 4th reprocessing reader.
-
-
-v4.14beta1
-----------
-
-Release date: 2020-03-25
-
-* Added support for MERIS 4th reprocessing. The class `Level1_MERIS` can be used for both 3rd and 4th reprocessing
-
-* Ancillary_NASA: General rework of the module, allowing support for NCEP forcast files.
-
 * Fixes for Landsat8:
   - Fixed lat/lon swapping when using gdal v3
   - Added support for Landsat8 SWIR bands
   - Added autodetection in Level1 class
-
 * Sentinel-2 MSI: fixed an offset of half a pixel in lat/lon
 
-* Fixes in Level1_ASCII
-
+Summary of products evolution:
+* lat/lon coordinates of S2 and L8.
+* inland waters flagging for OLCI
+* added flag ANOMALY_RWMOD_BLUE
 
 v4.13
 -----
