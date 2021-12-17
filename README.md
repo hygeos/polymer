@@ -291,10 +291,12 @@ Additional cloud masking using IdePix (https://github.com/bcdev/snap-idepix) is 
 |          | and (Rnir<0.1)               | pixels are discarded             |
 |          | and (Rgli<0.1)               |                                  |
 |          |                              |                                  |
-| SeaWiFS  | bitmask & 1023+2048 == 0     | The INCONSISTENT flag            |
+| SeaWiFS  | bitmask & 1023+2048 == 0     | The INCONSISTENCY flag           |
 |          |                              | cleans up most noisy pixels      |
 |          |                              |                                  |
-| MODIS    | bitmask & 1023 == 0          |                                  |
+| MODIS    | bitmask & 1023+4096 == 0     | The ANOMALY_RWMOD_BLUE removes   |
+|          |                              | outliers appearing on MODIS      |
+|          |                              | results at high SZA              |
 -----------------------------------------------------------------------------|
 ```
 

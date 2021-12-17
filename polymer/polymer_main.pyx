@@ -360,6 +360,7 @@ cdef class PolymerMinimizer:
     cdef int L2_FLAG_THICK_AEROSOL
     cdef int L2_FLAG_OUT_OF_BOUNDS
     cdef int L2_FLAG_EXCEPTION
+    cdef int L2_FLAG_ANOMALY_RWMOD_BLUE
     cdef object params
     cdef int normalize
     cdef int force_initialization
@@ -389,6 +390,7 @@ cdef class PolymerMinimizer:
         self.L2_FLAG_THICK_AEROSOL = L2FLAGS['THICK_AEROSOL']
         self.L2_FLAG_OUT_OF_BOUNDS = L2FLAGS['OUT_OF_BOUNDS']
         self.L2_FLAG_EXCEPTION = L2FLAGS['EXCEPTION']
+        self.L2_FLAG_ANOMALY_RWMOD_BLUE = L2FLAGS['ANOMALY_RWMOD_BLUE']
         self.params = params
         self.normalize = params.normalize
         self.force_initialization = params.force_initialization
@@ -599,6 +601,12 @@ cdef class PolymerMinimizer:
                         Rw_max = Rw[i,j,ib]
                 if (Rnir[i,j]/Rw_max > 10 - 1.5*logchl[i,j]):
                     raiseflag(bitmask, i, j, self.L2_FLAG_THICK_AEROSOL)
+                
+                # ANOMALY_RWMOD_BLUE flag
+                # Removes outliers appearing on MODIS results at high SZA
+                # on recent years (eg 2019).
+                if Rw[i,j,0] - Rwmod[i,j,0] > 0.005:
+                    raiseflag(bitmask, i, j, self.L2_FLAG_ANOMALY_RWMOD_BLUE)
 
                 # initialization of next pixel
                 if (self.force_initialization

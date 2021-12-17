@@ -14,5 +14,6 @@ L2FLAGS = {
         'EXTERNAL_MASK' : 512,
         'CASE2'         : 1024,
         'INCONSISTENCY' : 2048,
+        'ANOMALY_RWMOD_BLUE' : 4096,
         }
 
