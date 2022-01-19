@@ -71,7 +71,7 @@ def process_modis(filename_l1a):
     #
     if not exists(filename_geo):
         with TmpOutput(filename_geo) as f:
-            cmd = 'modis_GEO.py --output={} {}'.format(f, filename_l1a)
+            cmd = 'modis_GEO --output={} {}'.format(f, filename_l1a)
             print(cmd)
             if os.system(cmd):
                 print('Error in modis_GEO')
@@ -85,7 +85,7 @@ def process_modis(filename_l1a):
     #
     if not exists(filename_l1b):
         with TmpOutput(filename_l1b) as f:
-            if os.system('modis_L1B.py -y -z --okm={} {} {}'.format(f, filename_l1a, filename_geo)):
+            if os.system('modis_L1B -y -z --okm={} {} {}'.format(f, filename_l1a, filename_geo)):
                 print('Error in modis_l1B')
                 exit(1)
             f.move()
