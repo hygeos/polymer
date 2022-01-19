@@ -15,14 +15,14 @@ def example_meris():
     """
     Process a MERIS file
     using the generic (autodetecting) Level1 class
-    and the generic level2 class (hdf4 by default)
+    and the generic level2 class (netcdf4 by default)
 
     input file can be obtained with:
     wget http://www.brockmann-consult.de/beam/tutorials/BeamJavaWS/data/MERIS-Test-Data.zip
     unzip MERIS-Test-Data.zip
     """
     run_atm_corr(Level1('MER_RR__1P_TEST.N1'),
-                 Level2(filename='output.hdf'),  # output file name can be explicit, otherwise it is inferred from Level1 file name
+                 Level2(filename='output.nc'),  # output file name can be explicit, otherwise it is inferred from Level1 file name
                  multiprocessing=-1,   # activate multiprocessing
                  )
 

@@ -36,7 +36,7 @@ class Level2(object):
                 - memory (returns a level2 object stored in memory)
         other kwargs are passed to the level2 object constructor
     '''
-    def __init__(self, fmt='hdf4', **kwargs):
+    def __init__(self, fmt='netcdf4', **kwargs):
         if not 'ext' in kwargs:
             if fmt == 'hdf4':
                 kwargs['ext'] = '.polymer.hdf'

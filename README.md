@@ -75,7 +75,7 @@ More options are available by running polymer directly from your own python scri
 from polymer.main import run_atm_corr, Level1, Level2
 run_atm_corr(Level1('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1',
                     <other optional level1 arguments>),
-                Level2('output.hdf',
+                Level2('output.nc',
                     <other optional level2 arguments>),
                 <optional polymer arguments>)
 ```
