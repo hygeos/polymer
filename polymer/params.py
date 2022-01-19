@@ -125,7 +125,8 @@ class Params(object):
 
         # water reflectance normalization
         #   * no geometry nor wavelength normalization (0)
-        #   * apply normalization of the water reflectance at nadir-nadir (1)
+        #   * apply normalization of the water reflectance for
+        #     bidirectional effects (BRDF) to the nadir-nadir geometry (1)
         #   * apply wavelength normalization for MERIS and OLCI (2)
         #   * apply both (3)
         self.normalize = 3
