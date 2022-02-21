@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 
-from __future__ import print_function, division, absolute_import
 from collections import OrderedDict
+from pathlib import Path
 from glymur import Jp2k
 from glob import glob
 from lxml import objectify
-from os.path import join, basename, dirname, exists
+from os.path import join, dirname, exists
 from datetime import datetime
 import numpy as np
 from polymer.block import Block
@@ -18,7 +18,6 @@ from polymer.ancillary import Ancillary_NASA
 from polymer.common import L2FLAGS
 from polymer.level1 import Level1_base
 from polymer.utils import raiseflag
-from polymer.bodhaine import rod
 
 '''
 List of MSI bands:
@@ -90,11 +89,16 @@ class Level1_MSI(Level1_base):
         use_srf: whether to calculate the bands central wavelengths from the SRF or to use fixed ones
         '''
         self.sensor = 'MSI'
-        if dirname.endswith('/'):
-            self.dirname = dirname[:-1]
+        dirname = Path(dirname).resolve()
+        if list(dirname.glob('GRANULE')):
+            granules = list((dirname/'GRANULE').glob('*'))
+            assert len(granules) == 1
+            self.granule_dir = granules[0]
         else:
-            self.dirname = dirname
-        self.filename = self.dirname
+            self.granule_dir = dirname
+        rootdir = self.granule_dir.parent.parent
+
+        self.filename = str(rootdir)
         self.blocksize = blocksize
         self.resolution = str(resolution)
         self.landmask = landmask
@@ -117,17 +121,32 @@ class Level1_MSI(Level1_base):
                 2190: 'B12',
                 }
 
-        # load xml file
-        xmlfiles = glob(join(self.dirname, '*.xml'))
+        # load xml file (granule)
+        xmlfiles = glob(join(self.granule_dir, '*.xml'))
         assert len(xmlfiles) == 1
         xmlfile = xmlfiles[0]
-        self.xmlroot = objectify.parse(xmlfile).getroot()
-        self.date = datetime.strptime(str(self.xmlroot.General_Info.find('SENSING_TIME')), '%Y-%m-%dT%H:%M:%S.%fZ')
-        self.geocoding = self.xmlroot.Geometric_Info.find('Tile_Geocoding')
-        self.tileangles = self.xmlroot.Geometric_Info.find('Tile_Angles')
+        self.xmlgranule = objectify.parse(xmlfile).getroot()
+
+        # load xml file (root)
+        xmlfile = rootdir/'MTD_MSIL1C.xml'
+        xmlroot = objectify.parse(str(xmlfile)).getroot()
+
+        self.product_image_characteristics = xmlroot.General_Info.find('Product_Image_Characteristics')
+        self.quantif = float(self.product_image_characteristics.QUANTIFICATION_VALUE)
+        self.processing_baseline = xmlroot.General_Info.find('Product_Info').PROCESSING_BASELINE.text
+        if float(self.processing_baseline) >= 4:
+            self.radio_offset_list = [
+                int(x)
+                for x in self.product_image_characteristics.Radiometric_Offset_List.RADIO_ADD_OFFSET]
+        else:
+            self.radio_offset_list = [0]*len(self.band_names)
+
+        self.date = datetime.strptime(str(self.xmlgranule.General_Info.find('SENSING_TIME')), '%Y-%m-%dT%H:%M:%S.%fZ')
+        self.geocoding = self.xmlgranule.Geometric_Info.find('Tile_Geocoding')
+        self.tileangles = self.xmlgranule.Geometric_Info.find('Tile_Angles')
 
         # get platform
-        self.tile_id = str(self.xmlroot.General_Info.find('TILE_ID')[0])
+        self.tile_id = str(self.xmlgranule.General_Info.find('TILE_ID')[0])
         self.platform = self.tile_id[:3]
         assert self.platform in ['S2A', 'S2B']
 
@@ -258,7 +277,7 @@ class Level1_MSI(Level1_base):
         '''
         returns jp2k filename containing band
         '''
-        filenames = glob(join(self.dirname, 'IMG_DATA/*_{}.jp2'.format(self.band_names[band])))
+        filenames = glob(join(self.granule_dir, 'IMG_DATA/*_{}.jp2'.format(self.band_names[band])))
         assert len(filenames) == 1
 
         return filenames[0]
@@ -328,12 +347,11 @@ class Level1_MSI(Level1_base):
         # read RTOA
         block.Rtoa = np.zeros((ysize,xsize,nbands)) + np.NaN
         for iband, band in enumerate(bands):
-            QUANTIF = 10000
             raw_data = self.read_TOA(band, size, offset)
             if iband == 0:
                 raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], raw_data == 0)
 
-            block.Rtoa[:,:,iband] = raw_data/QUANTIF
+            block.Rtoa[:,:,iband] = (raw_data + self.radio_offset_list[iband])/self.quantif
 
         if self.landmask is not None:
             raiseflag(block.bitmask, L2FLAGS['LAND'],
@@ -405,9 +423,10 @@ class Level1_MSI(Level1_base):
         attr = OrderedDict()
         attr['l1_filename'] = self.filename
         attr['sensing_time'] = self.date.strftime(datefmt)
-        attr['L1_TILE_ID'] = str(self.xmlroot.General_Info.find('TILE_ID'))
-        attr['L1_DATASTRIP_ID'] = str(self.xmlroot.General_Info.find('DATASTRIP_ID'))
+        attr['L1_TILE_ID'] = str(self.xmlgranule.General_Info.find('TILE_ID'))
+        attr['L1_DATASTRIP_ID'] = str(self.xmlgranule.General_Info.find('DATASTRIP_ID'))
         attr['central_wavelength'] = str(dict(self.wav))
+        attr['processing_baseline'] = str(self.processing_baseline)
         return attr
 
 
