@@ -25,6 +25,7 @@ def Level1_OLCI(dirname,
                 blocksize=100, ancillary=None,
                 landmask='default',
                 altitude=0.,
+                add_noise=False,
                 ):
     '''
     OLCI reader (SAFE format)
@@ -100,4 +101,5 @@ def Level1_OLCI(dirname,
         band_index=band_index,
         Ltyp=Ltyp_olci,
         sigma_typ=sigma_typ_olci,
+        add_noise=add_noise,
     )

@@ -46,6 +46,7 @@ class Level1_SAFE(Level1_base):
                  band_index=None,
                  Ltyp=None,
                  sigma_typ=None,
+                 add_noise=False,
                  ):
 
         self.sensor = sensor
@@ -58,6 +59,7 @@ class Level1_SAFE(Level1_base):
         self.band_index = band_index
         self.sigma_typ = sigma_typ
         self.Ltyp = Ltyp
+        self.add_noise = add_noise
 
         if not os.path.isdir(dirname):
             dirname = os.path.dirname(dirname)
@@ -243,7 +245,12 @@ class Level1_SAFE(Level1_base):
         block.Ltoa = np.zeros((ysize,xsize,nbands)) + np.NaN
         for iband, band in enumerate(bands):
             Ltoa_data = self.read_band(self.band_names[band], size, offset)
-            block.Ltoa[:,:,iband] = Ltoa_data[:,:]
+            if self.add_noise:
+                stdev = np.sqrt(Ltoa_data/self.Ltyp[band])*self.sigma_typ[band]
+                noise = stdev*np.random.normal(0, 1, stdev.size).reshape(stdev.shape)
+            else:
+                noise = 0
+            block.Ltoa[:,:,iband] = Ltoa_data[:,:] + noise
 
         # detector index
         di = self.read_band('detector_index', size, offset)
