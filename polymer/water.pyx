@@ -64,7 +64,7 @@ cdef class ParkRuddick(WaterModel):
     cdef int Nwav
     cdef int debug
     cdef int bbopt
-    cdef int min_abs
+    cdef float min_abs
     cdef float[:] atot, bbtot, btot, aphy, aCDM, aNAP
     cdef float gamma
     cdef object out_type
@@ -72,7 +72,7 @@ cdef class ParkRuddick(WaterModel):
     cdef int[:] index  # multi-purpose vector
     cdef int absorption
 
-    def __init__(self, directory, absorption='bricaud98_aphy', bbopt=0, min_abs=0, debug=False):
+    def __init__(self, directory, absorption='bricaud98_aphy', bbopt=0, min_abs=0., debug=False):
         '''
         Water reflectance model based on:
         Park, Y.-J. & Ruddick, K. Model of remote-sensing reflectance including
@@ -160,7 +160,7 @@ cdef class ParkRuddick(WaterModel):
         #
         # read mineral absorption
         #
-        if self.min_abs == 1:
+        if self.min_abs > 0:
             astar_ = np.genfromtxt(join(directory, 'astarmin_average_2015_SLSTR.txt'), comments='%')
             self.ASTAR = CLUT(astar_[:-1,1],
                               axes=[astar_[:-1,0]])
@@ -293,7 +293,7 @@ cdef class ParkRuddick(WaterModel):
             else:
                 raise Exception('Error in AB_BRIC lookup (lambda={})'.format(w))
 
-            if self.min_abs == 1:
+            if self.min_abs > 0:
                 ret = self.ASTAR.lookup(0, w)
                 if ret != 0:
                     raise Exception('Error on A_STAR lookup (wavelength={})'.format(w))
@@ -452,8 +452,8 @@ cdef class ParkRuddick(WaterModel):
             # mineral absorption
             if self.min_abs == 0:
                 aNAP = 0.
-            elif self.min_abs == 1:
-                aNAP = self.a_star[i]*SPM
+            elif self.min_abs > 0:
+                aNAP = self.min_abs*self.a_star[i]*SPM
             else:
                 # Babin 2003
                 # Variations in the light absorption coefficients of phytoplankton,
