@@ -89,6 +89,7 @@ cdef class ParkRuddick(WaterModel):
                 0: no mineral absorption
                 > 0: fixed mineral absorption
                 -1: include mineral absorption as a parameter
+                -2: mineral absorption as a continuous parameter switching after chl>10
         '''
 
         self.Rw = None
@@ -337,8 +338,8 @@ cdef class ParkRuddick(WaterModel):
         # x is [logchl, logfb, logfa] or shorter
         cdef int N = len(x)
         cdef float fa, fb
-        cdef float logchl = x[0]
-        cdef float chl = 10**logchl
+        cdef float logchl
+        cdef float chl
         cdef float bbw, bb, bbp
         cdef float bbp550 = -999.
         cdef float bbp650 = -999.
@@ -353,14 +354,23 @@ cdef class ParkRuddick(WaterModel):
         cdef int igb
         cdef float rho
         cdef float mabs
+        cdef thres_chl_min_abs = 1.
+
+        fa = 1.
+        mabs = self.min_abs
+
+        if self.min_abs == -2:
+            logchl = min(thres_chl_min_abs, x[0])
+            mabs = min(2, max(0, x[0] - thres_chl_min_abs))
+        else:
+            logchl = x[0]
+        chl = 10**logchl
 
         if N >= 2:
             fb = 10**x[1]
         else:
             fb = 1.
 
-        fa = 1.
-        mabs = self.min_abs
         if N >= 3:
             if self.min_abs == -1:
                 mabs = max(0, x[2])
