@@ -86,6 +86,9 @@ cdef class ParkRuddick(WaterModel):
                 'matsuoka': aphy from [Matsuoka et al, JGR 2011]
             bbopt: particle backscattering option
             min_abs: mineral absorption option
+                0: no mineral absorption
+                > 0: fixed mineral absorption
+                -1: include mineral absorption as a parameter
         '''
 
         self.Rw = None
@@ -160,7 +163,7 @@ cdef class ParkRuddick(WaterModel):
         #
         # read mineral absorption
         #
-        if self.min_abs > 0:
+        if self.min_abs != 0:
             astar_ = np.genfromtxt(join(directory, 'astarmin_average_2015_SLSTR.txt'), comments='%')
             self.ASTAR = CLUT(astar_[:-1,1],
                               axes=[astar_[:-1,0]])
@@ -293,7 +296,7 @@ cdef class ParkRuddick(WaterModel):
             else:
                 raise Exception('Error in AB_BRIC lookup (lambda={})'.format(w))
 
-            if self.min_abs > 0:
+            if self.min_abs != 0:
                 ret = self.ASTAR.lookup(0, w)
                 if ret != 0:
                     raise Exception('Error on A_STAR lookup (wavelength={})'.format(w))
@@ -349,16 +352,20 @@ cdef class ParkRuddick(WaterModel):
         cdef int ret
         cdef int igb
         cdef float rho
+        cdef float mabs
 
         if N >= 2:
             fb = 10**x[1]
         else:
             fb = 1.
 
+        fa = 1.
+        mabs = self.min_abs
         if N >= 3:
-            fa = 10**x[2]
-        else:
-            fa = 1.
+            if self.min_abs == -1:
+                mabs = max(0, x[2])
+            else:
+                fa = 10**x[2]
 
         #
         # wavelength-independent parameters
@@ -450,16 +457,17 @@ cdef class ParkRuddick(WaterModel):
             aCDM = aCDM443 * exp(-S*(lam - 443))
 
             # mineral absorption
-            if self.min_abs == 0:
+            if mabs == 0:
                 aNAP = 0.
-            elif self.min_abs > 0:
-                aNAP = self.min_abs*self.a_star[i]*SPM
             else:
+                aNAP = mabs*self.a_star[i]*SPM
+            
+            # Deprecated:
                 # Babin 2003
                 # Variations in the light absorption coefficients of phytoplankton,
                 # nonalgal particles, and dissolved organic matter
                 # in coastal waters around Europe
-                aNAP = 0.031*SPM*0.75*exp(-0.0123*(lam - 443.))
+                # aNAP = 0.031*SPM*0.75*exp(-0.0123*(lam - 443.))
 
             # total absorption
             a = aw + aphy + aCDM + aNAP
