@@ -145,6 +145,7 @@ class Params(object):
         if self.water_model == 'PR05':
             self.initial_point_1 = [-1, 0]
             self.initial_point_2 = [1, 1]
+            self.initial_points = [[]]
             self.initial_step = [0.2, 0.2]
             self.bounds = [[-2, 2], [-3, 3]]
 
@@ -170,6 +171,7 @@ class Params(object):
             # Constraint on bbs: amplitude, sigma(chl=0.01), sigma(chl=0.1)
             # (disactivate with amplitude == 0)
             self.constraint_bbs = [1e-3, 0.0001, 0.005]
+            raise NotImplementedError
 
 
         # no2 absorption data

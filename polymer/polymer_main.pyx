@@ -352,6 +352,7 @@ cdef class PolymerMinimizer:
     cdef float[:,:] bounds
     cdef float[:] initial_point_1
     cdef float[:] initial_point_2
+    cdef float[:,:] initial_points   # check consistency WRT above
     cdef float[:] initial_step
     cdef float size_end_iter
     cdef int max_iter
@@ -382,6 +383,7 @@ cdef class PolymerMinimizer:
         self.bounds = np.array(params.bounds, dtype='float32')
         self.initial_point_1 = np.array(params.initial_point_1, dtype='float32')
         self.initial_point_2 = np.array(params.initial_point_2, dtype='float32')
+        self.initial_points = np.array(params.initial_points, dtype='float32')
         self.initial_step = np.array(params.initial_step, dtype='float32')
         self.size_end_iter = params.size_end_iter
         self.max_iter = params.max_iter
@@ -453,7 +455,8 @@ cdef class PolymerMinimizer:
         block.eps = np.zeros(block.size, dtype='float32')
         cdef float[:,:] eps = block.eps
 
-        cdef int i, j, ib, ioc
+        cdef int i, j, ib, ioc, i_fguess, ii
+        cdef float v_fguess, vmin_fguess
         cdef int flag_reinit
         cdef float Rw_max
         cdef float[:] wav0
@@ -485,6 +488,21 @@ cdef class PolymerMinimizer:
                     raiseflag(bitmask, i, j, self.L2_FLAG_EXCEPTION)
                     continue
 
+                # first guess
+                if self.initial_points.size:
+                    vmin_fguess = -1
+                    v_fguess = -1
+                    for ii in range(self.initial_points.shape[0]):
+                        v_fguess = self.f.eval(self.initial_points[ii,:])
+                        if (vmin_fguess < 0) or (v_fguess < vmin_fguess):
+                            vmin_fguess = v_fguess
+                            i_fguess = ii
+                    x0[:] = self.initial_points[i_fguess,:]
+                    self.initial_point_1[:] = x0[:]
+                    if self.dbg_pt[0] >= 0:
+                        if ((self.dbg_pt[0] == i) and (self.dbg_pt[1] == j)):
+                            print('first guess: selected [{}] : ({}, {})'.format(i_fguess, x0[0], x0[1]))
+                
                 self.f.init(x0, self.initial_step)
 
                 # visualization of the cost function
