@@ -6,6 +6,37 @@
                            #####################
 
 
+v4.15 beta1
+-----------
+
+Release date: 2022-07-29
+
+Added experimental (optional) processing mode for complex costal and
+inland waters:
+* Added optional parameterization of mineral absorption switching
+  for chl>10 (option min_abs=-2)
+* Updated first guess: don't reuse result of previous pixel. Test several
+  points across the cost function (option initial_points)
+* Include SWIR bands (1020 for OLCI and 1610 for MSI) for bands_corr
+  and bands_oc.
+
+Summary of the experimental configuration:
+* OLCI:
+  from polymer.params import params_minabs2_OLCI
+  run_atm_corr(..., **params_minabs2_OLCI)
+* MSI:
+  from polymer.params import params_minabs2_MSI
+  run_atm_corr(..., **params_minabs2_MSI)
+
+Flagging: with this experimental processing mode, it is recommended to also filter
+out pixels such that Rw560 > 0.2
+
+Other changes:
+- Default format for Level2 is now set to NetCDF
+- Updated make_L1C for newer SeaDAS versions
+- Support MSI processing baseline 4.00 (account for the offset in TOA reflectance)
+
+
 v4.14
 -----
 
