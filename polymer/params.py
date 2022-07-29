@@ -42,17 +42,27 @@ params_v3_5_VIIRS_MM01 = {
 
 params_minabs2 = {
     # merge mineral absorption with chl
-    # Note: add 1020 for OLCI [443,490,510,560,620,665,754,779,865,1020]
+    # Note: add bands 1020 for OLCI and 1610 for MSI in bands_corr and bands_oc
+    # (see params_minabs2_MSI and params_minabs2_OLCI)
     'min_abs': -2,
-    'initial_point_1': [0, 0],
-    'initial_point_2': [0.5, 1],
-    'initial_step': [0.1, 0.1],
     'bounds': [[-2, 4], [-2, 3.5]],
     'initial_points': [
         [x, y]
         for x in [-2, -1, 0, 1]
         for y in [0, 1]
     ] + [[1, 2], [2, 2]],
+}
+
+params_minabs2_OLCI = {
+    'bands_corr': [443,490,510,560,620,665,754,779,865,1020],
+    'bands_oc':   [443,490,510,560,620,665,754,779,865,1020],
+    **params_minabs2
+}
+
+params_minabs2_MSI = {
+    'bands_corr': [443,490,560,665,705,740,783,865,1610],
+    'bands_oc':   [443,490,560,665,705,740,783,865,1610],
+    **params_minabs2
 }
 
 # OLCI parameters consistent with params_v3_5_VIIRS_MM01

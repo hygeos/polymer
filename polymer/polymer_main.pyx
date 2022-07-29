@@ -525,7 +525,7 @@ cdef class PolymerMinimizer:
                         break
 
                 # case2 optimization if first optimization fails
-                if testflag(bitmask, i, j,  self.L2_FLAG_CASE2):
+                if testflag(bitmask, i, j, self.L2_FLAG_CASE2) and (not self.initial_points.size):
 
                     self.f.init(self.initial_point_2, self.initial_step)
 
