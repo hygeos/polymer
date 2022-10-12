@@ -188,10 +188,10 @@ class Level1_NASA(Level1_base):
         block.vza = filled(self.root.groups['geophysical_data'].variables['senz'][SY, SX], ok=ok)
         saa = self.root.groups['geophysical_data'].variables['sola']
         saa.set_auto_mask(False)
-        block.saa = filled(saa[SY, SX])
+        block.saa = filled(saa[SY, SX]) % 360
         vaa = self.root.groups['geophysical_data'].variables['sena']
         vaa.set_auto_mask(False)
-        block.vaa = filled(vaa[SY, SX])
+        block.vaa = filled(vaa[SY, SX]) % 360
 
         block.Rtoa = np.zeros(size3) + np.NaN
         for iband, band in enumerate(bands):
