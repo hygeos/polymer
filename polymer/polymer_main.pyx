@@ -4,6 +4,8 @@ from numpy.linalg import inv
 from common import L2FLAGS
 from libc.math cimport nan, exp, log, abs, sqrt
 from cpython.exc cimport PyErr_CheckSignals
+import pandas as pd
+from pathlib import Path
 
 from neldermead cimport NelderMeadMinimizer
 from water cimport WaterModel
@@ -249,6 +251,16 @@ def atm_func(block, params, bands):
     Rgli0 = 0.02
     T0 = np.exp(-taum*((1-0.5*np.exp(-block.Rgli/Rgli0))*block.air_mass)[:,:,None])
 
+    if 'veg' in params.atm_model:
+        veg = pd.read_csv(
+            Path(params.dir_common)/'vegetation.grass.avena.fatua.vswir.vh352.ucsb.asd.spectrum.txt',
+            skiprows=21,
+            sep=None,
+            names=['wav_um', 'r_percent'],
+            index_col=0,
+            engine='python').to_xarray()
+        veg_interpolated = (veg.r_percent/100.).interp(wav_um=lam.ravel()/1000.).values.reshape(lam.shape)
+
     if params.atm_model == 'T0,-1,-4':
         assert Ncoef == 3
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
@@ -271,6 +283,19 @@ def atm_func(block, params, bands):
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
         A[:,:,:,0] = T0*(lam/1000.)**0.
         A[:,:,:,1] = (lam/1000.)**-2.
+    elif params.atm_model == 'T0,-1,veg':
+        assert Ncoef == 3
+        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
+        A[:,:,:,0] = T0*(lam/1000.)**0.
+        A[:,:,:,1] = (lam/1000.)**-1.
+        A[:,:,:,2] = block.Tmol[:,:,idx] * veg_interpolated# * (lam/1000)**-4.
+    elif params.atm_model == 'T0,-1,-4,veg':
+        assert Ncoef == 4
+        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
+        A[:,:,:,0] = T0*(lam/1000.)**0.
+        A[:,:,:,1] = (lam/1000.)**-1.
+        A[:,:,:,2] = (lam/1000.)**-4.
+        A[:,:,:,3] = block.Tmol[:,:,idx] * veg_interpolated# * (lam/1000)**-4.
     else:
         raise Exception('Invalid atmospheric model "{}"'.format(params.atm_model))
 

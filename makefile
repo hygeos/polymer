@@ -43,7 +43,8 @@ auxdata_common: directories \
 		auxdata/common/astarmin_average.txt \
 		auxdata/common/Matsuoka11_aphy_Table1_JGR.csv \
 		auxdata/common/k_oz.csv \
-		auxdata/common/SOLAR_SPECTRUM_WMO_86
+		auxdata/common/SOLAR_SPECTRUM_WMO_86 \
+		auxdata/common/vegetation.grass.avena.fatua.vswir.vh352.ucsb.asd.spectrum.txt
 	@echo "b88aadd272734634b756922ad5b6f439  auxdata/common/no2_climatology.hdf"            |md5sum -c -
 	@echo "10350ad3441c9e76346f6429985f3c71  auxdata/common/trop_f_no2_200m.hdf"            |md5sum -c -
 	@echo "7f3ba3b9ff13b9f135c53256d02a8b1b  auxdata/common/morel_fq.dat"                   |md5sum -c -
@@ -61,6 +62,7 @@ auxdata_common: directories \
 	@echo "862c49b5dd19c9b09e451891ef11ce50  auxdata/common/Matsuoka11_aphy_Table1_JGR.csv" |md5sum -c -
 	@echo "9290372ca2a4cab5ddd9eaed9b9942c1  auxdata/common/SOLAR_SPECTRUM_WMO_86"          |md5sum -c -
 	@echo "dfe0ca3e6f37d7525675e50f6f0352fc  auxdata/common/k_oz.csv"                       |md5sum -c -
+	@echo "db5f9f8c06e7d484afb8c252eb11faf0  auxdata/common/vegetation.grass.avena.fatua.vswir.vh352.ucsb.asd.spectrum.txt" |md5sum -c -
 	@echo "4cfc8b2ab76b1b2b2ea85611940ae6e2  auxdata/generic/LUT.hdf"                       |md5sum -c -
 directories:
 	@mkdir -p auxdata/common/
@@ -99,6 +101,8 @@ auxdata/common/Matsuoka11_aphy_Table1_JGR.csv:
 	$(WGET) auxdata/common/ $(URL)/common/Matsuoka11_aphy_Table1_JGR.csv
 auxdata/common/SOLAR_SPECTRUM_WMO_86:
 	$(WGET) auxdata/common/ $(URL)/common/SOLAR_SPECTRUM_WMO_86
+auxdata/common/vegetation.grass.avena.fatua.vswir.vh352.ucsb.asd.spectrum.txt:
+	$(WGET) auxdata/common/ $(URL)/common/vegetation.grass.avena.fatua.vswir.vh352.ucsb.asd.spectrum.txt
 auxdata/common/k_oz.csv:
 	$(WGET) auxdata/common/ $(URL)/common/k_oz.csv
 
