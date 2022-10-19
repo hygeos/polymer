@@ -118,6 +118,9 @@ class Level1_ASCII(object):
             self.F0_band_names = dict([(b, self.headers['F0'](i, b)) for (i, b) in enumerate(BANDS)])
             self.wav_band_names = dict([(b, self.headers['LAMBDA0'](i, b)) for (i, b) in enumerate(BANDS)])
 
+        elif (sensor == 'GENERIC'):
+            self.wav_band_names = dict([(b, self.headers['LAMBDA0'](i, b)) for (i, b) in enumerate(BANDS)])
+
         #
         # read the csv file (only the required columns)
         #
@@ -254,14 +257,17 @@ class Level1_ASCII(object):
                 block.wavelen[:,:,iband] = self.csv[name][sl].values.reshape(size)
                 block.cwavelen[iband] = float(band)#central_wavelength_olci[band]"""
 
-        if self.sensor in ['SeaWiFS', 'MODIS', 'VIIRS']:
+        elif self.sensor in ['SeaWiFS', 'MODIS', 'VIIRS']:
             for i, b in enumerate(bands):
                 # take the band identifier as central wavelength
                 # (same values as in SeaDAS)
                 block.wavelen[:,:,i] = float(b)
                 block.cwavelen[i] = float(b)
-
-
+        elif self.sensor == 'GENERIC':
+            for iband, band in enumerate(bands):
+                name = self.wav_band_names[band]
+                block.wavelen[:,:,iband] = self.csv[name][sl].values.reshape(size)
+                block.cwavelen[iband] = self.csv[name].values[0]
 
         block.bitmask = np.zeros(size, dtype='uint16')
         invalid = np.isnan(block.raa)
