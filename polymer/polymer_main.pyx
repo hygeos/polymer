@@ -371,12 +371,13 @@ cdef class PolymerMinimizer:
     cdef int N_bands_oc
     cdef int[:] i_oc_read  # index or the 'oc' bands within the 'read' bands
     cdef int N_bands_read
+    cdef int Ncoef
 
     def __init__(self, watermodel, params):
 
         self.Nparams = len(params.initial_step)
-        Ncoef = params.Ncoef   # number of atmospheric coefficients
-        self.f = F(Ncoef, watermodel, params, self.Nparams)
+        self.Ncoef = params.Ncoef   # number of atmospheric coefficients
+        self.f = F(self.Ncoef, watermodel, params, self.Nparams)
         self.BITMASK_INVALID = params.BITMASK_INVALID
         self.NaN = np.NaN
 
@@ -454,6 +455,8 @@ cdef class PolymerMinimizer:
         cdef float[:,:,:] Rwmod = block.Rwmod
         block.eps = np.zeros(block.size, dtype='float32')
         cdef float[:,:] eps = block.eps
+        block.Ci = np.zeros(block.size+(self.Ncoef,), dtype='float32')
+        cdef float[:,:,:] Ci = block.Ci
 
         cdef int i, j, ib, ioc, i_fguess, ii
         cdef float v_fguess, vmin_fguess
@@ -475,6 +478,7 @@ cdef class PolymerMinimizer:
                     SPM[i,j] = self.NaN
                     bbs[i,j] = self.NaN
                     Rw[i,j,:] = self.NaN
+                    Ci[i,j,:] = self.NaN
                     continue
 
                 if self.f.init_pixel(
@@ -563,7 +567,11 @@ cdef class PolymerMinimizer:
                     Rwmod[i,j,ib] = self.f.Rwmod[ib]
 
                     Ratm[i,j,ib] = self.f.Ratm[ib]
-
+                
+                # Store Ci coefficients
+                for ib in range(self.Ncoef):
+                    Ci[i,j,ib] = self.f.C[ib]
+                
                 # consistency test at bands_oc
                 for ioc in range(self.N_bands_oc):
                     ib = self.i_oc_read[ioc]

@@ -73,9 +73,14 @@ class Level2_NETCDF(Level2_file):
         write data into sds name with slice S
         '''
         if data.ndim == 3:
-            for i, b in enumerate(self.bands):
-                sdsname = '{}{}'.format(name, b)
-                self.write_block(sdsname, data[:,:,i], S, attrs)
+            if data.shape[-1] == len(self.bands):
+                for i, b in enumerate(self.bands):
+                    sdsname = '{}{}'.format(name, b)
+                    self.write_block(sdsname, data[:,:,i], S, attrs)
+            else:
+                for i in range(data.shape[-1]):
+                    sdsname = '{}{}'.format(name, i)
+                    self.write_block(sdsname, data[:,:,i], S, attrs)
             return
 
         if not self.initialized:
