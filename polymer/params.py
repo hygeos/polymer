@@ -328,9 +328,9 @@ class Params(object):
         define default parameters for Sentinel-3/OLCI
         '''
 
-        self.bands_corr = [        443,490,510,560,620,665,        754,779,865]
-        self.bands_oc   = [        443,490,510,560,620,665,        754,779,865]
-        self.bands_rw   = [400,412,443,490,510,560,620,665,681,709,754,779,865,1020]
+        self.bands_corr = [        443,490,510,560,620,665,            754,779,865]
+        self.bands_oc   = [        443,490,510,560,620,665,            754,779,865]
+        self.bands_rw   = [400,412,443,490,510,560,620,665,674,681,709,754,779,865,885,1020]
 
         self.band_cloudmask = 865
 
