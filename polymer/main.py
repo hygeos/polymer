@@ -12,8 +12,6 @@ from pyhdf.SD import SD
 from multiprocessing import Pool
 from datetime import datetime
 from polymer.params import Params
-from polymer.level1 import Level1
-from polymer.level2 import Level2
 from polymer.bodhaine import rod
 from polymer.polymer_main import PolymerMinimizer
 from polymer.water import ParkRuddick, MorelMaritorena
@@ -92,7 +90,7 @@ class InitCorr(object):
         # Add TOA uncertainties
         #
         if self.params.uncertainties:
-            toa_uncertainties(block)
+            toa_uncertainties(block, self.params)
 
 
     def convert_reflectance(self, block):

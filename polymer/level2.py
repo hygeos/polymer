@@ -14,6 +14,9 @@ default_datasets = [
             'logchl', 'bbs', 'Rgli']
 analysis_datasets = ['Rtoa', 'Rprime', 'Ratm', 'vza', 'sza', '_raa', 'niter', 'Rwmod', 'Tmol']
 ancillary_datasets = ['ozone', 'surf_press', 'wind_speed', 'altitude']
+uncertainty_datasets = ['logchl_unc',
+                        'logfb_unc',
+                        'rho_w_unc']
 
 
 class OutputExists(Exception):

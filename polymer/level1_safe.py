@@ -333,7 +333,8 @@ class Level1_SAFE(Level1_base):
         if self.Ltyp is not None:
             block.Ltyp = np.array([self.Ltyp[b] for b in bands], dtype='float32')
         if self.sigma_typ is not None:
-            block.sigma_typ = np.array([self.sigma_typ[b] for b in bands], dtype='float32')
+            block.sigma_typ = np.array([self.sigma_typ[b] for b in bands],
+                                       dtype='float32')
 
         return block
 

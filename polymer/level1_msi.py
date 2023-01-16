@@ -39,6 +39,27 @@ B11  SWIR 1      1610nm     20m
 B12  SWIR 2      2190nm     20m
 '''
 
+# https://sentinels.copernicus.eu/web/sentinel/user-guides/sentinel-2-msi/resolutions/radiometric
+msi_snr = {
+    443: 129, 490: 154,
+    560: 168, 665: 142,
+    705: 117, 740: 89,
+    783: 105, 842: 174,
+    865: 72,  945: 114,
+    1375: 50, 1610: 100,
+    2190: 100,
+}
+
+msi_Lref = { # reference radiance
+    443: 129 , 490: 128,
+    560: 128 , 665: 108,
+    705: 74.5, 740: 68,
+    783: 67  , 842: 103,
+    865: 52.5, 945: 9,
+    1375: 6  , 1610: 4,
+    2190: 1.5,
+}
+
 
 class Level1_MSI(Level1_base):
 
@@ -105,6 +126,9 @@ class Level1_MSI(Level1_base):
         self.srf_file = srf_file
         self.altitude = altitude
         self.use_srf = use_srf
+        self.sigma_typ = {k: msi_Lref[k]/msi_snr[k]
+                          for k in msi_snr}
+        self.Ltyp = msi_Lref
 
         if ancillary is None:
             self.ancillary = Ancillary_NASA()
@@ -394,6 +418,12 @@ class Level1_MSI(Level1_base):
                             1375: 0.00242549670396, 1610: 0.00128165077197,
                             2190: 0.000383201294006,
                         }[band] * block.surf_press/1013.
+
+        if self.Ltyp is not None:
+            block.Ltyp = np.array([self.Ltyp[b] for b in bands], dtype='float32')
+        if self.sigma_typ is not None:
+            block.sigma_typ = np.array([self.sigma_typ[b] for b in bands],
+                                       dtype='float32')
 
         return block
 
