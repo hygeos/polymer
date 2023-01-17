@@ -6,12 +6,22 @@
                            #####################
 
 
-v4.15 beta1
------------
+v4.15
+-----
 
-Release date: 2022-07-29
+Release date: 2023-01-18
 
-Added experimental (optional) processing mode for complex costal and
+1) Added uncertainty propagation for MSI and OLCI:
+Uncertainties are provided at TOA, and propagated through the atmospheric correction process.
+They are provided at output through the (optional) parameters logchl_unc, logfb_unc and rho_w_unc.
+Uncertainty calculation is activated like so:
+    run_atm_corr(
+        <Level1>,
+        Level2(..., datasets=default_datasets+uncertainty_datasets),  # imported from level2.py
+        uncertainties=1
+    )
+
+2) Added experimental (optional) processing mode for complex costal and
 inland waters:
 * Added optional parameterization of mineral absorption switching
   for chl>10 (option min_abs=-2)
@@ -19,7 +29,7 @@ inland waters:
   points across the cost function (option initial_points)
 * Include SWIR bands (1020 for OLCI and 1610 for MSI) for bands_corr
   and bands_oc.
-
+The corresponding configuration is stored in dedicated dictionaries in params.py
 Summary of the experimental configuration:
 * OLCI:
   from polymer.params import params_minabs2_OLCI
@@ -27,14 +37,29 @@ Summary of the experimental configuration:
 * MSI:
   from polymer.params import params_minabs2_MSI
   run_atm_corr(..., **params_minabs2_MSI)
-
 Flagging: with this experimental processing mode, it is recommended to also filter
 out pixels such that Rw560 > 0.2
+
+3) Added experimental (optional) processing of vegetation adjacency:
+This option is activated by passing the option atm_model='T0,-1,-4,veg'
+to the function run_atm_corr.
+Example:
+    run_atm_corr(
+        <level1>, <level2>,
+        atm_model='T0,-1,-4,veg'
+    )
 
 Other changes:
 - Default format for Level2 is now set to NetCDF
 - Updated make_L1C for newer SeaDAS versions
 - Support MSI processing baseline 4.00 (account for the offset in TOA reflectance)
+- Allow writing Ci (atmospheric parameters) to output. Add "Ci" to the list of
+  datasets passed to Level2.
+- Include OLCI bands 674 and 885 in output by default
+- MODIS: fix interpolation of relative azimuth angles
+  (could affect MODIS L1C products from recent SeaDAS releases)
+- parameter bbs is renamed to logfb
+- updates in luts.py
 
 
 v4.14
