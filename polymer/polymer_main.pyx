@@ -81,7 +81,7 @@ cdef class F(NelderMeadMinimizer):
         self.Ncoef = Ncoef
 
         self.thres_chi2 = params.thres_chi2
-        self.constraint_amplitude, self.sigma2, self.sigma1 = params.constraint_bbs
+        self.constraint_amplitude, self.sigma2, self.sigma1 = params.constraint_logfb
 
         self.N_bands_corr = len(params.bands_corr)
         self.i_corr_read = np.searchsorted(
@@ -468,8 +468,8 @@ cdef class PolymerMinimizer:
         cdef float[:,:] logchl = block.logchl
         block.fa = np.zeros(block.size, dtype='float32')
         cdef float[:,:] fa = block.fa
-        block.bbs = np.zeros(block.size, dtype='float32')
-        cdef float[:,:] bbs = block.bbs
+        block.logfb = np.zeros(block.size, dtype='float32')
+        cdef float[:,:] logfb = block.logfb
         block.SPM = np.zeros(block.size, dtype='float32')
         cdef float[:,:] SPM = block.SPM
         block.niter = np.zeros(block.size, dtype='uint32')
@@ -524,7 +524,7 @@ cdef class PolymerMinimizer:
                     logchl[i,j] = self.NaN
                     fa[i,j] = self.NaN
                     SPM[i,j] = self.NaN
-                    bbs[i,j] = self.NaN
+                    logfb[i,j] = self.NaN
                     Rw[i,j,:] = self.NaN
                     Ci[i,j,:] = self.NaN
                     continue
@@ -599,7 +599,7 @@ cdef class PolymerMinimizer:
                 logchl[i,j] = self.f.xmin[0]
                 eps[i,j] = self.f.fsim[0]
                 if self.Nparams >= 2:
-                    bbs[i,j] = self.f.xmin[1]
+                    logfb[i,j] = self.f.xmin[1]
                 if self.Nparams >= 3:
                     fa[i,j] = self.f.xmin[2]
                 niter[i,j] = self.f.niter

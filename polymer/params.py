@@ -13,7 +13,7 @@ from scipy.interpolate import interp1d
 # polymer(<level>, <level2>, **params_v3_5)
 params_v3_5 = {
     'reinit_rw_neg': True,
-    'constraint_bbs': [1e-3, 0.2258, 0.9233],
+    'constraint_logfb': [1e-3, 0.2258, 0.9233],
     'metrics': 'polymer_3_5',
     'Rprime_consistency': False,
     'absorption': 'bricaud95_aphy',
@@ -23,7 +23,7 @@ params_v3_5 = {
 # these parameters will quasi-reproduce the VIIRS v3.5 with MM01 model
 params_v3_5_VIIRS_MM01 = {
         'reinit_rw_neg': True,
-        'constraint_bbs': [1e-3, 0.2258, 0.9233],
+        'constraint_logfb': [1e-3, 0.2258, 0.9233],
         'metrics': 'polymer_3_5',
         'Rprime_consistency': False,
         'absorption': 'bricaud95_aphy',
@@ -68,7 +68,7 @@ params_minabs2_MSI = {
 # OLCI parameters consistent with params_v3_5_VIIRS_MM01
 params_v3_5_OLCI_MM01 = {
         'reinit_rw_neg': True,
-        'constraint_bbs': [1e-3, 0.2258, 0.9233],
+        'constraint_logfb': [1e-3, 0.2258, 0.9233],
         'metrics': 'polymer_3_5',
         'Rprime_consistency': False,
         'absorption': 'bricaud95_aphy',
@@ -176,9 +176,9 @@ class Params(object):
 
             # Constraint on bbs: amplitude, sigma(chl=0.01), sigma(chl=0.1)
             # (disactivate with amplitude == 0)
-            # NOTE: amplitiude changed from 1e-3 to 1e-4 since sumsq is now divided by the sum of weights
-            # (inter-sensor consistency)
-            self.constraint_bbs = [1e-4, 0.2258, 0.9233]
+            # NOTE: amplitude changed from 1e-3 to 1e-4 since sumsq is now
+            # divided by the sum of weights (inter-sensor consistency)
+            self.constraint_logfb = [1e-4, 0.2258, 0.9233]
 
             # PR05 model only
             self.bbopt = 0      # particle backscattering model
@@ -195,7 +195,7 @@ class Params(object):
 
             # Constraint on bbs: amplitude, sigma(chl=0.01), sigma(chl=0.1)
             # (disactivate with amplitude == 0)
-            self.constraint_bbs = [1e-3, 0.0001, 0.005]
+            self.constraint_logfb = [1e-3, 0.0001, 0.005]
             raise NotImplementedError
 
 
