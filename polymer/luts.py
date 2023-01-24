@@ -184,7 +184,7 @@ class LUT(object):
             self.names = names
             assert len(names) == self.ndim
 
-        if self.data.dtype in [np.float, np.float32, np.float64]:
+        if self.data.dtype in [float, np.float32, np.float64]:
             self.formatter = '{:3g}'
         else:
             self.formatter = '{}'
@@ -1150,7 +1150,7 @@ class Subsetter(object):
         return self.LUT.sub(dict(enumerate(keys)))
 
 
-def plot_polar(lut, index=None, vmin=None, vmax=None, rect='211', sub='212',
+def plot_polar(lut, index=None, vmin=None, vmax=None, rect=211, sub=212,
                sym=True, swap='auto', fig=None, cmap=None, semi=False):
     '''
     Contour and eventually transect of 2D LUT on a semi polar plot, with
@@ -1164,7 +1164,7 @@ def plot_polar(lut, index=None, vmin=None, vmax=None, rect='211', sub='212',
            if None (default), no transect
     vmin, vmax: range of values
                 default None: determine min/max from values
-    rect: subplot position of the main plot ('111' for example)
+    rect: subplot position of the main plot (111 for example)
     sub: subplot position of the transect
     sym: the transect uses symmetrical axis (boolean)
          if None (default), use symmetry iff axis is 'zenith'
@@ -1320,7 +1320,7 @@ def plot_polar(lut, index=None, vmin=None, vmax=None, rect='211', sub='212',
     # draw colormesh
     #
     if cmap is None:
-        cmap = cm.rainbow
+        cmap = cm.rainbow.copy()
         cmap.set_under('black')
         cmap.set_over('white')
         cmap.set_bad('0.5') # grey 50%
@@ -1355,7 +1355,9 @@ def plot_polar(lut, index=None, vmin=None, vmax=None, rect='211', sub='212',
                 ax_cart.plot(-ax2, data[mirror_index,:],'--'+color)
 
     # add colorbar
-    fig.colorbar(im, orientation='horizontal', extend='both', ticks=np.linspace(vmin, vmax, 5), shrink=0.7)
+    fig.colorbar(im, orientation='horizontal',
+                 extend='both', ticks=np.linspace(vmin, vmax, 5),
+                 shrink=0.7)
     if lut.desc is not None:
         ax_polar.set_title(lut.desc, weight='bold', position=(0.05,0.97))
 
@@ -1689,10 +1691,7 @@ class MLUT(object):
 
     def rm_lut(self, name):
         ''' remove a LUT '''
-        try:
-            assert isinstance(name, basestring)
-        except NameError: # must be python 3
-            assert isinstance(name, (str, bytes))
+        assert isinstance(name, (str, bytes))
 
         try:
             index = [x[0] for x in self.data].index(name)
@@ -2314,16 +2313,20 @@ def read_mlut_netcdf4(filename):
     return m
 
 
-def read_mlut_hdf5(filename, datasets=None, lazy=False, group=None):
+def read_mlut_hdf5(filename, datasets=None, lazy=False, group=None, wrap_data=None):
     '''
     read a MLUT from a hdf5 file (filename)
-    datasets: list of datasets to read:
+    
+    - datasets: list of datasets to read:
         * None (default): read all datasets, including axes as indicated by the
           attribute 'dimensions'
         * a list of:
             - dataset names (string)
             - or a tuple (dataset_name, axes) where axes is a list of
               dimensions (strings), overriding the attribute 'dimensions'
+    - lazy: whether to activate lazy reading (data is returned as hdf object)
+    - wrap_data: a function applied to each data. Can be dask.array.array to
+      return as dask arrays, which is useful for further conversion to xarray Dataset
     '''
     import h5py
 
@@ -2378,6 +2381,10 @@ def read_mlut_hdf5(filename, datasets=None, lazy=False, group=None):
             data = f['data'][dataset]
         else:
             data = f['data'][dataset][...]
+
+        if wrap_data is not None:
+            data = wrap_data(data)
+
         attrs = {}
         if f['data'][dataset].attrs.__contains__('_FillValue'):
             attrs['_FillValue'] = f['data'][dataset].attrs.get('_FillValue')
@@ -2405,6 +2412,9 @@ def read_mlut_hdf(filename, datasets=None):
               dimensions (strings), overriding the attribute 'dimensions'
     '''
     from pyhdf.SD import SD
+
+    if not exists(filename):
+        raise IOError(f'File not found ({filename})')
 
     hdf = SD(filename)
 
