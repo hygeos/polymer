@@ -70,6 +70,7 @@ class Level1_MSI(Level1_base):
                  altitude=0.,
                  srf_file=None,
                  use_srf=True,
+                 add_noise=None,
                  ):
         '''
         Sentinel-2 MSI Level1 reader
@@ -108,6 +109,8 @@ class Level1_MSI(Level1_base):
             auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv for S2B
 
         use_srf: whether to calculate the bands central wavelengths from the SRF or to use fixed ones
+
+        add_noise: function (band, reflectance, sza) -> stdev_reflectance
         '''
         self.sensor = 'MSI'
         dirname = Path(dirname).resolve()
@@ -129,6 +132,7 @@ class Level1_MSI(Level1_base):
         self.sigma_typ = {k: msi_Lref[k]/msi_snr[k]
                           for k in msi_snr}
         self.Ltyp = msi_Lref
+        self.add_noise = add_noise
 
         if ancillary is None:
             self.ancillary = Ancillary_NASA()
@@ -375,7 +379,17 @@ class Level1_MSI(Level1_base):
             if iband == 0:
                 raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], raw_data == 0)
 
-            block.Rtoa[:,:,iband] = (raw_data + self.radio_offset_list[iband])/self.quantif
+            Rtoa = (raw_data + self.radio_offset_list[iband])/self.quantif
+
+            if self.add_noise is not None:
+                stdev = self.add_noise(band=band,
+                                       Rtoa=Rtoa,
+                                       sza=block.sza)
+                noise = stdev*np.random.normal(0, 1, stdev.size).reshape(stdev.shape)
+            else:
+                noise = 0
+
+            block.Rtoa[:,:,iband] = Rtoa + noise
 
         if self.landmask is not None:
             raiseflag(block.bitmask, L2FLAGS['LAND'],
