@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from os.path import isdir
+import xarray as xr
 from datetime import datetime, timedelta
 import numpy as np
 from os import makedirs, system, remove
@@ -12,6 +13,7 @@ from warnings import warn
 import sys
 import bz2
 import tempfile
+from dateutil.parser import parse
 from .utils import closest, round_date
 
 
@@ -24,12 +26,16 @@ forecast_resources = [
 ]
 
 default_met_resources = [
+    lambda date: [('GMAO_FP.%Y%m%dT%H0000.MET.NRT.nc', d)
+                  for d in round_date(date, 3)],
     lambda date: [('N%Y%j%H_MET_NCEPR2_6h.hdf.bz2', d) for d in round_date(date, 6)],
     lambda date: [('N%Y%j%H_MET_NCEP_6h.hdf.bz2', d) for d in round_date(date, 6)],
     lambda date: [('N%Y%j%H_MET_NCEP_6h.hdf', d) for d in round_date(date, 6)],
 ]
 
 default_oz_resources = [
+    lambda date: [('GMAO_FP.%Y%m%dT%H0000.MET.NRT.nc', d)
+                  for d in round_date(date, 3)],
     lambda date: [('N%Y%j00_O3_AURAOMI_24h.hdf', closest(date, 24))],
     lambda date: [('N%Y%j00_O3_TOMSOMI_24h.hdf', closest(date, 24))],
     lambda date: [('S%Y%j00%j23_TOAST.OZONE', closest(date, 24))],
@@ -185,6 +191,45 @@ class Ancillary_NASA(object):
 
     def read(self, param, filename,
              uncompress=None, orig_filename=None):
+        if filename.endswith('.nc'):
+            return self.read_nc(param, filename,
+                                orig_filename=orig_filename)
+        else:
+            return self.read_hdf(
+                param, filename,
+                uncompress=uncompress, orig_filename=orig_filename)
+
+    def read_nc(self, param, filename, orig_filename=None):
+        if orig_filename is None:
+            orig_filename = filename
+        ds = xr.open_dataset(filename)
+        if param == 'wind_speed':
+            # read m_wind and z_wind
+            
+            uwind = ds['U10M'].values
+            vwind = ds['V10M'].values
+            wind = np.sqrt(uwind*uwind + vwind*vwind)
+            D = LUT_LatLon(wind[::-1,:])
+            D.filename = {'meteo': orig_filename}
+
+        elif param == 'surf_press':
+            press = ds['PS'].values
+            D = LUT_LatLon(press[::-1,:])
+            D.filename = {'meteo': orig_filename}
+
+        elif param == 'ozone':
+            assert 'dobson' in ds['TO3'].units.lower()
+            ozone = ds['TO3'].values
+            D = LUT_LatLon(ozone[::-1,:])
+            D.data.data[D.data.data == 0] = np.NaN
+            D.filename = {'ozone': orig_filename}
+
+        D.date = parse(ds.time_coverage_start).replace(tzinfo=None)
+        
+        return D
+
+    def read_hdf(self, param, filename,
+                 uncompress=None, orig_filename=None):
         '''
         Read ancillary data from filename
 
