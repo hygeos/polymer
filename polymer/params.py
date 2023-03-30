@@ -62,6 +62,8 @@ params_minabs2_OLCI = {
 params_minabs2_MSI = {
     'bands_corr': [443,490,560,665,705,740,783,865,1610],
     'bands_oc':   [443,490,560,665,705,740,783,865,1610],
+    'weights_corr': [1,1,1,1,1,1,1,1,0.01],
+    'weights_oc':   [1,1,1,1,1,1,1,1,0.01],
     **params_minabs2
 }
 
