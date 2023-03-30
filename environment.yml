@@ -12,6 +12,7 @@ dependencies:
   - cython
   - pyhdf
   - netcdf4
+  - python-dateutil
 
   # For MERIS:
   - pyepr
