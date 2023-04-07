@@ -214,6 +214,8 @@ class Ancillary_NASA(object):
 
         elif param == 'surf_press':
             press = ds['PS'].values
+            if 'units' in ds['PS'].attrs.keys() and ds['PS'].units == 'Pa':
+                press /= 100.
             D = LUT_LatLon(press[::-1,:])
             D.filename = {'meteo': orig_filename}
 
