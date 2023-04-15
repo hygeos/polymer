@@ -7,6 +7,7 @@ from os.path import join, dirname
 from collections import OrderedDict
 from pyhdf.SD import SD
 from polymer.hico import bands_hico, K_OZ_HICO, K_NO2_HICO
+from polymer import prisma
 from scipy.interpolate import interp1d
 
 # pass these parameters to polymer to obtain the quasi-same results as polymer v3.5
@@ -252,6 +253,8 @@ class Params(object):
             self.defaults_hico()
         elif sensor == 'OLI':
             self.defaults_oli()
+        elif sensor == 'PRISMA':
+            self.defaults_prisma()
         elif sensor == 'GENERIC':
             self.defaults_generic()
         else:
@@ -717,6 +720,33 @@ class Params(object):
         self.K_NO2 = K_NO2_HICO
 
         self.band_cloudmask = 862
+    
+
+    def defaults_prisma(self):
+        self.bands_corr = [
+                                          453, 460, 468, 475,
+            482, 489, 497, 504, 512, 519, 527, 535, 542, 550,
+            559, 567, 575, 583, 592, 601, 609, 618, 627, 636,
+            645, 655, 664,
+                                785, 796, 806,
+            849, 859, 870, 881,
+        ]
+        self.bands_oc = self.bands_corr
+        self.bands_rw = [
+            406, 415, 423, 431, 438, 446, 453, 460, 468, 475,
+            482, 489, 497, 504, 512, 519, 527, 535, 542, 550,
+            559, 567, 575, 583, 592, 601, 609, 618, 627, 636,
+            645, 655, 664, 674, 684, 694, 703, 713, 723, 733,
+            744, 754, 764, 775, 785, 796, 806, 817, 827, 838,
+            849, 859, 870, 881, 892, 902, 913, 923, 934, 944,
+            956, 967, 977
+        ]
+
+        self.K_OZ = prisma.K_OZ
+        self.K_NO2 = prisma.K_NO2
+        self.calib = {k: 1. for k in prisma.bands}
+        self.band_cloudmask = 859
+        self.thres_Rcloud = 0.1
 
     def defaults_oli(self):
         '''
