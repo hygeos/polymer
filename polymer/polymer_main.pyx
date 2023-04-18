@@ -745,15 +745,15 @@ cdef class PolymerMinimizer:
         (def method visible from python code)
         '''
 
-        if self.params.partial >= 1:
-            return
-
         # calculate glint reflectance from wind speed
         ok = (block.bitmask & self.BITMASK_INVALID) == 0
         block.Rgli = np.zeros_like(block.wind_speed, dtype='float32') + np.NaN
         block.Rgli[ok] = glitter(block.wind_speed[ok],
                                  block.mus[ok], block.muv[ok],
                                  block.scattering_angle[ok], phi=None, phi_vent=None)
+
+        if self.params.partial >= 1:
+            return
 
         # calculate the atmospheric inversion coefficients
         # at bands_corr
