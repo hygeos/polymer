@@ -5,6 +5,7 @@
 import pytest
 from datetime import datetime, timedelta
 from polymer.ancillary import Ancillary_NASA
+from polymer.ancillary_era5 import Ancillary_ERA5
 from matplotlib import pyplot as plt
 from . import conftest
 
@@ -16,10 +17,17 @@ from . import conftest
 @pytest.mark.parametrize('offset,allow_forecast', [  # offset=number of days
     (0, True),
     (3, False),
-    (100, False),
+    (20, False),
 ])
-def test_ancillary(request, variable, typ_value, offset, allow_forecast):
-    anc = Ancillary_NASA(allow_forecast=allow_forecast)
+@pytest.mark.parametrize('mode', ['NASA', 'ERA5'])
+def test_ancillary(request, variable, typ_value, offset, allow_forecast, mode):
+    if mode == 'NASA':
+        anc = Ancillary_NASA(allow_forecast=allow_forecast)
+    elif mode == 'ERA5':
+        anc = Ancillary_ERA5()
+    else :
+        raise ValueError(mode)
+        
     ret = anc.get(variable, datetime.now() - timedelta(days=offset))
     print(ret)
     print(ret.date)
