@@ -71,7 +71,7 @@ tau_r_seadas_viirsj1 = {
         }
 
 
-def filled(A, ok=None, fill_value=0):
+def filled(A, ok=None, fill_value=np.NaN):
     """
     Returns a filled from a filled or masked array, use fill_value
     modifies ok (if provided) to take this mask into account
@@ -184,8 +184,8 @@ class Level1_NASA(Level1_base):
 
         # read geometry
         # note: we disactivate automasking because of bad formatting of SeaWiFS L1C, for which azimuth angles >180 are masked
-        block.sza = filled(self.root.groups['geophysical_data'].variables['solz'][SY, SX], ok=ok)
-        block.vza = filled(self.root.groups['geophysical_data'].variables['senz'][SY, SX], ok=ok)
+        block.sza = filled(self.root.groups['geophysical_data'].variables['solz'][SY, SX])
+        block.vza = filled(self.root.groups['geophysical_data'].variables['senz'][SY, SX])
         saa = self.root.groups['geophysical_data'].variables['sola']
         saa.set_auto_mask(False)
         block.saa = filled(saa[SY, SX]) % 360
@@ -196,10 +196,10 @@ class Level1_NASA(Level1_base):
         block.Rtoa = np.zeros(size3) + np.NaN
         for iband, band in enumerate(bands):
             Rtoa = filled(self.root.groups['geophysical_data'].variables[
-                    'rhot_{}'.format(band)][SY, SX], ok=ok)
+                    'rhot_{}'.format(band)][SY, SX])
 
             polcor = filled(self.root.groups['geophysical_data'].variables[
-                    'polcor_{}'.format(band)][SY, SX], ok=ok)
+                    'polcor_{}'.format(band)][SY, SX])
 
             block.Rtoa[:,:,iband] = Rtoa/polcor
 
@@ -209,15 +209,15 @@ class Level1_NASA(Level1_base):
         raiseflag(block.bitmask, L2FLAGS['LAND'],
                 flags & self.flag_meanings['LAND'] != 0)
 
-        ok &= block.Rtoa[:,:,0] >= 0
-        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], ~ok)
-
-        block.ozone = np.zeros_like(ok, dtype='float32')
+        block.ozone = np.zeros_like(ok, dtype='float32')+np.NaN
         block.ozone[ok] = self.ozone[block.latitude[ok], block.longitude[ok]]
-        block.wind_speed = np.zeros_like(ok, dtype='float32')
+        block.wind_speed = np.zeros_like(ok, dtype='float32')+np.NaN
         block.wind_speed[ok] = self.wind_speed[block.latitude[ok], block.longitude[ok]]
-        P0 = np.zeros_like(ok, dtype='float32')
+        P0 = np.zeros_like(ok, dtype='float32')+np.NaN
         P0[ok] = self.surf_press[block.latitude[ok], block.longitude[ok]]
+
+        ok &= (block.Rtoa >= 0).all(axis=-1)
+        raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], ~ok)
 
         # read surface altitude
         try:
