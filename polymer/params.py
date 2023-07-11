@@ -175,6 +175,7 @@ class Params(object):
             self.initial_point_2 = [1, 1]
             self.initial_points = [[]]
             self.initial_step = [0.2, 0.2]
+            self.firstguess_method = 0
             self.bounds = [[-2, 2], [-3, 3]]
 
             # Constraint on bbs: amplitude, sigma(chl=0.01), sigma(chl=0.1)

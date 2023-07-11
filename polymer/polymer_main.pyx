@@ -2,7 +2,7 @@ import numpy as np
 cimport numpy as np
 from numpy.linalg import inv
 from common import L2FLAGS
-from libc.math cimport nan, exp, log, abs, sqrt
+from libc.math cimport nan, exp, log, abs, sqrt, isnan
 from cpython.exc cimport PyErr_CheckSignals
 import pandas as pd
 from pathlib import Path
@@ -127,19 +127,23 @@ cdef class F(NelderMeadMinimizer):
         '''
         Evaluate cost function for vector parameters x
         '''
+        #
+        # calculate the. water reflectance for the current parameters
+        # (at bands_read)
+        #
+        self.Rwmod = self.w.calc_rho(x)
 
+        return self.eval_atm(x)
+
+
+    cdef float eval_atm(self, float[:] x):
         cdef float C
         cdef float sumsq, sumw, dR, norm
         cdef int icorr, icorr_read
         cdef int ioc, ioc_read, iread
         cdef float sigma
 
-        #
-        # calculate the. water reflectance for the current parameters
-        # (at bands_read)
-        #
-        self.Rwmod = self.w.calc_rho(x)
-        cdef float[:] Rwmod = self.Rwmod
+        cdef float[:] Rwmod = self.Rwmod   # TODO: don't use this intermediary variable ?
 
         #
         # Atmospheric fit
@@ -398,6 +402,7 @@ cdef class PolymerMinimizer:
     cdef int N_bands_read
     cdef int uncertainties
     cdef int Ncoef
+    cdef int firstguess_method
 
     def __init__(self, watermodel, params):
 
@@ -427,6 +432,7 @@ cdef class PolymerMinimizer:
         self.reinit_rw_neg = params.reinit_rw_neg
         self.dbg_pt = np.array(params.dbg_pt, dtype='int32')
         self.Rprime_consistency = params.Rprime_consistency
+        self.firstguess_method = params.firstguess_method
 
         self.N_bands_oc = len(params.bands_oc)
         self.i_oc_read = np.searchsorted(
@@ -478,7 +484,7 @@ cdef class PolymerMinimizer:
         cdef float[:,:,:] Rw = block.Rw
         block.Ratm = np.zeros(block.size+(block.nbands,), dtype='float32')
         cdef float[:,:,:] Ratm = block.Ratm
-        block.Rwmod = np.zeros(block.size+(block.nbands,), dtype='float32')
+        block.Rwmod = np.zeros(block.size+(block.nbands,), dtype='float32') + np.NaN
         cdef float[:,:,:] Rwmod = block.Rwmod
         block.eps = np.zeros(block.size, dtype='float32')
         cdef float[:,:] eps = block.eps
@@ -504,15 +510,20 @@ cdef class PolymerMinimizer:
             rho_w_mod_cov = np.zeros((block.nbands, block.nbands), dtype='float32') + np.NaN
             d_rw_x_cov = np.zeros((block.nbands, self.Nparams), dtype='float32') + np.NaN
 
-        cdef int i, j, ib, ioc, i_fguess, ii, iparam
-        cdef float v_fguess, vmin_fguess
-        cdef int flag_reinit
+        cdef int i, j, ib, ioc, iparam
+        cdef int flag_reinit = 0
         cdef float Rw_max
         cdef float[:] wav0
         cdef float sza0, vza0, raa0
         cdef float sigmasq
         cdef float delta = 0.05
+        cdef float[:,:] Rwmod_fg
 
+        
+        if self.initial_points.size:
+            Rwmod_fg = np.zeros((self.initial_points.shape[0], block.nbands),
+                                dtype='float32') + np.NaN
+            self.init_first_guess(Rwmod_fg, cwav)
 
         #
         # pixel loop
@@ -542,18 +553,7 @@ cdef class PolymerMinimizer:
 
                 # first guess
                 if self.initial_points.size:
-                    vmin_fguess = -1
-                    v_fguess = -1
-                    for ii in range(self.initial_points.shape[0]):
-                        v_fguess = self.f.eval(self.initial_points[ii,:])
-                        if (vmin_fguess < 0) or (v_fguess < vmin_fguess):
-                            vmin_fguess = v_fguess
-                            i_fguess = ii
-                    x0[:] = self.initial_points[i_fguess,:]
-                    self.initial_point_1[:] = x0[:]
-                    if self.dbg_pt[0] >= 0:
-                        if ((self.dbg_pt[0] == i) and (self.dbg_pt[1] == j)):
-                            print('first guess: selected [{}] : ({}, {})'.format(i_fguess, x0[0], x0[1]))
+                    self.first_guess(Rwmod_fg, x0, i, j)
                 
                 self.f.init(x0, self.initial_step)
 
@@ -737,6 +737,68 @@ cdef class PolymerMinimizer:
             # check for pending signals
             # (allowing to interrupt execution)
             PyErr_CheckSignals()
+
+
+    cdef int init_first_guess(self,
+                              float[:,:] Rwmod_fg,
+                              float[:] cwav):
+        """
+        Initialize reflectances for first guess
+
+        Rwmod_fg: reflectance spectra [Npts, nbands]
+        """
+        cdef int i, j
+        self.f.w.init_pixel(cwav, 0, 0, 0, 5)
+        for i in range(Rwmod_fg.shape[0]):
+            self.f.Rwmod = self.f.w.calc_rho(self.initial_points[i,:])
+            for j in range(Rwmod_fg.shape[1]):
+                Rwmod_fg[i,j] = self.f.Rwmod[j]
+
+        return 0
+
+
+    cdef first_guess(self,
+                     float[:,:] Rwmod_fg, # Spectra calculated for first guess points
+                     float[:] x0,
+                     int i, int j):
+        cdef float v_fguess, vmin_fguess
+        cdef int i_fguess=0, ii
+        vmin_fguess = -1
+        v_fguess = -1
+        for ii in range(self.initial_points.shape[0]):
+            if self.firstguess_method == 0:
+                # old method
+                v_fguess = self.f.eval(self.initial_points[ii,:])
+            else:
+                # new method
+                # avoid calling the water model each time, by
+                # using the pre-calculated Rwmod_fg
+                for k in range(Rwmod_fg.shape[1]):
+                    self.f.Rwmod[k] = Rwmod_fg[ii,k]
+                v_fguess = self.f.eval_atm(self.initial_points[ii,:])
+
+            if (vmin_fguess < 0) or (v_fguess < vmin_fguess):
+                vmin_fguess = v_fguess
+                i_fguess = ii
+            
+        # Include last point in first guess
+        # => With current values of self.f.Rwmod and self.f.xmin
+        if ((not self.force_initialization)
+            and not isnan(self.f.xmin[0])
+            and in_bounds(self.f.xmin, self.bounds)
+            and (self.f.eval_atm(self.f.xmin) < v_fguess)):
+
+            # Reuse previous pixel (if better than all first guess pixels)
+            for ii in range(x0.shape[0]):
+                x0[ii] = self.f.xmin[ii]
+        else:
+            # Use first guess value
+            for ii in range(x0.shape[0]):
+                x0[ii] = self.initial_points[i_fguess,ii]
+
+        if self.dbg_pt[0] >= 0:
+            if ((self.dbg_pt[0] == i) and (self.dbg_pt[1] == j)):
+                print('first guess: selected [{}] : ({}, {})'.format(i_fguess, x0[0], x0[1]))
 
 
     def minimize(self, block):

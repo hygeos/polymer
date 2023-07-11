@@ -12,13 +12,13 @@ cdef class NelderMeadMinimizer:
         Initialize the minimizer with a number of dimensions N
         '''
         self.N = N
-        self.fsim = np.zeros((N + 1,), dtype='float32')
+        self.fsim = np.zeros((N + 1,), dtype='float32') + np.NaN
         self.sim = np.zeros((N + 1, N), dtype='float32')
         self.ssim = np.zeros((N + 1, N), dtype='float32')
         self.xbar = np.zeros(N, dtype='float32')
         self.ind = np.zeros((N + 1,), dtype='int32')
         self.y = np.zeros(N, dtype='float32')
-        self.xmin = np.zeros(N, dtype='float32')
+        self.xmin = np.zeros(N, dtype='float32') + np.NaN
         self.xcc = np.zeros(N, dtype='float32')
         self.xc = np.zeros(N, dtype='float32')
         self.xr = np.zeros(N, dtype='float32')
