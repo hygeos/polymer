@@ -123,7 +123,7 @@ cdef class F(NelderMeadMinimizer):
         return self.w.init_pixel(wav, sza, vza, raa, ws)
 
 
-    cdef float eval(self, float[:] x) except? -999:
+    cdef float eval(self, float[:] x):
         '''
         Evaluate cost function for vector parameters x
         '''
@@ -355,13 +355,13 @@ cdef int in_bounds(float[:] x, float[:,:] bounds):
     '''
     cdef int r = 1
     cdef int i
-    for i in range(x.size):
+    for i in range(x.shape[0]):
         if (x[i] < bounds[i,0]) or (x[i] > bounds[i,1]):
             r = 0
     return r
 
 
-cdef raiseflag(unsigned short[:,:] bitmask, int i, int j, int flag):
+cdef int raiseflag(unsigned short[:,:] bitmask, int i, int j, int flag):
     if not testflag(bitmask, i, j, flag):
         bitmask[i,j] += flag
 
@@ -453,12 +453,12 @@ cdef class PolymerMinimizer:
         cdef float[:,:] sza = block.sza
         cdef float[:,:] vza = block.vza
         cdef float[:,:] raa = block.raa
+        cdef float[:,:] wind_speed = block.wind_speed.astype('float32')
 
         cdef unsigned short[:,:] bitmask = block.bitmask
         cdef int Nx = Rprime.shape[0]
         cdef int Ny = Rprime.shape[1]
-        cdef float[:] x
-        cdef rw_neg
+        cdef int rw_neg
 
         cdef float[:] x0 = np.zeros(self.Nparams, dtype='float32')
         x0[:] = self.initial_point_1[:]
@@ -536,7 +536,7 @@ cdef class PolymerMinimizer:
                         Tmol[i,j,:],
                         wav[i,j,:],
                         sza[i,j], vza[i,j], raa[i,j],
-                        block.wind_speed[i,j]):
+                        wind_speed[i,j]):
                     raiseflag(bitmask, i, j, self.L2_FLAG_EXCEPTION)
                     continue
 
@@ -697,7 +697,7 @@ cdef class PolymerMinimizer:
                             Tmol[i,j,:],
                             wav0,
                             sza0, vza0, raa0,
-                            block.wind_speed[i,j])
+                            wind_speed[i,j])
                     self.f.w.calc_rho(self.f.xmin)
 
                     for ib in range(self.N_bands_read):

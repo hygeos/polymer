@@ -7,7 +7,7 @@ cdef class NelderMeadMinimizer:
     cdef float[:,:] ssim
     cdef float[:] xbar
     cdef float[:] y, xcc, xc, xr, xe
-    cdef float eval(self, float[:] x) except? -999
+    cdef float eval(self, float[:] x)
     cdef int[:] ind
     cdef float[:] center
 
@@ -19,11 +19,11 @@ cdef class NelderMeadMinimizer:
     cdef float[:,:] Q_Binv
 
     cdef float size(self)
-    cdef init(self,
+    cdef int init(self,
             float[:] x0,
             float[:] dx,
             )
-    cdef iterate(self)
+    cdef int iterate(self)
     cdef float[:] minimize(self,
                 float[:] x0,
                 float[:] dx,

@@ -4,7 +4,7 @@ cimport numpy as np
 from os.path import join
 
 from clut cimport CLUT
-from libc.math cimport exp, M_PI, isnan, log, sin, asin, log10, cos
+from libc.math cimport exp, M_PI, isnan, log, sin, asin, log10, cos, NAN
 from warnings import warn
 from io import open
 
@@ -229,9 +229,10 @@ cdef class ParkRuddick(WaterModel):
         '''
         cdef int i, j
         cdef int ret
+        cdef float w
         self.wav = wav
-        self.Nwav = len(wav)
-        self.mus = np.cos(sza*np.pi/180.)
+        self.Nwav = wav.shape[0]
+        self.mus = cos(sza*M_PI/180.)
 
         #
         # array initialization (unique)
@@ -251,16 +252,17 @@ cdef class ParkRuddick(WaterModel):
                 self.aCDM = np.zeros(len(wav), dtype='float32') + np.NaN
                 self.aNAP = np.zeros(len(wav), dtype='float32') + np.NaN
                 self.aphy = np.zeros(len(wav), dtype='float32') + np.NaN
-        elif len(wav) != len(self.Rw):
+        elif wav.shape[0] != self.Rw.shape[0]:
             raise Exception('Invalid length of wav')
 
         #
         # interpolate scattering coefficient
         #
-        for i, w in enumerate(wav):
+        for i in range(wav.shape[0]):
+            w = wav[i]
             ret = self.BW.lookup(0, w)
             if ret > 0:
-                self.bw[i] = self.bw500 * (w/500.)**-4.
+                self.bw[i] = self.bw500 * (wav[i]/500.)**-4.
             elif ret < 0:
                 raise Exception('Error in BW lookup')
             else:
@@ -269,7 +271,8 @@ cdef class ParkRuddick(WaterModel):
         #
         # interpolate absorption coefficients
         #
-        for i, w in enumerate(wav):
+        for i in range(wav.shape[0]):
+            w = wav[i]
 
             ret = self.AW_POPEFRY.lookup(0, w)
             if ret < 0:
@@ -312,7 +315,7 @@ cdef class ParkRuddick(WaterModel):
             for j in range(self.GII_PR.shape[1]):
                 self.index[0] = i
                 self.index[1] = j
-                self.GII_PR.set(np.NaN, self.index)
+                self.GII_PR.set(NAN, self.index)
         #
         # lookup the ths, thv and phi axes
         #
@@ -336,7 +339,7 @@ cdef class ParkRuddick(WaterModel):
         '''
 
         # x is [logchl, logfb, logfa] or shorter
-        cdef int N = len(x)
+        cdef int N = x.shape[0]
         cdef float fa, fb
         cdef float logchl
         cdef float chl
@@ -354,7 +357,7 @@ cdef class ParkRuddick(WaterModel):
         cdef int igb
         cdef float rho
         cdef float mabs
-        cdef thres_chl_min_abs = 1.
+        cdef float thres_chl_min_abs = 1.
 
         fa = 1.
         mabs = self.min_abs

@@ -33,7 +33,7 @@ cdef class NelderMeadMinimizer:
         self.Q = np.zeros((N, N), dtype='float32') + np.NaN
         self.Q_Binv = np.zeros((N, N), dtype='float32') + np.NaN
 
-    cdef float eval(self, float[:] x) except? -999:
+    cdef float eval(self, float[:] x):
         raise Exception('NelderMeadMinimizer.eval() shall be implemented')
 
     cdef float size(self):
@@ -64,7 +64,7 @@ cdef class NelderMeadMinimizer:
 
         return s/(self.N+1)
 
-    cdef init(self,
+    cdef int init(self,
             float[:] x0,
             float[:] dx,
             ):
@@ -73,7 +73,7 @@ cdef class NelderMeadMinimizer:
         step dx
         '''
         self.niter = 0
-        if self.N != len(x0):
+        if self.N != x0.shape[0]:
             raise Exception('')
         cdef int N = self.N
         cdef float[:] y = self.y
@@ -100,9 +100,11 @@ cdef class NelderMeadMinimizer:
         for k in range(self.N+1):
             for j in range(N):
                 self.sim[k,j] = self.ssim[k,j]
+        
+        return 0
 
 
-    cdef iterate(self):
+    cdef int iterate(self):
         cdef int N = self.N
         cdef float[:] y = self.y
         cdef float fxr, fxe, fxc, fxcc
@@ -317,7 +319,7 @@ cdef dot(float[:,:] C, float[:,:] A, float[:,:] B, int transpose_B):
                 else:
                     C[i, j] += A[i,k]*B[j,k]
 
-cdef combsort(float[:] inp, int N, int[:] ind):
+cdef int combsort(float[:] inp, int N, int[:] ind):
     '''
     in-place sort of array inp of size N using comb sort.
     returns sorting indexes in array ind.
@@ -356,6 +358,8 @@ cdef combsort(float[:] inp, int N, int[:] ind):
 
             i += 1
 
+    return 0
+
 def test_combsort():
     N = 10
     A = np.random.randn(N).astype('float32')
@@ -367,7 +371,7 @@ def test_combsort():
 
 
 cdef class Rosenbrock(NelderMeadMinimizer):
-    cdef float eval(self, float[:] x) except? -999:
+    cdef float eval(self, float[:] x):
         # rosenbrock function
         return (1-x[0])*(1-x[0]) + 100*(x[1]-x[0]*x[0])*(x[1]-x[0]*x[0])
 
