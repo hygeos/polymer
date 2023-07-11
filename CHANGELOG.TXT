@@ -6,6 +6,16 @@
                            #####################
 
 
+v4.17beta1
+----------
+
+- Release date: 2023-07-11
+
+* Optimise the experimental processing mode (minabs2)
+* General optimisations in the cython code
+* Add PRISMA processing
+
+
 v4.16
 -----
 
