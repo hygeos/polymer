@@ -1,4 +1,6 @@
 from distutils.core import setup
+from distutils.extension import Extension
+from pathlib import Path
 import numpy
 from Cython.Build import cythonize
 
@@ -14,6 +16,7 @@ if DEBUG:
     compiler_directives = {
             'profile': True,
             'embedsignature': True,
+            # 'language_level': '3',
             }
 else:
     compiler_directives = {
@@ -21,18 +24,23 @@ else:
             'initializedcheck': False,
             'cdivision': True,
             'embedsignature': True,
+            # 'language_level': '3',
             }
 
-EXTENSIONS = cythonize([SRC_DIR + '/*.pyx'],
-                       build_dir='build',
-                       compiler_directives=compiler_directives,
-                       annotate=ANNOTATE,
-                       )
 
 setup(
     name = NAME,
     description = DESC,
-    ext_modules = EXTENSIONS,
+    ext_modules=cythonize(
+        [Extension(
+            '*',
+            sources=[
+                'polymer/*.pyx',
+            ],
+        )],
+        build_dir='build',
+        compiler_directives=compiler_directives,
+        annotate=ANNOTATE,
+        ),
     include_dirs = [numpy.get_include()],
     )
-
