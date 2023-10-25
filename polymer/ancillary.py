@@ -134,7 +134,11 @@ def verify(filename):
 
     return filename
 
-
+class NonFatalException(Exception):
+            def __init__(self, message="A non-fatal exception occurred"):
+                self.message = message
+                super().__init__(self.message)
+            
 class Ancillary_NASA(object):
     '''
     Ancillary data provider using NASA data.
@@ -365,22 +369,36 @@ class Ancillary_NASA(object):
             # follows https://support.earthdata.nasa.gov/index.php?/Knowledgebase/Article/View/43/21/how-to-access-urs-gated-data-with-curl-and-wget
             cmd = 'wget -nv --load-cookies ~/.urs_cookies --save-cookies ~/.urs_cookies --keep-session-cookies --auth-no-challenge {} -O {}'.format(url, target+'.tmp')
             ret = system(cmd)
-            if ret == 0:
+
+            if ret != 0:
+                raise Exception(f'Wget returned a non-zero error code: {ret}')
+
+            try:
                 # sanity check
                 # raise an error in case of authentication error
                 # check that downloaded file is not HTML
                 with open(target+'.tmp', 'rb') as fp:
+                    filehead = fp.read(100)
+
                     errormsg = 'Error authenticating to NASA EarthData for downloading ancillary data. ' \
                     'Please provide authentication through .netrc. See more information on ' \
                     'https://support.earthdata.nasa.gov/index.php?/Knowledgebase/Article/View/43/21/how-to-access-urs-gated-data-with-curl-and-wget'
                     assert not fp.read(100).startswith(b'<!DOCTYPE html>'), errormsg
+                    assert not filehead.startswith(b'<!DOCTYPE html>'), errormsg
+
+                    # may be the case after Oct 2023 when NASA changed the APIs
+                    if filehead.startswith((b'404 Error', b'403 Error')):
+                        raise NonFatalException(filehead.decode('utf-8'))
 
                 cmd = 'mv {} {}'.format(target+'.tmp', target)
                 system(cmd)
 
-            else:
-                if exists(target+'.tmp'):
-                    system('rm {}'.format(target+'.tmp'))
+            except NonFatalException as e:
+                print(f"A non-fatal exception occurred: {e}")
+                ret = 1
+            finally:
+                 if exists(target+'.tmp'):
+                     system('rm {}'.format(target+'.tmp'))
 
         return ret
 
@@ -419,4 +437,3 @@ class Ancillary_NASA(object):
 
             if None not in res:
                 return res
-
