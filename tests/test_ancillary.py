@@ -54,10 +54,11 @@ def test_download(url):
     with TemporaryDirectory() as tmpdir:
         tmpfile = Path(tmpdir)/Path(url).name
         ret = Ancillary_NASA().download(url, str(tmpfile))
+        print(ret)
         assert ret == 0
 
 @pytest.mark.parametrize('url',[
-    'https://oceandata.sci.gsfc.nasa.gov/cgi/getfile/GMAO_FP.20231025T090000.MET.NRT.nc', # 404 Error
+    'https://oceandata.sci.gsfc.nasa.gov/cgi/getfile/25061439.nc', # 404 Error
     # 'https://oceandata.sci.gsfc.nasa.gov/cgi/getfile/N202000300_O3_AURAOMI_24h.hdf'     , # 403 Error
     ])
 def test_download_nofile(url):
