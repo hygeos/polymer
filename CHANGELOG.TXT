@@ -5,6 +5,13 @@
                            #                   #
                            #####################
 
+v4.17beta2
+----------
+
+- Release date: 2023-12-22
+
+* MSI: allow using embedded ECMWF auxiliary data
+* Fix an error to access the Earthdata API
 
 v4.17beta1
 ----------
