@@ -18,6 +18,7 @@ from polymer.ancillary import Ancillary_NASA
 from polymer.common import L2FLAGS
 from polymer.level1 import Level1_base
 from polymer.utils import raiseflag
+import xarray as xr
 
 '''
 List of MSI bands:
@@ -91,6 +92,7 @@ class Level1_MSI(Level1_base):
               => eline-sline and ecol-scol must be a multiple of 6
 
         ancillary: an ancillary data instance (Ancillary_NASA, Ancillary_ERA)
+            or 'ECMWFT' for embedded ancillary data.
 
         landmask:
             * None: no land mask [default]
@@ -195,7 +197,10 @@ class Level1_MSI(Level1_base):
 
         self.init_latlon()
         self.init_geometry()
-        self.init_ancillary()
+        if self.ancillary == 'ECMWFT':
+            self.init_ancillary_embedded()
+        else:
+            self.init_ancillary()
         self.init_landmask()
         self.init_bands()
 
@@ -228,6 +233,15 @@ class Level1_MSI(Level1_base):
         self.wind_speed = self.ancillary.get('wind_speed', self.date)
         self.surf_press = self.ancillary.get('surf_press', self.date)
 
+    def init_ancillary_embedded(self):
+        file_auxdata = (self.granule_dir/'AUX_DATA'/'AUX_ECMWFT')
+        ds = xr.open_dataset(file_auxdata, engine="cfgrib")
+        self.wind_speed = np.sqrt(ds.u10**2 + ds.v10**2)
+        assert ds.tco3.units == 'kg m**-2'
+        self.ozone = ds.tco3/2.1415e-5  # convert kg/m2 to DU
+        assert ds.msl.units == 'Pa'
+        self.surf_press = ds.msl/100
+                
 
     def init_latlon(self):
 
@@ -398,10 +412,6 @@ class Level1_MSI(Level1_base):
                           xoffset+self.scol:xoffset+self.scol+xsize,
                                          ])
 
-        block.ozone = self.ozone[block.latitude, block.longitude]
-        block.wind_speed = self.wind_speed[block.latitude, block.longitude]
-        P0 = self.surf_press[block.latitude, block.longitude]
-
         block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
         block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
         for iband, band in enumerate(bands):
@@ -416,7 +426,28 @@ class Level1_MSI(Level1_base):
             # altitude expected to be a float
             block.altitude = np.zeros((ysize, xsize), dtype='float32') + self.altitude
 
-        # surface pressure
+        if self.ancillary == 'ECMWFT':
+            # ancillary data embedded in Level1
+            block.ozone = self.ozone.interp(
+                latitude=xr.DataArray(block.latitude),
+                longitude=xr.DataArray(block.longitude),
+                # method='nearest'
+                ).values
+            block.wind_speed = self.wind_speed.interp(
+                latitude=xr.DataArray(block.latitude),
+                longitude=xr.DataArray(block.longitude),
+                # method='nearest'
+                ).values
+            P0 = self.surf_press.interp(
+                latitude=xr.DataArray(block.latitude),
+                longitude=xr.DataArray(block.longitude),
+                # method='nearest'
+                ).values
+        else:
+            block.ozone = self.ozone[block.latitude, block.longitude]
+            block.wind_speed = self.wind_speed[block.latitude, block.longitude]
+            P0 = self.surf_press[block.latitude, block.longitude]
+
         block.surf_press = P0 * np.exp(-block.altitude/8000.)
 
         if not self.use_srf:
