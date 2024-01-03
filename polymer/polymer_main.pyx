@@ -1,15 +1,15 @@
 import numpy as np
 cimport numpy as np
 from numpy.linalg import inv
-from common import L2FLAGS
+from polymer.common import L2FLAGS
 from libc.math cimport nan, exp, log, abs, sqrt, isnan
 from cpython.exc cimport PyErr_CheckSignals
 import pandas as pd
 from pathlib import Path
 
-from neldermead cimport NelderMeadMinimizer, dot
-from water cimport WaterModel
-from glint import glitter
+from polymer.neldermead cimport NelderMeadMinimizer, dot
+from polymer.water cimport WaterModel
+from polymer.glint import glitter
 
 '''
 main polymer iterative optimization module

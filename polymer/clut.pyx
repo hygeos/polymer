@@ -290,7 +290,7 @@ def test_interp():
     assert A.lookup(0, 1.5) == 0
     assert A.lookup(1, 11.5) == 0
 
-    print A.interp()
+    print(A.interp())
     assert A.interp() == 4
 
 def test():

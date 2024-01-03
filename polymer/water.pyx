@@ -3,7 +3,7 @@ cimport numpy as np
 
 from os.path import join
 
-from clut cimport CLUT
+from polymer.clut cimport CLUT
 from libc.math cimport exp, M_PI, isnan, log, sin, asin, log10, cos, NAN
 from warnings import warn
 from io import open
