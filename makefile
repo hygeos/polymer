@@ -6,7 +6,7 @@ WGET = @wget -c -P
 .PHONY: main all rebuild clean test auxdata_all auxdata_common auxdata_common auxdata_meris auxdata_olci auxdata_modisa auxdata_seawifs auxdata_viirs auxdata_msi
 
 main:
-	python setup.py build_ext --inplace
+	python setup.py build_ext --inplace -j 4
 
 all: auxdata_all main ancillary
 
