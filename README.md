@@ -98,6 +98,16 @@ This option controls the parallelization of the core Polymer processing. However
 
 #### 2.2.1 NASA Ancillary data
 
+The credentials for accessing NASA ancillary data should be provided in your ~/.netrc file:
+```
+cd ~
+touch .netrc
+echo "machine urs.earthdata.nasa.gov login uid_goes_here password password_goes_here" > .netrc
+chmod 0600 .netrc
+```
+
+More information here: https://urs.earthdata.nasa.gov/documentation/for_users/data_access/curl_and_wget
+
 Ancillary data (ozone total column, wind speed, surface pressure) can be
 provided to the level1 class through the class Ancillary_NASA (NASA files in
 hdf4 format):
