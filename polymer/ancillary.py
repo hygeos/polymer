@@ -16,30 +16,37 @@ import tempfile
 from dateutil.parser import parse
 from .utils import closest, round_date
 
+'''
+Ancillary NASA data provider
+
+https://oceancolor.gsfc.nasa.gov/resources/docs/ancillary/
+'''
 
 # resources are a list of functions taking the date, and returning a list of
 # closest or bracketing resources, defined by (pattern, date)
 forecast_resources = [
-    lambda date: [('N%Y%j%H_MET_NCEP_1440x0721_f{}.hdf'.format(
-                   '012' if (d.hour % 2 == 0) else '015'), d)
-                  for d in round_date(date, 3)]
+    # lambda date: [('N%Y%j%H_MET_NCEP_1440x0721_f{}.hdf'.format(
+    #                '012' if (d.hour % 2 == 0) else '015'), d)
+    #               for d in round_date(date, 3)]
+    lambda date: [('GMAO_FP.%Y%m%dT%H0000.MET.NRT.nc', d)
+                  for d in round_date(date, 3)],
 ]
 
 default_met_resources = [
-    lambda date: [('GMAO_FP.%Y%m%dT%H0000.MET.NRT.nc', d)
-                  for d in round_date(date, 3)],
-    lambda date: [('N%Y%j%H_MET_NCEPR2_6h.hdf.bz2', d) for d in round_date(date, 6)],
-    lambda date: [('N%Y%j%H_MET_NCEP_6h.hdf.bz2', d) for d in round_date(date, 6)],
-    lambda date: [('N%Y%j%H_MET_NCEP_6h.hdf', d) for d in round_date(date, 6)],
+    lambda date: [('GMAO_MERRA2.%Y%m%dT%H0000.MET.nc', d)
+                  for d in round_date(date, 1)],
+    # lambda date: [('N%Y%j%H_MET_NCEPR2_6h.hdf.bz2', d) for d in round_date(date, 6)],
+    # lambda date: [('N%Y%j%H_MET_NCEP_6h.hdf.bz2', d) for d in round_date(date, 6)],
+    # lambda date: [('N%Y%j%H_MET_NCEP_6h.hdf', d) for d in round_date(date, 6)],
 ]
 
 default_oz_resources = [
-    lambda date: [('GMAO_FP.%Y%m%dT%H0000.MET.NRT.nc', d)
-                  for d in round_date(date, 3)],
-    lambda date: [('N%Y%j00_O3_AURAOMI_24h.hdf', closest(date, 24))],
-    lambda date: [('N%Y%j00_O3_TOMSOMI_24h.hdf', closest(date, 24))],
-    lambda date: [('S%Y%j00%j23_TOAST.OZONE', closest(date, 24))],
-    lambda date: [('S%Y%j00%j23_TOVS.OZONE', closest(date, 24))],
+    lambda date: [('GMAO_MERRA2.%Y%m%dT%H0000.MET.nc', d)
+                  for d in round_date(date, 1)],
+    # lambda date: [('N%Y%j00_O3_AURAOMI_24h.hdf', closest(date, 24))],
+    # lambda date: [('N%Y%j00_O3_TOMSOMI_24h.hdf', closest(date, 24))],
+    # lambda date: [('S%Y%j00%j23_TOAST.OZONE', closest(date, 24))],
+    # lambda date: [('S%Y%j00%j23_TOVS.OZONE', closest(date, 24))],
 ]
 
 
@@ -371,7 +378,7 @@ class Ancillary_NASA(object):
             ret = system(cmd)
 
             if ret != 0:
-                raise Exception(f'Wget returned a non-zero error code: {ret}')
+                return ret
 
             try:
                 # sanity check
