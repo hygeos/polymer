@@ -389,7 +389,8 @@ class Ancillary_NASA(object):
 
                     errormsg = 'Error authenticating to NASA EarthData for downloading ancillary data. ' \
                     'Please provide authentication through .netrc. See more information on ' \
-                    'https://support.earthdata.nasa.gov/index.php?/Knowledgebase/Article/View/43/21/how-to-access-urs-gated-data-with-curl-and-wget'
+                    'https://urs.earthdata.nasa.gov/documentation/for_users/data_access/curl_and_wget'
+
                     assert not filehead.startswith(b'<!DOCTYPE html>'), errormsg
 
                     # may be the case after Oct 2023 when NASA changed the APIs
