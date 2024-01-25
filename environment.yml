@@ -35,6 +35,9 @@ dependencies:
   - pyproj
   - lxml
 
+  # For Prisma:
+  - h5py
+
   # Testing:
   - pytest
   - pytest-html
