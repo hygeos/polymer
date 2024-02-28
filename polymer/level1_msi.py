@@ -114,7 +114,16 @@ class Level1_MSI(Level1_base):
 
         add_noise: function (band, reflectance, sza) -> stdev_reflectance
         '''
-        self.sensor = 'MSI'
+
+        # self.sensor = 'MSI'
+        fname = Path(dirname).parent.parent.name
+        if fname.startswith('S2A_MSIL1C') and fname.endswith('.SAFE'):
+            self.sensor = 'MSIA'
+        elif fname.startswith('S2B_MSIL1C') and fname.endswith('.SAFE'):
+            self.sensor = 'MSIB'
+        else:
+            self.sensor = 'MSI'
+
         dirname = Path(dirname).resolve()
         if list(dirname.glob('GRANULE')):
             granules = list((dirname/'GRANULE').glob('*'))
