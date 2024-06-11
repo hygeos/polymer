@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from polymer.main import run_atm_corr, Level1, Level2
+from polymer.main import run_atm_corr
+from polymer.level1 import Level1
+from polymer.level2 import Level2
 from polymer.level2_hdf import Level2_HDF
 from polymer.level2_nc import Level2_NETCDF
 from polymer.level1_ascii import Level1_ASCII
