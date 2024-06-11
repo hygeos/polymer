@@ -57,7 +57,7 @@ class Level1(object):
         elif self.detect_msi():
             self.sensor = 'msi'
 
-        elif b.startswith('LC8'):
+        elif b.startswith('LC8') or b.startswith('LC08'):
             self.sensor = 'landsat8'
 
         else:
