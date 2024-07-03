@@ -839,7 +839,11 @@ class Params(object):
         # initialize external mask
         #
         if self.external_mask is not None:
-            if isinstance(self.external_mask, str):
+            if isinstance(self.external_mask, str) and self.external_mask.endswith(".nc"):
+                import xarray as xr
+                with xr.open_dataset(self.external_mask) as ds:
+                    self.external_mask = ds["mask"].values
+            elif isinstance(self.external_mask, str):
                 # read external mask
                 hdf = SD(self.external_mask)
                 self.external_mask = hdf.select('mask').get()
