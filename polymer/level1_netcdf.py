@@ -6,6 +6,7 @@ from polymer.level1 import Level1_base
 from polymer.block import Block
 from netCDF4 import Dataset
 import numpy as np
+import xarray as xr
 from warnings import warn
 from datetime import datetime
 from polymer.common import L2FLAGS
@@ -61,7 +62,10 @@ class Level1_NETCDF(Level1_base):
         try:
             title = self.root.getncattr('title')
         except AttributeError:
-            title = self.root.getncattr('product_type')
+            try:
+                title = self.root.getncattr('product_type')
+            except AttributeError:
+                title = self.root.getncattr('type')
 
         if 'MERIS' in title:
             self.sensor = 'MERIS'
@@ -128,9 +132,27 @@ class Level1_NETCDF(Level1_base):
                     }
 
             # get platform name
-            metadata = self.root.variables['metadata']
-            self.platform = metadata.getncattr('Level-1C_User_Product:General_Info:Product_Info:Datatake:SPACECRAFT_NAME')
+            if 'metadata' in self.root.variables:
+                metadata = self.root.variables['metadata']
+                self.platform = metadata.getncattr('Level-1C_User_Product:General_Info:Product_Info:Datatake:SPACECRAFT_NAME')
+            else:
+                self.platform = self.root.getncattr('platform')
             self.platform = self.platform.replace('entinel-', '')
+
+        elif title == "MSIL1C":
+            self.sensor = 'MSI'
+            self.varnames = {
+                'latitude': 'lat',
+                'longitude': 'lon',
+                'SZA': 'sun_zenith',
+                'VZA': 'view_zenith_mean',
+                'SAA': 'sun_azimuth',
+                'VAA': 'view_azimuth_mean',
+            }
+
+            # get platform name
+            self.platform = self.root.getncattr('platform')
+
         else:
             raise Exception('Could not identify sensor from "{}"'.format(title))
 
@@ -153,7 +175,9 @@ class Level1_NETCDF(Level1_base):
             self.ancillary = Ancillary_NASA()
         else:
             self.ancillary = ancillary
-        if self.ancillary is not None:
+        if self.ancillary == 'ECMWFT':
+            self.init_ancillary_embedded()
+        elif self.ancillary is not None:
             self.init_ancillary()
 
         self.init_bands()
@@ -216,6 +240,40 @@ class Level1_NETCDF(Level1_base):
         self.ancillary_files.update(self.ozone.filename)
         self.ancillary_files.update(self.wind_speed.filename)
         self.ancillary_files.update(self.surf_press.filename)
+
+    def init_ancillary_embedded(self):
+        #lat = self.read_band("aux_latitude", (9,9), (0,0))
+        #lon = self.read_band("aux_longitude", (9,9), (0,0))
+        lat = np.array(self.root.variables["aux_latitude"])
+        lon = np.array(self.root.variables["aux_longitude"])
+        if '_0u' in self.root.variables:
+            u10 = self.read_band("_0u", (9,9), (0,0))
+            v10 = self.read_band("_0u", (9,9), (0,0))
+        else:
+            u10 = self.read_band("u10", (9,9), (0,0))
+            v10 = self.read_band("v10", (9,9), (0,0))
+        tco3 = self.read_band("tco3", (9,9), (0,0))
+        msl = self.read_band("msl", (9,9), (0,0))
+        wind_speed = np.sqrt(u10 * u10 + v10 * v10)
+        #assert tco3.units == 'kg m**-2'
+        ozone = tco3 / 2.1415e-5  # convert kg/m2 to DU
+        #assert msl.units == 'Pa'
+        surf_press = msl / 100
+        #coord_lat = xr.DataArray(lat[:,0], dims=['latitude'])
+        #coord_lon = xr.DataArray(lon[0], dims=['longitude'])
+        coord_lat = xr.DataArray(lat, dims=['latitude'])
+        coord_lon = xr.DataArray(lon, dims=['longitude'])
+        self.wind_speed = xr.DataArray(wind_speed,
+                                       coords={'latitude': coord_lat, 'longitude': coord_lon},
+                                       dims=['latitude', 'longitude'])
+        self.ozone = xr.DataArray(ozone,
+                                       coords={'latitude': coord_lat, 'longitude': coord_lon},
+                                       dims=['latitude', 'longitude'],
+                                       attrs={'units': "DU"})
+        self.surf_press = xr.DataArray(surf_press,
+                                       coords={'latitude': coord_lat, 'longitude': coord_lon},
+                                       dims=['latitude', 'longitude'],
+                                       attrs={'units': "hPa"})
 
     def read_date(self, date):
         ''' parse a date in the format 04-JUL-2017 12:31:28.013924 '''
@@ -419,6 +477,23 @@ class Level1_NETCDF(Level1_base):
             mwind = self.read_band(self.varnames['mwind'], size, offset)
             block.wind_speed = np.sqrt(zwind**2 + mwind**2)
             P0 = self.read_band(self.varnames['press'], size, offset)
+        elif self.sensor == 'MSI' and self.ancillary == 'ECMWFT':
+            # ancillary data embedded in Level1
+            block.ozone = self.ozone.interp(
+                latitude=xr.DataArray(block.latitude),
+                longitude=xr.DataArray(block.longitude),
+                # method='nearest'
+                ).values
+            block.wind_speed = self.wind_speed.interp(
+                latitude=xr.DataArray(block.latitude),
+                longitude=xr.DataArray(block.longitude),
+                # method='nearest'
+                ).values
+            P0 = self.surf_press.interp(
+                latitude=xr.DataArray(block.latitude),
+                longitude=xr.DataArray(block.longitude),
+                # method='nearest'
+                ).values
         elif self.sensor == 'MSI':
             block.ozone = self.ozone[block.latitude, block.longitude]
             block.wind_speed = self.wind_speed[block.latitude, block.longitude]
