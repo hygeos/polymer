@@ -525,10 +525,11 @@ def run_atm_corr(level1, level2, **kwargs):
         params.processing_duration = datetime.now()-t0
         params.update(**l1.attributes('%Y-%m-%d %H:%M:%S'))
         params.update(**l2.attributes())
-        l2.finish(params)
 
         if params.multiprocessing != 0:
             pool.terminate()
+
+        l2.finish(params)
 
         if params.verbose:
             print('Done in {}'.format(datetime.now()-t0))
