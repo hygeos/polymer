@@ -88,7 +88,7 @@ class CopernicusDEM(object):
                 print(str(len(self.available)-1) + " remote DEM tiles existing")
         if self.verbose:
             local = glob(os.path.join(self.cache_directory, "*.tif"))
-            print(str(len(local)) + " local DEM tile available")
+            print(str(len(local)) + " local DEM tiles available")
 
     def get(self, lat, lon):
         """
