@@ -105,11 +105,11 @@ class CopernicusDEM(object):
         rows = np.floor(np.array(lat) - half_pixel_height).astype(np.int32)
         tile_width = np.empty(lat.shape, dtype=np.int16)
         tile_width[:] = tile_height
-        tile_width[(rows>50)|(rows<-50)] = tile_height * 2 // 3
-        tile_width[(rows>60)|(rows<-60)] = tile_height // 2
-        tile_width[(rows>70)|(rows<-70)] = tile_height // 3
-        tile_width[(rows>80)|(rows<-80)] = tile_height // 5
-        tile_width[(rows>85)|(rows<-85)] = tile_height // 10
+        tile_width[(rows>=50)|(rows<=-50)] = tile_height * 2 // 3
+        tile_width[(rows>=60)|(rows<=-60)] = tile_height // 2
+        tile_width[(rows>=70)|(rows<=-70)] = tile_height // 3
+        tile_width[(rows>=80)|(rows<=-80)] = tile_height // 5
+        tile_width[(rows>=85)|(rows<=-85)] = tile_height // 10
         half_pixel_width = 0.5 / tile_width
         cols = np.floor(np.array(lon) + half_pixel_width).astype(np.int32)
         bin_index = (rows + 90) * 360 + cols + 180
