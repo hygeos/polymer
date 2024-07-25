@@ -721,7 +721,7 @@ class Params(object):
         self.K_NO2 = K_NO2_HICO
 
         self.band_cloudmask = 862
-    
+
 
     def defaults_prisma(self):
         self.bands_corr = [
@@ -753,7 +753,8 @@ class Params(object):
         '''
         Landsat8/OLI defaults
         '''
-        import xlrd
+        # QV 2024-07-25 use openpyxl instead of xlrd
+        from openpyxl import load_workbook
         import pandas as pd
 
         self.bands_corr = [440, 480, 560, 655, 865      ]
@@ -775,7 +776,7 @@ class Params(object):
         self.K_OZ = OrderedDict()
         srf_file = join(self.dir_base, 'auxdata', 'oli',
                         'Ball_BA_RSR.v1.2.xlsx')
-        wb = xlrd.open_workbook(srf_file)
+        wb = load_workbook(filename = srf_file)
 
         solar_spectrum_file = join(self.dir_common, 'SOLAR_SPECTRUM_WMO_86')
         solar_data = pd.read_csv(solar_spectrum_file, sep=' ')
@@ -793,18 +794,16 @@ class Params(object):
                          (865, 'NIR'),
                          (1610, 'SWIR1'),
                          (2200, 'SWIR2')]:
-            sh = wb.sheet_by_name(bname)
+            sh = wb[bname]
 
             wav, srf = [], []
 
-            i=0
-            while True:
+            i=1
+            while i<wb[bname].max_row:
                 i += 1
-                try:
-                    wav.append(sh.cell(i, 0).value)
-                    srf.append(sh.cell(i, 1).value)
-                except IndexError:
-                    break
+                if sh.cell(i, 1).value is None: break
+                wav.append(sh.cell(i, 1).value)
+                srf.append(sh.cell(i, 2).value)
 
             wav, srf = np.array(wav), np.array(srf)
 
@@ -892,5 +891,3 @@ class Params(object):
 
         # number of terms in the model
         self.Ncoef = self.atm_model.count(',')+1
-
-

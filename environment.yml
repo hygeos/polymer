@@ -28,7 +28,7 @@ dependencies:
   - bioconda::ecmwfapi
 
   # for Landsat8:
-  - xlrd<2
+  - openpyxl
 
   # For Sentinel-2:
   - glymur
