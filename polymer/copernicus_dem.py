@@ -50,7 +50,7 @@ class CopernicusDEM(object):
       Upper Right (   9.9993750,  55.0004167) (  9d59'57.75"E, 55d 0' 1.50"N)
       Lower Right (   9.9993750,  54.0004167) (  9d59'57.75"E, 54d 0' 1.50"N)
 
-      The name denotes the lower left corner. S and W are like minus signs.
+      The name denotes the lower left corner. S and W are like minus signs. S16 has its lower edge at -16.0 deg.
     """
     def __init__(self,
                  directory='auxdata-Copernicus-90m-Global-DEM',
@@ -111,7 +111,7 @@ class CopernicusDEM(object):
         tile_width[(rows>=80)|(rows<=-80)] = tile_height // 5
         tile_width[(rows>=85)|(rows<=-85)] = tile_height // 10
         half_pixel_width = 0.5 / tile_width
-        cols = np.floor(np.array(lon) + half_pixel_width).astype(np.int32)
+        cols = np.floor((np.array(lon) + half_pixel_width + 180.0) % 360.0 - 180.0).astype(np.int32)
         bin_index = (rows + 90) * 360 + cols + 180
         del rows, cols
         # determine set of different bin cells
@@ -135,7 +135,7 @@ class CopernicusDEM(object):
             # (A pixel center less than half a pixel above the degree line is covered by this tile)
             # (A pixel center less than half a pixel left of the degree line is covered by this tile)
             dem_row = (((row + 1) - np.array(lat)[is_inside_tile] + half_pixel_height) * tile_height).astype(np.int32)
-            dem_col = ((np.array(lon)[is_inside_tile] - col + half_pixel_width[is_inside_tile]) * tile_width[is_inside_tile]).astype(np.int32)
+            dem_col = (((np.array(lon)[is_inside_tile] - col + half_pixel_width[is_inside_tile]) % 360.0) * tile_width[is_inside_tile]).astype(np.int32)
             altitude[is_inside_tile] = dem[(dem_row, dem_col)]
             del dem_row, dem_col, is_inside_tile, dem
         del bin_index, half_pixel_width, tile_width
