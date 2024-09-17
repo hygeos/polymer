@@ -479,19 +479,44 @@ class Level1_NETCDF(Level1_base):
             P0 = self.read_band(self.varnames['press'], size, offset)
         elif self.sensor == 'MSI' and self.ancillary == 'ECMWFT':
             # ancillary data embedded in Level1
-            block.ozone = self.ozone.interp(
-                latitude=xr.DataArray(block.latitude),
-                longitude=xr.DataArray(block.longitude),
+            if 90.0 <= (self.wind_speed.longitude[0] + 180.0) % 360.0 < 270.0:
+                # we are between -90 and 90 degrees
+                wind_speed = self.wind_speed
+                ozone = self.ozone
+                surf_press = self.surf_press
+                latitude=xr.DataArray(block.latitude)
+                longitude=xr.DataArray(block.longitude)
+            else:
+                # lon to be turned by 180 degrees for interpolation
+                # lon to be sorted, see https://github.com/ecmwf/cfgrib/issues/402
+                coord_lat = self.wind_speed.latitude
+                coord_lon = xr.DataArray(np.sort(self.wind_speed.longitude.data % 360.0 - 180.0), dims=['longitude'])
+                wind_speed = xr.DataArray(self.wind_speed,
+                                          coords={'latitude': coord_lat, 'longitude': coord_lon},
+                                          dims=['latitude', 'longitude'])
+                ozone = xr.DataArray(self.ozone,
+                                     coords={'latitude': coord_lat, 'longitude': coord_lon},
+                                     dims=['latitude', 'longitude'],
+                                     attrs={'units': "DU"})
+                surf_press = xr.DataArray(self.surf_press,
+                                          coords={'latitude': coord_lat, 'longitude': coord_lon},
+                                          dims=['latitude', 'longitude'],
+                                          attrs={'units': "hPa"})
+                latitude=xr.DataArray(block.latitude)
+                longitude=xr.DataArray(block.longitude % 360.0 - 180.0)
+            block.ozone = ozone.interp(
+                latitude=latitude,
+                longitude=longitude,
                 # method='nearest'
                 ).values
-            block.wind_speed = self.wind_speed.interp(
-                latitude=xr.DataArray(block.latitude),
-                longitude=xr.DataArray(block.longitude),
+            block.wind_speed = wind_speed.interp(
+                latitude=latitude,
+                longitude=longitude,
                 # method='nearest'
                 ).values
-            P0 = self.surf_press.interp(
-                latitude=xr.DataArray(block.latitude),
-                longitude=xr.DataArray(block.longitude),
+            P0 = surf_press.interp(
+                latitude=latitude,
+                longitude=longitude,
                 # method='nearest'
                 ).values
         elif self.sensor == 'MSI':
