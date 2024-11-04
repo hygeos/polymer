@@ -57,8 +57,13 @@ class Ancillary_ERA5(object):
         file1 = self.ERA5.download_era5(t1)
         file2 = self.ERA5.download_era5(t2)
 
-        ERA1 = xr.open_dataset(file1).isel(time=0)
-        ERA2 = xr.open_dataset(file2).isel(time=0)
+        ds_era5_1 = xr.open_dataset(file1)
+        ds_era5_2 = xr.open_dataset(file2)
+        time_dim1 = 'time' if ('time' in ds_era5_1) else 'valid_time'
+        time_dim2 = 'time' if ('time' in ds_era5_2) else 'valid_time'
+
+        ERA1 = ds_era5_1.isel({time_dim1: 0})
+        ERA2 = ds_era5_2.isel({time_dim2: 0})
 
         x = (date - t1).total_seconds()/(t2 - t1).total_seconds()
         
