@@ -16,7 +16,9 @@ from glob import glob
 import numpy as np
 import os
 from os.path import dirname, join
-import xlrd
+
+# QV 2024-07-25 use openpyxl instead of xlrd
+from openpyxl import load_workbook
 
 gdal_major_version = int(osgeo.__version__.split('.')[0])
 
@@ -206,9 +208,7 @@ class Level1_OLI(Level1_base):
     def init_spectral(self):
         dir_aux_oli = join(dirname(dirname(__file__)), 'auxdata', 'oli')
         srf_file = join(dir_aux_oli, 'Ball_BA_RSR.v1.2.xlsx')
-
-        wb = xlrd.open_workbook(srf_file)
-
+        wb = load_workbook(filename = srf_file)
 
         self.wav = OrderedDict()
         for b, bname in [(440, 'CoastalAerosol'),
@@ -218,18 +218,16 @@ class Level1_OLI(Level1_base):
                          (865, 'NIR'),
                          (1610, 'SWIR1'),
                          (2200, 'SWIR2')]:
-            sh = wb.sheet_by_name(bname)
+            sh = wb[bname]
 
             wav, srf = [], []
-
-            i=0
-            while True:
+            i=1
+            while i<wb[bname].max_row:
                 i += 1
-                try:
-                    wav.append(sh.cell(i, 0).value)
-                    srf.append(sh.cell(i, 1).value)
-                except IndexError:
-                    break
+                if sh.cell(i, 1).value is None: break
+                wav.append(sh.cell(i, 1).value)
+                srf.append(sh.cell(i, 2).value)
+
 
             wav, srf = np.array(wav), np.array(srf)
             wav_eq = np.trapz(wav*srf)/np.trapz(srf)
