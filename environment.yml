@@ -7,6 +7,7 @@ channels:
   - defaults
 dependencies:
   - python
+  - numpy<2
   - scipy
   - xarray
   - cython
@@ -23,7 +24,7 @@ dependencies:
   # For ERA5
   - cdsapi
 
-  # For ERA5-Interim
+  # For ERA-Interim
   - pygrib
   - bioconda::ecmwfapi
 
