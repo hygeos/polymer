@@ -72,7 +72,9 @@ See `./polymer_cli.py -h` for more help
 More options are available by running polymer directly from your own python script.
 
 ```python
-from polymer.main import run_atm_corr, Level1, Level2
+from polymer.main import run_atm_corr
+from polymer.level1 import Level1
+from polymer.level2 import Level2
 run_atm_corr(Level1('MER_RR__1PRACR20050501_092849_000026372036_00480_16566_0000.N1',
                     <other optional level1 arguments>),
                 Level2('output.nc',
