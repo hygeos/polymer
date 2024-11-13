@@ -54,7 +54,7 @@ class Level1(object):
         elif b.startswith('S') and '.L1C' in b:
             self.sensor = 'seawifs'
 
-        elif self.detect_msi():
+        elif b.startswith('S2A_MSIL1C') or b.startswith('S2B_MSIL1C'):
             self.sensor = 'msi'
 
         elif b.startswith('LC8') or b.startswith('LC08'):
@@ -62,11 +62,6 @@ class Level1(object):
 
         else:
             raise Exception('Unable to detect sensor for file "{}"'.format(b))
-
-
-    def detect_msi(self):
-        xmlfiles = glob(join(self.filename, '*MTD*_TL*.xml'))
-        return len(xmlfiles) == 1
 
 
     def __str__(self):
