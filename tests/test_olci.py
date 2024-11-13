@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+from pathlib import Path
+import os
 from polymer.level2 import Level2
 from polymer.level1_olci import Level1_OLCI
 from polymer.main import run_atm_corr
@@ -9,6 +11,9 @@ from matplotlib import pyplot as plt
 import numpy as np
 from . import conftest
 
+olci_level1 = str(
+    Path(os.environ['DIR_DATA'])/'sample_products'/
+    'S3A_OL_1_EFR____20160720T093221_20160720T093421_20171002T063740_0119_006_307______MR1_R_NT_002.SEN3')
 
 
 @pytest.mark.parametrize('uncertainties', [False, True])
@@ -18,12 +23,6 @@ from . import conftest
         'ecol':2100,
         'sline':2556+40,
         'eline':2650,
-    }),
-    ('roi1', {
-        'scol':1930,
-        'ecol':2473,
-        'sline':2556,
-        'eline':3079,
     }),
     ('inland_water', {
         'scol':980,
@@ -52,10 +51,7 @@ def test_olci(request, uncertainties, roi_desc, roi):
             ]
 
     l2 = run_atm_corr(
-        Level1_OLCI(
-            '/rfs/user/francois/TESTCASES/OLCI/BALTIC/S3A_OL_1_EFR____20160720T093226_20160720T093526_20160720T113440_0180_006_307_1979_MAR_O_NR_001.SEN3/',
-            **roi
-        ),
+        Level1_OLCI(olci_level1, **roi),
         Level2('memory', datasets=dsts),
         bands_rw=[400,412,443,490,510,560,620,665,674,681,709,754,779,865,1020],
         uncertainties=uncertainties,
@@ -95,21 +91,19 @@ def test_spectrum(request):
             'logchl_unc',
             'logfb_unc',
             'rho_w_unc',
+            'bitmask',
             ]
 
     roi = {
-        'scol':1930+120,
-        'ecol':1930+120+1,
-        'sline':2556+40,
-        'eline':2556+40+1,
+        'scol':980,
+        'ecol':980+1,
+        'sline':2524,
+        'eline':2524+1,
     }
 
     wav = [400,412,443,490,510,560,620,665,674,681,709,754,779,865,1020]
     l2 = run_atm_corr(
-        Level1_OLCI(
-            '/rfs/user/francois/TESTCASES/OLCI/BALTIC/S3A_OL_1_EFR____20160720T093226_20160720T093526_20160720T113440_0180_006_307_1979_MAR_O_NR_001.SEN3/',
-            **roi
-        ),
+        Level1_OLCI(olci_level1, **roi),
         Level2('memory', datasets=dsts),
         bands_rw=wav,
         uncertainties=True,
@@ -122,6 +116,7 @@ def test_spectrum(request):
             'logchl_unc',
             'logfb_unc',
             'rho_w_unc',
+            'bitmask',
             ]:
         data = getattr(l2, var)
         print(var, data)
