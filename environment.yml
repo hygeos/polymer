@@ -7,7 +7,7 @@ channels:
   - defaults
 dependencies:
   - python
-  - numpy<2
+  - numpy
   - scipy
   - xarray
   - cython

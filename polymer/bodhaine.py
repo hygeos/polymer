@@ -72,7 +72,7 @@ def raycrs(lam, co2):
         co2 : ppm
     """
     Avogadro = value('Avogadro constant')
-    Ns = Avogadro/22.4141 * 273.15/288.15 * 1e-3
+    Ns = np.array(Avogadro/22.4141 * 273.15/288.15 * 1e-3, dtype='float64')
     nn2 = n_air(lam, co2)**2
     return (24*np.pi**3 * (nn2-1)**2/(lam*1e-4)**4/Ns**2/(nn2+2)**2 * Fair(lam, co2))
 
