@@ -44,7 +44,7 @@ cdef class CLUT:
 
         # set up the axes
         # and the inverted axes for faster inversion
-        ax = np.zeros((A.ndim, max_axis_size), dtype='float32')+np.NaN
+        ax = np.zeros((A.ndim, max_axis_size), dtype='float32')+np.nan
         iax = np.zeros((A.ndim, Ninv), dtype='int64') - 999
         for i, a in enumerate(axes):
             if a is None:

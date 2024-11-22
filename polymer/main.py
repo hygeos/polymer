@@ -101,7 +101,7 @@ class InitCorr(object):
         if hasattr(block, 'Rtoa'):
             return
 
-        block.Rtoa = np.zeros(block.Ltoa.shape)+np.NaN
+        block.Rtoa = np.zeros(block.Ltoa.shape)+np.nan
 
         ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
 
@@ -204,7 +204,7 @@ class InitCorr(object):
         if self.params.partial >= 4:
             return
 
-        block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.NaN
+        block.Rtoa_gc = np.zeros(block.Rtoa.shape, dtype='float32') + np.nan
         nightpixel = block.sza >= 90
 
         ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
@@ -315,11 +315,11 @@ class InitCorr(object):
         raiseflag(block.bitmask, L2FLAGS['HIGH_AIR_MASS'],
                   block.air_mass > 5.)
 
-        block.Rprime = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
-        block.Rprime_noglint = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
-        block.Rmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
-        block.Rmolgli = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
-        block.Tmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.NaN
+        block.Rprime = np.zeros(block.Rtoa.shape, dtype='float32')+np.nan
+        block.Rprime_noglint = np.zeros(block.Rtoa.shape, dtype='float32')+np.nan
+        block.Rmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.nan
+        block.Rmolgli = np.zeros(block.Rtoa.shape, dtype='float32')+np.nan
+        block.Tmol = np.zeros(block.Rtoa.shape, dtype='float32')+np.nan
 
         ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
 

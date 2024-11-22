@@ -1542,7 +1542,7 @@ def merge(M, axes, dtype=None):
         _dtype = first[name].data.dtype
         newdata = np.zeros(new_shape, dtype=_dtype)
         try:
-            newdata += np.NaN
+            newdata += np.nan
         except:
             pass
         for mlut in M:

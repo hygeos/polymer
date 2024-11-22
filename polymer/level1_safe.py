@@ -242,7 +242,7 @@ class Level1_SAFE(Level1_base):
         block.vaa = self.read_band('OAA', size, offset)
 
         # read LTOA
-        block.Ltoa = np.zeros((ysize,xsize,nbands)) + np.NaN
+        block.Ltoa = np.zeros((ysize,xsize,nbands)) + np.nan
         for iband, band in enumerate(bands):
             Ltoa_data = self.read_band(self.band_names[band], size, offset)
             if self.add_noise:
@@ -256,13 +256,13 @@ class Level1_SAFE(Level1_base):
         di = self.read_band('detector_index', size, offset)
 
         # solar irradiance (seasonally corrected)
-        block.F0 = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
+        block.F0 = np.zeros((ysize, xsize, nbands), dtype='float32') + np.nan
         for iband, band in enumerate(bands):
             block.F0[:,:,iband] = self.F0[self.band_index[band], di]
 
         # detector wavelength
-        block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
-        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
+        block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.nan
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.nan
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = self.lam0[self.band_index[band], di]
             block.cwavelen[iband] = self.central_wavelength[band]
@@ -294,15 +294,15 @@ class Level1_SAFE(Level1_base):
         # read ancillary data
         if self.ancillary is not None:
             # external ancillary files
-            block.ozone = np.zeros_like(block.latitude, dtype=self.ozone.dtype) + np.NaN
+            block.ozone = np.zeros_like(block.latitude, dtype=self.ozone.dtype) + np.nan
             block.ozone[~l1_invalid] = self.ozone[
                 block.latitude[~l1_invalid],
                 block.longitude[~l1_invalid]]
-            block.wind_speed = np.zeros_like(block.latitude, dtype=self.wind_speed.dtype) + np.NaN
+            block.wind_speed = np.zeros_like(block.latitude, dtype=self.wind_speed.dtype) + np.nan
             block.wind_speed[~l1_invalid] = self.wind_speed[
                 block.latitude[~l1_invalid],
                 block.longitude[~l1_invalid]]
-            P0 = np.zeros_like(block.latitude, dtype=self.surf_press.dtype) + np.NaN
+            P0 = np.zeros_like(block.latitude, dtype=self.surf_press.dtype) + np.nan
             P0[~l1_invalid] = self.surf_press[
                 block.latitude[~l1_invalid],
                 block.longitude[~l1_invalid]]

@@ -375,11 +375,11 @@ class Level1_NETCDF(Level1_base):
 
         # read Rtoa or Ltoa+F0
         # and wavelen
-        block.wavelen = np.zeros(size3, dtype='float32') + np.NaN
-        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
+        block.wavelen = np.zeros(size3, dtype='float32') + np.nan
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.nan
         if self.sensor == 'MSI':
             # read Rtoa
-            block.Rtoa = np.zeros(size3) + np.NaN
+            block.Rtoa = np.zeros(size3) + np.nan
             for iband, band in enumerate(bands):
                 band_name = {
                         443 : 'B1', 490 : 'B2',
@@ -399,7 +399,7 @@ class Level1_NETCDF(Level1_base):
 
         elif self.sensor in ['MERIS', 'OLCI']:
             # read Ltoa and F0
-            block.Ltoa = np.zeros(size3) + np.NaN
+            block.Ltoa = np.zeros(size3) + np.nan
             for iband, band in enumerate(bands):
                 if self.sensor == 'MERIS':
                     band_name = 'radiance_{}'.format(self.band_index[band])
@@ -411,7 +411,7 @@ class Level1_NETCDF(Level1_base):
                 block.Ltoa[:,:,iband] = self.read_band(band_name, size, offset)
 
             # detector wavelength and solar irradiance
-            block.F0 = np.zeros(size3, dtype='float32') + np.NaN
+            block.F0 = np.zeros(size3, dtype='float32') + np.nan
             if self.sensor == 'MERIS':
                 # read detector index
                 detector_index = self.read_band('detector_index', size, offset)

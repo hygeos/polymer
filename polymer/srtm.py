@@ -122,7 +122,7 @@ class SRTM3(object):
         """
         url_base = 'https://dds.cr.usgs.gov/srtm/version2_1/SRTM3/{}/{}'
 
-        alt = np.zeros(lat.shape, dtype='float32') + np.NaN
+        alt = np.zeros(lat.shape, dtype='float32') + np.nan
 
         # determine the list of SRTM tiles
         ilatlon = 1000*(90+np.floor(np.array(lat)).astype('int')) + 180 + np.floor(np.array(lon)).astype('int')
@@ -183,7 +183,7 @@ class SRTM3(object):
 
             alt[ok] = data[(ilat_, ilon_)]
 
-        alt[alt == -32768] = np.NaN
+        alt[alt == -32768] = np.nan
 
         if self.missing is None:
             assert not np.isnan(alt).any(), 'There are invalid data in SRTM'

@@ -77,7 +77,7 @@ cdef class F(NelderMeadMinimizer):
 
         self.w = watermodel
         self.C = np.zeros(Ncoef, dtype='float32')
-        self.Ratm = np.zeros(len(params.bands_read()), dtype='float32') + np.NaN
+        self.Ratm = np.zeros(len(params.bands_read()), dtype='float32') + np.nan
         self.Ncoef = Ncoef
 
         self.thres_chi2 = params.thres_chi2
@@ -410,7 +410,7 @@ cdef class PolymerMinimizer:
         self.Ncoef = params.Ncoef   # number of atmospheric coefficients
         self.f = F(self.Ncoef, watermodel, params, self.Nparams)
         self.BITMASK_INVALID = params.BITMASK_INVALID
-        self.NaN = np.NaN
+        self.NaN = np.nan
 
         self.bounds = np.array(params.bounds, dtype='float32')
         self.initial_point_1 = np.array(params.initial_point_1, dtype='float32')
@@ -484,7 +484,7 @@ cdef class PolymerMinimizer:
         cdef float[:,:,:] Rw = block.Rw
         block.Ratm = np.zeros(block.size+(block.nbands,), dtype='float32')
         cdef float[:,:,:] Ratm = block.Ratm
-        block.Rwmod = np.zeros(block.size+(block.nbands,), dtype='float32') + np.NaN
+        block.Rwmod = np.zeros(block.size+(block.nbands,), dtype='float32') + np.nan
         cdef float[:,:,:] Rwmod = block.Rwmod
         block.eps = np.zeros(block.size, dtype='float32')
         cdef float[:,:] eps = block.eps
@@ -499,16 +499,16 @@ cdef class PolymerMinimizer:
         cdef float[:,:] d_rw_x_cov
         cdef float[:,:] d_rw_x
         if self.uncertainties:
-            block.logchl_unc = np.zeros(block.size, dtype='float32') + np.NaN
+            block.logchl_unc = np.zeros(block.size, dtype='float32') + np.nan
             logchl_unc = block.logchl_unc
-            block.logfb_unc = np.zeros(block.size, dtype='float32') + np.NaN
+            block.logfb_unc = np.zeros(block.size, dtype='float32') + np.nan
             logfb_unc = block.logfb_unc
-            block.rho_w_unc = np.zeros(block.size+(block.nbands,), dtype='float32') + np.NaN
+            block.rho_w_unc = np.zeros(block.size+(block.nbands,), dtype='float32') + np.nan
             rho_w_unc = block.rho_w_unc
             Rtoa_var = block.Rtoa_var
-            d_rw_x = np.zeros((block.nbands, self.Nparams), dtype='float32') + np.NaN
-            rho_w_mod_cov = np.zeros((block.nbands, block.nbands), dtype='float32') + np.NaN
-            d_rw_x_cov = np.zeros((block.nbands, self.Nparams), dtype='float32') + np.NaN
+            d_rw_x = np.zeros((block.nbands, self.Nparams), dtype='float32') + np.nan
+            rho_w_mod_cov = np.zeros((block.nbands, block.nbands), dtype='float32') + np.nan
+            d_rw_x_cov = np.zeros((block.nbands, self.Nparams), dtype='float32') + np.nan
 
         cdef int i, j, ib, ioc, iparam
         cdef int flag_reinit = 0
@@ -522,7 +522,7 @@ cdef class PolymerMinimizer:
         
         if self.initial_points.size:
             Rwmod_fg = np.zeros((self.initial_points.shape[0], block.nbands),
-                                dtype='float32') + np.NaN
+                                dtype='float32') + np.nan
             self.init_first_guess(Rwmod_fg, cwav)
 
         #
@@ -809,7 +809,7 @@ cdef class PolymerMinimizer:
 
         # calculate glint reflectance from wind speed
         ok = (block.bitmask & self.BITMASK_INVALID) == 0
-        block.Rgli = np.zeros_like(block.wind_speed, dtype='float32') + np.NaN
+        block.Rgli = np.zeros_like(block.wind_speed, dtype='float32') + np.nan
         block.Rgli[ok] = glitter(block.wind_speed[ok],
                                  block.mus[ok], block.muv[ok],
                                  block.scattering_angle[ok], phi=None, phi_vent=None)

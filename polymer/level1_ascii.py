@@ -190,8 +190,8 @@ class Level1_ASCII(object):
         # initialize block
         block = Block(offset=offset, size=size, bands=bands)
         sl = slice(offset[0]*xsize, (offset[0]+ysize)*xsize)
-        block.wavelen = np.zeros((ysize,xsize,nbands), dtype='float32') + np.NaN
-        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
+        block.wavelen = np.zeros((ysize,xsize,nbands), dtype='float32') + np.nan
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.nan
 
         # coordinates
         block.latitude = self.get_field('LAT', sl, size)
@@ -207,7 +207,7 @@ class Level1_ASCII(object):
             block.vaa = self.get_field('VAA', sl, size)
 
         # read TOA
-        TOA = np.zeros((ysize,xsize,nbands)) + np.NaN
+        TOA = np.zeros((ysize,xsize,nbands)) + np.nan
         for iband, band in enumerate(bands):
             name = self.toa_band_names[band]
             TOA[:,:,iband] = self.csv[name][sl].values.reshape(size)
@@ -237,7 +237,7 @@ class Level1_ASCII(object):
 
             # F0
             coef = coeff_sun_earth_distance(block.jday)
-            block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
+            block.F0 = np.zeros((ysize, xsize, nbands)) + np.nan
             for iband, band in enumerate(bands):
                 block.F0[:,:,iband] = self.F0[self.F0_band_names[band]][di]
                 block.F0[:,:,iband] *= coef
@@ -247,7 +247,7 @@ class Level1_ASCII(object):
                 block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][di]
                 block.cwavelen[iband] = central_wavelength_meris[band]
         elif (self.sensor in ['OLCI']) or (self.sensor in ['MERIS'] and 'F0' in self.headers):
-            block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
+            block.F0 = np.zeros((ysize, xsize, nbands)) + np.nan
             for iband, band in enumerate(bands):
                 # F0
                 name = self.F0_band_names[band]
@@ -311,7 +311,7 @@ class Level1_ASCII(object):
                     'VIIRSN': tau_r_seadas_virrsn,
                     'VIIRSJ1': tau_r_seadas_viirsj1
                 }[self.sensor]
-            block.tau_ray = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
+            block.tau_ray = np.zeros((ysize, xsize, nbands), dtype='float32') + np.nan
             for iband, band in enumerate(bands):
                 block.tau_ray[:,:,iband] = tau_r_seadas[band] * block.surf_press/1013.
 

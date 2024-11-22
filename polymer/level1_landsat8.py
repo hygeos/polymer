@@ -277,7 +277,7 @@ class Level1_OLI(Level1_base):
         block.vaa = self.data_sensor[0,SY, SX]
 
         # TOA reflectance
-        block.Rtoa = np.zeros((ysize,xsize,nbands)) + np.NaN
+        block.Rtoa = np.zeros((ysize,xsize,nbands)) + np.nan
         for iband, band in enumerate(bands):
             M = self.attr_rescaling['REFLECTANCE_MULT_BAND_{}'.format(band_index[band])]
             A = self.attr_rescaling['REFLECTANCE_ADD_BAND_{}'.format(band_index[band])]
@@ -290,12 +290,12 @@ class Level1_OLI(Level1_base):
             data = band.ReadAsArray(xoff=self.scol+xoffset, yoff=self.sline+yoffset,
                                     win_xsize=xsize, win_ysize=ysize)
             block.Rtoa[:,:,iband] = (M*data + A)/np.cos(np.radians(block.sza))
-            block.Rtoa[:,:,iband][data == 0] = np.NaN
+            block.Rtoa[:,:,iband][data == 0] = np.nan
 
 
         # spectral info
-        block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
-        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
+        block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.nan
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.nan
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = self.wav[band]
             block.cwavelen[iband] = self.wav[band]

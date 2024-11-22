@@ -262,21 +262,21 @@ class Level1_MERIS_ENVISAT(Level1_base):
         block.detector_index = self.read_band('detector_index', size, offset)
 
         # get F0 for each band
-        block.F0 = np.zeros((ysize, xsize, nbands)) + np.NaN
+        block.F0 = np.zeros((ysize, xsize, nbands)) + np.nan
         for iband, band in enumerate(bands):
             block.F0[:,:,iband] = self.F0[self.F0_band_names[band]][block.detector_index]
         coef = coeff_sun_earth_distance(self.date.timetuple().tm_yday)
         block.F0 *= coef
 
         # calculate detector wavelength for each band
-        block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
-        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
+        block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.nan
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.nan
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = self.detector_wavelength[self.wav_band_names[band]][block.detector_index]
             block.cwavelen[iband] = central_wavelength_meris[band]
 
         # read TOA
-        Ltoa = np.zeros((ysize,xsize,nbands)) + np.NaN
+        Ltoa = np.zeros((ysize,xsize,nbands)) + np.nan
         for iband, band in enumerate(bands):
             Ltoa_ = self.read_band(self.band_names[band], size, offset)
             Ltoa[:,:,iband] = Ltoa_[:,:]

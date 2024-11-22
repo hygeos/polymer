@@ -134,7 +134,7 @@ class Level1_PRISMA:
         Ltoa_VNIR_raw = self.HCO_DATA['VNIR_Cube'][
             SY,:,SX].transpose([0, 2, 1])[:,:,len(prisma.bands)-ibands-1]
         Ltoa_VNIR = offset_vnir + Ltoa_VNIR_raw/scale_vnir
-        Ltoa_VNIR[Ltoa_VNIR>=mask_value] = np.NaN
+        Ltoa_VNIR[Ltoa_VNIR>=mask_value] = np.nan
         block.Ltoa = Ltoa_VNIR/10.  # convert W/m^2/um/sr -> mW/cm^2/um/sr
         doy = self.datetime.timetuple().tm_yday  # day of year [1-366]
         block.F0 = np.array([self.F0[b] for b in bands])*coeff_sun_earth_distance(doy)

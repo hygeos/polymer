@@ -110,7 +110,7 @@ class Level2_HDF(Level2_file):
             dtype = self.typeconv[data.dtype]
             self.sdslist[name] = self.hdf(name).create(name, dtype, self.shape)
             if dtype in [SDC.FLOAT32, SDC.FLOAT64]:
-                self.sdslist[name].setfillvalue(np.NaN)
+                self.sdslist[name].setfillvalue(np.nan)
 
             # set attributes
             for k, v in attrs.items():

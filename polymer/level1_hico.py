@@ -118,7 +118,7 @@ class Level1_HICO(object):
         ibands = np.array([bands_hico.index(b) for b in bands])
 
         # read TOA
-        block.Ltoa = np.zeros(size3) + np.NaN
+        block.Ltoa = np.zeros(size3) + np.nan
         assert self.Lt.getncattr('units') == 'W/m^2/micrometer/sr'
         block.Ltoa[:] = filled(self.Lt[SY, SX, ibands])
         block.Ltoa /= 10.  # convert W/m^2/um/sr -> mW/cm^2/um/sr
@@ -127,11 +127,11 @@ class Level1_HICO(object):
         block.bitmask = np.zeros(size, dtype='uint16')
 
         # read solar irradiance
-        block.F0 = np.zeros(size3) + np.NaN
+        block.F0 = np.zeros(size3) + np.nan
         block.F0[:,:,:] = F0_hico[None,None,ibands]
 
         # wavelength
-        block.wavelen = np.zeros(size3, dtype='float32') + np.NaN
+        block.wavelen = np.zeros(size3, dtype='float32') + np.nan
         block.wavelen[:,:,:] = wav_hico[None,None,ibands]
         block.cwavelen = wav_hico[ibands]
 

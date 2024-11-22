@@ -3,7 +3,7 @@
 
 import numpy as np
 from scipy.ndimage import convolve
-from numpy import ones, sqrt, zeros_like, NaN, isnan
+from numpy import ones, sqrt, zeros_like, nan, isnan
 from os import system
 from scipy.interpolate import RectBivariateSpline
 from scipy.ndimage import distance_transform_edt
@@ -117,7 +117,7 @@ class ListOnDisk(object):
         return self.__list
 
 
-def stdev(S, S2, N, fillv=NaN):
+def stdev(S, S2, N, fillv=nan):
     '''
     Returns standard deviation from:
         * S sum of the values
@@ -134,7 +134,7 @@ def stdev(S, S2, N, fillv=NaN):
     return R
 
 
-def stdNxN(X, N, mask=None, fillv=NaN):
+def stdNxN(X, N, mask=None, fillv=nan):
     '''
     Standard deviation over NxN blocks over array X
     '''

@@ -86,7 +86,7 @@ class GLOBE(object):
         assert lat.shape == lon.shape
 
         if altitude is None:
-            alt = np.zeros(lat.shape, dtype='float32')+np.NaN
+            alt = np.zeros(lat.shape, dtype='float32')+np.nan
         else:
             assert altitude.shape == lat.shape
             alt = altitude

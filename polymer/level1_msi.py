@@ -387,7 +387,7 @@ class Level1_MSI(Level1_base):
         raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], np.isnan(block.muv))
 
         # read RTOA
-        block.Rtoa = np.zeros((ysize,xsize,nbands)) + np.NaN
+        block.Rtoa = np.zeros((ysize,xsize,nbands)) + np.nan
         for iband, band in enumerate(bands):
             raw_data = self.read_TOA(band, size, offset)
             if iband == 0:
@@ -412,8 +412,8 @@ class Level1_MSI(Level1_base):
                           xoffset+self.scol:xoffset+self.scol+xsize,
                                          ])
 
-        block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
-        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
+        block.wavelen = np.zeros((ysize, xsize, nbands), dtype='float32') + np.nan
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.nan
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = self.wav[band]
             block.cwavelen[iband] = self.wav[band]
@@ -451,7 +451,7 @@ class Level1_MSI(Level1_base):
         block.surf_press = P0 * np.exp(-block.altitude/8000.)
 
         if not self.use_srf:
-            block.tau_ray = np.zeros((ysize, xsize, nbands), dtype='float32') + np.NaN
+            block.tau_ray = np.zeros((ysize, xsize, nbands), dtype='float32') + np.nan
             for iband, band in enumerate(bands):
                 block.tau_ray[:,:,iband] = {  # first calculations
                                               # using convolution of ROD using old version of SRF

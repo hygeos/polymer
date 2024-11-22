@@ -234,7 +234,7 @@ class Ancillary_NASA(object):
             assert 'dobson' in ds['TO3'].units.lower()
             ozone = ds['TO3'].values
             D = LUT_LatLon(ozone[::-1,:])
-            D.data.data[D.data.data == 0] = np.NaN
+            D.data.data[D.data.data == 0] = np.nan
             D.filename = {'ozone': orig_filename}
 
         D.date = parse(ds.time_coverage_start).replace(tzinfo=None)
@@ -289,7 +289,7 @@ class Ancillary_NASA(object):
             assert 'Dobson units' in sds.attributes()['units']
             ozone = sds.get().astype('float')
             D = LUT_LatLon(ozone)
-            D.data.data[D.data.data == 0] = np.NaN
+            D.data.data[D.data.data == 0] = np.nan
             D.filename = {'ozone': orig_filename}
 
         else:

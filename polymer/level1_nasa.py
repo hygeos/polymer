@@ -71,7 +71,7 @@ tau_r_seadas_viirsj1 = {
         }
 
 
-def filled(A, ok=None, fill_value=np.NaN):
+def filled(A, ok=None, fill_value=np.nan):
     """
     Returns a filled from a filled or masked array, use fill_value
     modifies ok (if provided) to take this mask into account
@@ -193,7 +193,7 @@ class Level1_NASA(Level1_base):
         vaa.set_auto_mask(False)
         block.vaa = filled(vaa[SY, SX]) % 360
 
-        block.Rtoa = np.zeros(size3) + np.NaN
+        block.Rtoa = np.zeros(size3) + np.nan
         for iband, band in enumerate(bands):
             Rtoa = filled(self.root.groups['geophysical_data'].variables[
                     'rhot_{}'.format(band)][SY, SX])
@@ -209,11 +209,11 @@ class Level1_NASA(Level1_base):
         raiseflag(block.bitmask, L2FLAGS['LAND'],
                 flags & self.flag_meanings['LAND'] != 0)
 
-        block.ozone = np.zeros_like(ok, dtype='float32')+np.NaN
+        block.ozone = np.zeros_like(ok, dtype='float32')+np.nan
         block.ozone[ok] = self.ozone[block.latitude[ok], block.longitude[ok]]
-        block.wind_speed = np.zeros_like(ok, dtype='float32')+np.NaN
+        block.wind_speed = np.zeros_like(ok, dtype='float32')+np.nan
         block.wind_speed[ok] = self.wind_speed[block.latitude[ok], block.longitude[ok]]
-        P0 = np.zeros_like(ok, dtype='float32')+np.NaN
+        P0 = np.zeros_like(ok, dtype='float32')+np.nan
         P0[ok] = self.surf_press[block.latitude[ok], block.longitude[ok]]
 
         ok &= (block.Rtoa >= 0).all(axis=-1)
@@ -233,13 +233,13 @@ class Level1_NASA(Level1_base):
         block.jday = self.date().timetuple().tm_yday
         block.month = self.date().timetuple().tm_mon
 
-        block.wavelen = np.zeros(size3, dtype='float32') + np.NaN
-        block.cwavelen = np.zeros(nbands, dtype='float32') + np.NaN
+        block.wavelen = np.zeros(size3, dtype='float32') + np.nan
+        block.cwavelen = np.zeros(nbands, dtype='float32') + np.nan
         for iband, band in enumerate(bands):
             block.wavelen[:,:,iband] = self.central_wavelength[band]
             block.cwavelen[iband] = self.central_wavelength[band]
 
-        block.tau_ray = np.zeros(size3, dtype='float32') + np.NaN
+        block.tau_ray = np.zeros(size3, dtype='float32') + np.nan
         for iband, band in enumerate(bands):
             block.tau_ray[:,:,iband] = self.tau_r_seadas[band] * block.surf_press/1013.
 

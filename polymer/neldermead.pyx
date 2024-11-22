@@ -12,13 +12,13 @@ cdef class NelderMeadMinimizer:
         Initialize the minimizer with a number of dimensions N
         '''
         self.N = N
-        self.fsim = np.zeros((N + 1,), dtype='float32') + np.NaN
+        self.fsim = np.zeros((N + 1,), dtype='float32') + np.nan
         self.sim = np.zeros((N + 1, N), dtype='float32')
         self.ssim = np.zeros((N + 1, N), dtype='float32')
         self.xbar = np.zeros(N, dtype='float32')
         self.ind = np.zeros((N + 1,), dtype='int32')
         self.y = np.zeros(N, dtype='float32')
-        self.xmin = np.zeros(N, dtype='float32') + np.NaN
+        self.xmin = np.zeros(N, dtype='float32') + np.nan
         self.xcc = np.zeros(N, dtype='float32')
         self.xc = np.zeros(N, dtype='float32')
         self.xr = np.zeros(N, dtype='float32')
@@ -26,12 +26,12 @@ cdef class NelderMeadMinimizer:
         self.center = np.zeros(N, dtype='float32')
 
         # covariance matyix calculation
-        self.cov = np.zeros((N, N), dtype='float32') + np.NaN
-        self.B = np.zeros((N, N), dtype='float32') + np.NaN
-        self.Binv = np.zeros((N, N), dtype='float32') + np.NaN
-        self.fmid = np.zeros((N+1, N+1), dtype='float32') + np.NaN
-        self.Q = np.zeros((N, N), dtype='float32') + np.NaN
-        self.Q_Binv = np.zeros((N, N), dtype='float32') + np.NaN
+        self.cov = np.zeros((N, N), dtype='float32') + np.nan
+        self.B = np.zeros((N, N), dtype='float32') + np.nan
+        self.Binv = np.zeros((N, N), dtype='float32') + np.nan
+        self.fmid = np.zeros((N+1, N+1), dtype='float32') + np.nan
+        self.Q = np.zeros((N, N), dtype='float32') + np.nan
+        self.Q_Binv = np.zeros((N, N), dtype='float32') + np.nan
 
     cdef float eval(self, float[:] x):
         raise Exception('NelderMeadMinimizer.eval() shall be implemented')

@@ -238,20 +238,20 @@ cdef class ParkRuddick(WaterModel):
         # array initialization (unique)
         #
         if self.Rw is None:
-            self.Rw = np.zeros(len(wav), dtype='float32') + np.NaN
-            self.bw = np.zeros(len(wav), dtype='float32') + np.NaN
-            self.aw = np.zeros(len(wav), dtype='float32') + np.NaN
-            self.a_bric = np.zeros(len(wav), dtype='float32') + np.NaN
-            self.e_bric = np.zeros(len(wav), dtype='float32') + np.NaN
-            self.a_star = np.zeros(len(wav), dtype='float32') + np.NaN
+            self.Rw = np.zeros(len(wav), dtype='float32') + np.nan
+            self.bw = np.zeros(len(wav), dtype='float32') + np.nan
+            self.aw = np.zeros(len(wav), dtype='float32') + np.nan
+            self.a_bric = np.zeros(len(wav), dtype='float32') + np.nan
+            self.e_bric = np.zeros(len(wav), dtype='float32') + np.nan
+            self.a_star = np.zeros(len(wav), dtype='float32') + np.nan
 
             if self.debug:
-                self.atot = np.zeros(len(wav), dtype='float32') + np.NaN
-                self.bbtot = np.zeros(len(wav), dtype='float32') + np.NaN
-                self.btot = np.zeros(len(wav), dtype='float32') + np.NaN
-                self.aCDM = np.zeros(len(wav), dtype='float32') + np.NaN
-                self.aNAP = np.zeros(len(wav), dtype='float32') + np.NaN
-                self.aphy = np.zeros(len(wav), dtype='float32') + np.NaN
+                self.atot = np.zeros(len(wav), dtype='float32') + np.nan
+                self.bbtot = np.zeros(len(wav), dtype='float32') + np.nan
+                self.btot = np.zeros(len(wav), dtype='float32') + np.nan
+                self.aCDM = np.zeros(len(wav), dtype='float32') + np.nan
+                self.aNAP = np.zeros(len(wav), dtype='float32') + np.nan
+                self.aphy = np.zeros(len(wav), dtype='float32') + np.nan
         elif wav.shape[0] != self.Rw.shape[0]:
             raise Exception('Invalid length of wav')
 
@@ -893,7 +893,7 @@ cdef class MorelMaritorena(WaterModel):
         lam = self.wav[i]
 
         if lam > 700:
-            return np.NaN
+            return np.nan
 
         Kbio = Chi * (10.**(e * logchl))
 
