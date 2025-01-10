@@ -54,7 +54,7 @@ class Level1(object):
         elif b.startswith('S') and '.L1C' in b:
             self.sensor = 'seawifs'
 
-        elif b.startswith('S2A_MSIL1C') or b.startswith('S2B_MSIL1C'):
+        elif b[:3] in ["S2A", "S2B", "S2C"]:
             self.sensor = 'msi'
 
         elif b.startswith('LC8') or b.startswith('LC08'):

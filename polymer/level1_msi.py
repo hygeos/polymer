@@ -109,6 +109,7 @@ class Level1_MSI(Level1_base):
         srf_file: spectral response function. By default, it will use:
             auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv for S2A
             auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv for S2B
+            auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2C.csv for S2C
 
         use_srf: whether to calculate the bands central wavelengths from the SRF or to use fixed ones
 
@@ -178,7 +179,7 @@ class Level1_MSI(Level1_base):
         # get platform
         self.tile_id = str(self.xmlgranule.General_Info.find('TILE_ID')[0])
         self.platform = self.tile_id[:3]
-        assert self.platform in ['S2A', 'S2B']
+        assert self.platform in ['S2A', 'S2B', 'S2C']
 
         # read image size for current resolution
         for e in self.geocoding.findall('Size'):

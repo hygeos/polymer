@@ -143,14 +143,18 @@ auxdata_viirs: auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt
 auxdata/viirs/VIIRSN_IDPSv3_RSRs.txt:
 	$(WGET) auxdata/viirs/ $(URL)/viirs/VIIRSN_IDPSv3_RSRs.txt
 
-auxdata_msi: auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv
+auxdata_msi: auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2C.csv
 	@mkdir -p auxdata/msi
 	@echo "1f815b74a94246ab99f607894c9483ec  auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv" |md5sum -c -
 	@echo "414d614f2d15125498c6d7517c4e2f76  auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv" |md5sum -c -
+	@echo "d9f01633520e322237463b9f7c22c4a7  auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2C.csv" |md5sum -c -
+	
 auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv:
 	$(WGET) auxdata/msi/ $(URL)/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2A.csv
 auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv:
 	$(WGET) auxdata/msi/ $(URL)/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2B.csv
+auxdata/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2C.csv:
+	$(WGET) auxdata/msi/ $(URL)/msi/S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_S2C.csv
 
 auxdata_oli: auxdata/oli/Ball_BA_RSR.v1.2.xlsx
 	@mkdir -p auxdata/oli
