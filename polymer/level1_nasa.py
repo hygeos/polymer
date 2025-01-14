@@ -16,7 +16,25 @@ import pandas as pd
 
 
 # Rayleigh optical thicknesses as defined in SeaDAS
-tau_r_seadas_modis = {
+# tau_r_seadas_modis = {
+#         412: 3.099E-01,
+#         443: 2.367E-01,
+#         469: 1.914E-01,
+#         488: 1.592E-01,
+#         531: 1.126E-01,
+#         547: 9.906E-02,
+#         555: 9.432E-02,
+#         645: 5.082E-02,
+#         667: 4.443E-02,
+#         678: 4.146E-02,
+#         748: 2.849E-02,
+#         859: 1.613E-02,
+#         869: 1.540E-02,
+#         1240: 3.617E-03,
+#         }
+
+# from https://oceancolor.gsfc.nasa.gov/resources/docs/rsr_tables/
+tau_r_seadas_modisa = {
         412: 3.099E-01,
         443: 2.367E-01,
         469: 1.914E-01,
@@ -30,6 +48,24 @@ tau_r_seadas_modis = {
         748: 2.849E-02,
         859: 1.613E-02,
         869: 1.540E-02,
+        1240: 3.617E-03,
+        }
+
+# from https://oceancolor.gsfc.nasa.gov/resources/docs/rsr_tables/
+tau_r_seadas_modist = {
+        412: 3.161E-01,
+        443: 2.369E-01,
+        469: 1.914E-01,
+        488: 1.603E-01,
+        531: 1.130E-01,
+        547: 9.936E-02,
+        555: 9.432E-02,
+        645: 5.083E-02,
+        667: 4.431E-02,
+        678: 4.139E-02,
+        748: 2.842E-02,
+        859: 1.613E-02,
+        869: 1.545E-02,
         1240: 3.617E-03,
         }
 
@@ -68,6 +104,20 @@ tau_r_seadas_viirsj1 = {
         1238: 3.650E-03,
         1604: 1.296E-03,
         2258: 3.285E-04,
+        }
+
+# from https://oceancolor.gsfc.nasa.gov/resources/docs/rsr_tables/
+tau_r_seadas_viirsj2 = {
+        411 : 3.205E-01,
+        445 : 2.307E-01,
+        489 : 1.573E-01,
+        556 : 9.338E-02,
+        667 : 4.307E-02,
+        746 : 2.791E-02,
+        868 : 1.528E-02,
+        1238: 3.618E-03,
+        1604: 1.266E-03,
+        2258: 3.327E-04,
         }
 
 
@@ -144,9 +194,15 @@ class Level1_NASA(Level1_base):
     def init_spectral_info(self):
         # NOTE: central wavelengths are from SeaDAS
 
-        if self.sensor == 'MODIS':
+        # if self.sensor == 'MODIS':
+        #     bands = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240,1640,2130]
+        #     self.tau_r_seadas = tau_r_seadas_modis
+        if self.sensor == 'MODISA':
             bands = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240,1640,2130]
-            self.tau_r_seadas = tau_r_seadas_modis
+            self.tau_r_seadas = tau_r_seadas_modisa
+        elif self.sensor == 'MODIST':
+            bands = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240,1640,2130]
+            self.tau_r_seadas = tau_r_seadas_modist
         elif self.sensor == 'SeaWiFS':
             self.tau_r_seadas = tau_r_seadas_seawifs
             bands = [412,443,490,510,555,670,765,865]
@@ -155,6 +211,9 @@ class Level1_NASA(Level1_base):
             bands = [410,443,486,551,671,745,862,1238,1601,2257]
         elif self.sensor == 'VIIRSJ1':
             self.tau_r_seadas = tau_r_seadas_viirsj1
+            bands = [411,445,489,556,667,746,868,1238,1604,2258]
+        elif self.sensor == 'VIIRSJ2':
+            self.tau_r_seadas = tau_r_seadas_viirsj2
             bands = [411,445,489,556,667,746,868,1238,1604,2258]
         else:
             raise Exception('Invalid sensor "{}"'.format(self.sensor))
@@ -296,6 +355,7 @@ class Level1_VIIRS(Level1_NASA):
         sensor = {
                 'Suomi-NPP':'VIIRSN',
                 'JPSS-1': 'VIIRSJ1',
+                'JPSS-2': 'VIIRSJ2',
                 }[platform]
         super(self.__class__, self).__init__(
                 filename, sensor=sensor, **kwargs)
@@ -309,6 +369,19 @@ class Level1_SeaWiFS(Level1_NASA):
 class Level1_MODIS(Level1_NASA):
     ''' Interface to MODIS Level-1C '''
     def __init__(self, filename, **kwargs):
+        root = Dataset(filename)
+        platform = root.getncattr('platform')
+        sensor = {
+                'Aqua':'MODISA',
+                'Terra': 'MODIST',
+                }[platform]
         super(self.__class__, self).__init__(
-                filename, sensor='MODIS', **kwargs)
+                filename, sensor=sensor, **kwargs)
+
+
+# class Level1_MODIS(Level1_NASA):
+#     ''' Interface to MODIS Level-1C '''
+#     def __init__(self, filename, **kwargs):
+#         super(self.__class__, self).__init__(
+#                 filename, sensor='MODIS', **kwargs)
 
