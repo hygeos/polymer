@@ -35,6 +35,7 @@ dependencies:
   - glymur
   - pyproj
   - lxml
+  - cfgrib
 
   # For Prisma:
   - h5py
