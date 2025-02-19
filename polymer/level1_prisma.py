@@ -77,7 +77,7 @@ class Level1_PRISMA:
             self.width = ecol - scol
 
         self.shape = (self.height, self.width)
-        print('Initializing HICO product of shape', self.shape)
+        print('Initializing PRISMA product of shape', self.shape)
 
         self.datetime = self.get_time()
 
