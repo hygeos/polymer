@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from .level1_safe import Level1_SAFE
+from pathlib import Path
 
-central_wavelength_olci = {
+central_wavelength_olci = {  # original center wavelength of POLYMER
         400 : 400.664  , 412 : 412.076 ,
         443 : 443.183  , 490 : 490.713 ,
         510 : 510.639  , 560 : 560.579 ,
@@ -15,6 +16,38 @@ central_wavelength_olci = {
         865 : 865.4625 , 885 : 884.3256,
         900 : 899.3162 , 940 : 939.02  ,
         1020: 1015.9766, 1375: 1375.   ,
+        1610: 1610.    , 2250: 2250.   ,
+        }
+
+# from https://oceancolor.gsfc.nasa.gov/resources/docs/rsr_tables/
+central_wavelength_olcia = {
+        400 : 399.939  , 412 : 411.854 ,
+        443 : 442.957  , 490 : 490.469 ,
+        510 : 510.445  , 560 : 560.44  ,
+        620 : 620.393  , 665 : 665.259 ,
+        674 : 674.022  , 681 : 681.563 ,
+        709 : 709.112  , 754 : 754.184 ,
+        760 : 761.726  , 764 : 764.826 ,
+        767 : 767.917  , 779 : 779.227 ,
+        865 : 865.549  , 885 : 884.336 ,
+        900 : 899.346  , 940 : 939.306 ,
+        1020: 1012.932 , 1375: 1375.   ,
+        1610: 1610.    , 2250: 2250.   ,
+        }
+
+# from https://oceancolor.gsfc.nasa.gov/resources/docs/rsr_tables/
+central_wavelength_olcib = {
+        400 : 400.33   , 412 : 411.944 ,
+        443 : 443.003  , 490 : 490.384 ,
+        510 : 510.379  , 560 : 560.357 ,
+        620 : 620.267  , 665 : 665.117 ,
+        674 : 673.864  , 681 : 681.382 ,
+        709 : 708.975  , 754 : 754.029 ,
+        760 : 761.56   , 764 : 764.692 ,
+        767 : 767.821  , 779 : 779.083 ,
+        865 : 865.391  , 885 : 884.159 ,
+        900 : 899.16   , 940 : 939.137 ,
+        1020: 1012.824 , 1375: 1375.   ,
         1610: 1610.    , 2250: 2250.   ,
         }
 
@@ -45,7 +78,16 @@ def Level1_OLCI(dirname,
     # central wavelength of the detector (for normalization)
     # (detector 374 of camera 3)
 
-    central_wavelength = central_wavelength_olci
+    fname = Path(dirname).name
+    if fname.startswith('S3A_OL_1') and fname.endswith('.SEN3'):
+        central_wavelength = central_wavelength_olcia
+        sensor = 'OLCIA'
+    elif fname.startswith('S3B_OL_1') and fname.endswith('.SEN3'):
+        central_wavelength = central_wavelength_olcib
+        sensor = 'OLCIB'
+    else:
+        central_wavelength = central_wavelength_olci
+        sensor = 'OLCI'
 
     band_names = {
         400 : 'Oa01_radiance', 412 : 'Oa02_radiance',
@@ -95,7 +137,7 @@ def Level1_OLCI(dirname,
         ancillary=ancillary,
         landmask=landmask,
         altitude=altitude,
-        sensor='OLCI',
+        sensor=sensor,
         central_wavelength=central_wavelength,
         band_names=band_names,
         band_index=band_index,
