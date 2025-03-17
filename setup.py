@@ -1,13 +1,10 @@
 from distutils.core import setup
 from distutils.extension import Extension
-from pathlib import Path
 import numpy
 from Cython.Build import cythonize
 
 
 NAME = "Polymer"
-DESC = "Polymer atmospheric correction algorithm (http://dx.doi.org/10.1364/OE.19.009783)"
-SRC_DIR = 'polymer'
 DEBUG=False
 ANNOTATE=True
 
@@ -30,7 +27,6 @@ else:
 
 setup(
     name = NAME,
-    description = DESC,
     ext_modules=cythonize(
         [Extension(
             '*',

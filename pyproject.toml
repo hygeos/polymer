@@ -1,0 +1,41 @@
+[project]
+authors = [{name = "François Steinmetz", email = "fs@hygeos.com"}]
+dependencies = []
+name = "polymer_py"
+requires-python = ">= 3.11"
+version = "v4.17-beta2-dev"
+description = "Polymer atmospheric correction algorithm (http://dx.doi.org/91364/OE.19.009783)"
+
+[build-system]
+requires = ["setuptools", "Cython"]
+build-backend = "setuptools.build_meta"
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.setuptools.package-dir]
+polymer = "polymer"
+
+[tool.pixi.tasks]
+tests = "pytest tests"
+
+[tool.pixi.dependencies]
+numpy = "*"
+pytest = "*"
+pytest-html = "*"
+pytest-xdist = "*"
+matplotlib-base = "*"
+h5py = "*"
+glymur = "*"
+pyhdf = "*"
+cython = "*"
+gcc = "*"
+gxx = "*"
+pandas = "*"
+scipy = "*"
+gdal = "*"
+cdsapi = "*"
+pyepr = "*"
+netcdf4 = "*"
+xarray = "*"
