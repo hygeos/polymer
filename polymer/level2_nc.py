@@ -114,7 +114,10 @@ class Level2_NETCDF(Level2_file):
             self.varlist[name].setncatts(attrs)
 
         # deplace NaNs by default_fillvals
-        data[np.isnan(data)] = fill_value
+        if np.issubdtype(typ, np.unsignedinteger):
+            data[data < 0] = fill_value
+        elif np.issubdtype(typ, np.floating):
+            data[np.isnan(data)] = fill_value
 
         # write block
         self.varlist[name][S[0], S[1]] = data
