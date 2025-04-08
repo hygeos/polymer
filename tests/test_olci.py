@@ -11,8 +11,9 @@ import numpy as np
 from core.env import getdir
 from . import conftest
 
+
 olci_level1 = str(
-    getdir('DIR_SAMPLES')/
+    getdir('DIR_DATA')/'sample_products'/
     'S3A_OL_1_EFR____20160720T093221_20160720T093421_20171002T063740_0119_006_307______MR1_R_NT_002.SEN3')
 
 
