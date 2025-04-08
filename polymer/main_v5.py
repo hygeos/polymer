@@ -27,6 +27,8 @@ default_output_datasets = [
     "latitude",
     "longitude",
     "rho_w",
+    "logchl",
+    "logfb",
     "Rgli",
     "Rnir",
     "flags",
@@ -64,6 +66,7 @@ def run_polymer(
         split_bands (bool): whether to split the output spectral bands into individual
             variables. Example: rho_w -> [rho_w_412, rho_w_443, ...]
         output_datasets: list of datasets to write to the output product.
+            In case of empty list, print all available datasets and exit.
         if_exists: how to deal with existing output file
             ["skip", "overwrite", "backup", "error"]
 
@@ -92,6 +95,12 @@ def run_polymer(
     # bands selection
     if output_datasets is None:
         output_datasets = default_output_datasets
+    elif output_datasets == []:
+        # print all available datasets and exit
+        with xr.set_options(display_max_rows=150):
+            print(ds)
+        raise ValueError('Please provide a non-empty list of output_datasets. '
+                         'The list of available datasets has been printed.')
     ds = ds[output_datasets]
 
     if split_bands:
