@@ -6,351 +6,16 @@ from libc.math cimport nan, exp, log, abs, sqrt, isnan
 from cpython.exc cimport PyErr_CheckSignals
 import pandas as pd
 from pathlib import Path
+import xarray as xr
 
-from polymer.neldermead cimport NelderMeadMinimizer, dot
-from polymer.water cimport WaterModel
+from polymer.neldermead cimport dot
 from polymer.glint import glitter
+from polymer.atm import atm_func, weighted_pseudoinverse, pseudoinverse
+from polymer.polymer_minimizer cimport PolymerMinimizer
 
 '''
 main polymer iterative optimization module
 '''
-
-cdef enum METRICS:
-    W_dR2_norm = 1
-    W_absdR = 2
-    W_absdR_norm = 3
-    W_absdR_Rprime = 4
-    W_absdR2_Rprime2 = 5
-    W_dR2_Rprime_noglint2 = 6
-    polymer_3_5 = 7
-    W_dR2_Rprime_noglint2_norm = 8
-
-metrics_names = {
-        'W_dR2_norm': W_dR2_norm,
-        'W_absdR': W_absdR,
-        'W_absdR_norm': W_absdR_norm,
-        'W_absdR_Rprime': W_absdR_Rprime,
-        'W_absdR2_Rprime2': W_absdR2_Rprime2,
-        'W_dR2_Rprime_noglint2': W_dR2_Rprime_noglint2,
-        'W_dR2_Rprime_noglint2_norm': W_dR2_Rprime_noglint2_norm,
-        'polymer_3_5': polymer_3_5,
-        }
-
-cdef class F(NelderMeadMinimizer):
-    '''
-    Defines the cost function minimized by Polymer
-    Inherits from NelderMeadMinimizer which provides method minimize
-    '''
-
-    cdef float[:] Rprime
-    cdef float[:] Rprime_noglint
-    cdef float[:] Tmol
-    cdef float[:] wav
-    cdef WaterModel w
-
-    # [Ratm] = [A] . [C]
-    # where A is the matrix of the polynomial exponents for each wavelength (nlam x ncoef)
-    # [C] = [pA] . [Ratm]    where [pA] is the pseudoinverse of matrix [A]  (ncoef x nlam)
-    cdef float[:,:] A
-    cdef float[:,:] pA
-    cdef int Ncoef
-    cdef float thres_chi2
-    cdef float constraint_amplitude, sigma1, sigma2
-
-    cdef float[:] C  # ci coefficients (ncoef)
-    cdef float[:] Rwmod
-    cdef float[:] Ratm
-
-    # bands
-    cdef int N_bands_corr
-    cdef int[:] i_corr_read  # index or the 'corr' bands within the 'read' bands
-    cdef int N_bands_oc
-    cdef int[:] i_oc_read  # index or the 'oc' bands within the 'read' bands
-    cdef int N_bands_read
-    cdef float[:] weights_oc
-
-    cdef METRICS metrics
-
-    def __init__(self, Ncoef, watermodel, params, *args, **kwargs):
-
-        super(self.__class__, self).__init__(*args, **kwargs)
-
-        self.w = watermodel
-        self.C = np.zeros(Ncoef, dtype='float32')
-        self.Ratm = np.zeros(len(params.bands_read()), dtype='float32') + np.nan
-        self.Ncoef = Ncoef
-
-        self.thres_chi2 = params.thres_chi2
-        self.constraint_amplitude, self.sigma2, self.sigma1 = params.constraint_logfb
-
-        self.N_bands_corr = len(params.bands_corr)
-        self.i_corr_read = np.searchsorted(
-                params.bands_read(),
-                params.bands_corr).astype('int32')
-        self.N_bands_oc = len(params.bands_oc)
-        self.i_oc_read = np.searchsorted(
-                params.bands_read(),
-                params.bands_oc).astype('int32')
-        self.N_bands_read = len(params.bands_read())
-        if params.weights_oc is None:
-            self.weights_oc = np.ones(len(params.bands_oc), dtype='float32')
-        else:
-            assert len(params.weights_oc) == len(params.bands_oc)
-            self.weights_oc = np.array(params.weights_oc, dtype='float32')
-
-        try:
-            self.metrics = metrics_names[params.metrics]
-        except KeyError:
-            raise Exception('Invalid metrics "{}"'.format(params.metrics))
-
-
-    cdef int init_pixel(self, float[:] Rprime, float[:] Rprime_noglint,
-                   float[:,:] A, float[:,:] pA,
-                   float[:] Tmol,
-                   float[:] wav, float sza, float vza, float raa, float ws) except -1:
-        '''
-        set the input parameters for the current pixel
-
-        return 1 on error, 0 on success
-        '''
-        self.Rprime = Rprime
-        self.Rprime_noglint = Rprime_noglint
-        self.wav = wav  # bands_read
-        self.pA = pA
-        self.A = A
-        self.Tmol = Tmol
-
-        return self.w.init_pixel(wav, sza, vza, raa, ws)
-
-
-    cdef float eval(self, float[:] x):
-        '''
-        Evaluate cost function for vector parameters x
-        '''
-        #
-        # calculate the. water reflectance for the current parameters
-        # (at bands_read)
-        #
-        self.Rwmod = self.w.calc_rho(x)
-
-        return self.eval_atm(x)
-
-
-    cdef float eval_atm(self, float[:] x):
-        cdef float C
-        cdef float sumsq, sumw, dR, norm
-        cdef int icorr, icorr_read
-        cdef int ioc, ioc_read, iread
-        cdef float sigma
-
-        cdef float[:] Rwmod = self.Rwmod   # TODO: don't use this intermediary variable ?
-
-        #
-        # Atmospheric fit
-        #
-        for ic in range(self.Ncoef):
-            C = 0.
-            for icorr in range(self.N_bands_corr):
-                icorr_read = self.i_corr_read[icorr]
-                C += self.pA[ic,icorr] * (self.Rprime[icorr_read]
-                                          - self.Tmol[icorr_read]*Rwmod[icorr_read])
-            self.C[ic] = C
-
-        #
-        # Calculate Ratm
-        #
-        for iread in range(self.N_bands_read):
-            self.Ratm[iread] = 0.
-            for ic in range(self.Ncoef):
-                self.Ratm[iread] += self.C[ic] * self.A[iread,ic]
-
-
-        #
-        # calculate the residual
-        #
-        sumsq = 0.
-        sumw = 0.
-        for ioc in range(self.N_bands_oc):
-            ioc_read = self.i_oc_read[ioc]
-
-            dR = self.Rprime[ioc_read]
-
-            # subtract atmospheric signal
-            dR -= self.Ratm[ioc_read]
-
-            # divide by transmission
-            dR /= self.Tmol[ioc_read]
-
-            dR -= Rwmod[ioc_read]
-
-            norm = Rwmod[ioc_read]
-            if norm < self.thres_chi2:
-                norm = self.thres_chi2
-
-            if (self.metrics == W_dR2_norm) or (self.metrics == polymer_3_5):
-                sumsq += self.weights_oc[ioc]*dR*dR/norm
-                sumw += self.weights_oc[ioc]
-
-            elif self.metrics == W_absdR:
-                sumsq += self.weights_oc[ioc]*abs(dR)
-                sumw += self.weights_oc[ioc]
-
-            elif self.metrics == W_absdR_norm:
-                sumsq += self.weights_oc[ioc]*abs(dR)/norm
-                sumw += self.weights_oc[ioc]
-
-            elif self.metrics == W_absdR_Rprime:
-                sumsq += self.weights_oc[ioc]*abs(dR/self.Rprime[ioc_read])
-                sumw += self.weights_oc[ioc]
-
-            elif self.metrics == W_absdR2_Rprime2:
-                sumsq += self.weights_oc[ioc]*(dR/self.Rprime[ioc_read])**2
-                sumw += self.weights_oc[ioc]
-
-            elif self.metrics == W_dR2_Rprime_noglint2:
-                sumsq += self.weights_oc[ioc]*(dR/self.Rprime_noglint[ioc_read])**2
-                sumw += self.weights_oc[ioc]
-
-            elif self.metrics ==  W_dR2_Rprime_noglint2_norm:
-                sumsq += self.weights_oc[ioc]*(dR/self.Rprime_noglint[ioc_read])**2
-                sumw += self.weights_oc[ioc]*(0.001/self.Rprime_noglint[ioc_read])**2
-
-        if self.metrics != polymer_3_5:
-            sumsq = sumsq/sumw
-
-        if self.constraint_amplitude != 0:
-            # sigma equals sigma1 when chl = 0.01
-            # sigma equals sigma2 when chl = 0.1
-            sigma = self.sigma1*self.sigma1/self.sigma2*exp(log(self.sigma1/self.sigma2)*x[0])
-
-            sumsq += self.constraint_amplitude * (1. - exp(-x[1]*x[1]/(2*sigma*sigma)))
-
-        return sumsq
-
-def atm_func(block, params, bands):
-    '''
-    Returns the matrix of coefficients for the atmospheric function
-    A [im0, im1, bands, ncoef]
-
-    Ratm = A.C
-    Ratm: (shp0, shp1, nlam)
-    A   : (shp0, shp1, nlam, ncoef)
-    C   : (shp0, shp1, ncoef)
-    '''
-    # bands for atmospheric fit
-    Nlam = len(bands)
-    assert Nlam > 0
-    shp = block.size
-    Ncoef = params.Ncoef   # number of polynomial coefficients
-    assert Ncoef > 0
-
-    # correction bands wavelengths
-    idx = np.searchsorted(params.bands_read(), bands)
-    # transpose: move the wavelength dimension to the end
-    lam = block.wavelen[:,:,idx]
-
-    # initialize the matrix for inversion
-
-    taum = 0.00877*((np.array(block.bands)[idx]/1000.)**(-4.05))
-    Rgli0 = 0.02
-    T0 = np.exp(-taum*((1-0.5*np.exp(-block.Rgli/Rgli0))*block.air_mass)[:,:,None])
-
-    if 'veg' in params.atm_model:
-        veg = pd.read_csv(
-            Path(params.dir_common)/'vegetation.grass.avena.fatua.vswir.vh352.ucsb.asd.spectrum.txt',
-            skiprows=21,
-            sep=None,
-            names=['wav_um', 'r_percent'],
-            index_col=0,
-            engine='python').to_xarray()
-        veg_interpolated = (veg.r_percent/100.).interp(wav_um=lam.ravel()/1000.).values.reshape(lam.shape)
-
-    if params.atm_model == 'T0,-1,-4':
-        assert Ncoef == 3
-        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
-        A[:,:,:,0] = T0*(lam/1000.)**0.
-        A[:,:,:,1] = (lam/1000.)**-1.
-        A[:,:,:,2] = (lam/1000.)**-4.
-    elif params.atm_model == 'T0,-1,Rmol':
-        assert Ncoef == 3
-        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
-        A[:,:,:,0] = T0*(lam/1000.)**0.
-        A[:,:,:,1] = (lam/1000.)**-1.
-        A[:,:,:,2] = block.Rmol[:,:,idx]
-    elif params.atm_model == 'T0,-1':
-        assert Ncoef == 2
-        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
-        A[:,:,:,0] = T0*(lam/1000.)**0.
-        A[:,:,:,1] = (lam/1000.)**-1.
-    elif params.atm_model == 'T0,-2':
-        assert Ncoef == 2
-        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
-        A[:,:,:,0] = T0*(lam/1000.)**0.
-        A[:,:,:,1] = (lam/1000.)**-2.
-    elif params.atm_model == 'T0,-1,veg':
-        assert Ncoef == 3
-        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
-        A[:,:,:,0] = T0*(lam/1000.)**0.
-        A[:,:,:,1] = (lam/1000.)**-1.
-        A[:,:,:,2] = block.Tmol[:,:,idx] * veg_interpolated# * (lam/1000)**-4.
-    elif params.atm_model == 'T0,-1,-4,veg':
-        assert Ncoef == 4
-        A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
-        A[:,:,:,0] = T0*(lam/1000.)**0.
-        A[:,:,:,1] = (lam/1000.)**-1.
-        A[:,:,:,2] = (lam/1000.)**-4.
-        A[:,:,:,3] = block.Tmol[:,:,idx] * veg_interpolated# * (lam/1000)**-4.
-    else:
-        raise Exception('Invalid atmospheric model "{}"'.format(params.atm_model))
-
-    return A
-
-def pseudoinverse(A):
-    '''
-    Calculate the pseudoinverse of array A over the last 2 axes
-    (broadcasting the first axes)
-    A* = ((A'.A)^(-1)).A'
-    where X' is the transpose of X and X^-1 is the inverse of X
-
-    shapes: A:  [...,i,j]
-            A*: [...,j,i]
-    '''
-
-    # B = A'.A (with broadcasting)
-    B = np.einsum('...ji,...jk->...ik', A, A)
-
-    # check
-    # if B.ndim == 4:
-        # assert np.allclose(B[0,0,:,:], A[0,0,:,:].transpose().dot(A[0,0,:,:]), equal_nan=True)
-        # assert np.allclose(B[-1,0,:,:], A[-1,0,:,:].transpose().dot(A[-1,0,:,:]), equal_nan=True)
-
-    # (B^-1).A' (with broadcasting)
-    pA = np.einsum('...ij,...kj->...ik', inv(B), A)
-
-    # check
-    # if B.ndim == 4:
-        # assert np.allclose(pA[0,0], inv(B[0,0,:,:]).dot(A[0,0,:,:].transpose()), equal_nan=True)
-        # assert np.allclose(pA[-1,0], inv(B[-1,0,:,:]).dot(A[-1,0,:,:].transpose()), equal_nan=True)
-
-    return pA
-
-
-def weighted_pseudoinverse(A, W):
-    '''
-    Calculate the weighted pseudoinverse of array A over the last 2 axes
-    (broadcasting the first axes)
-    W is the weight matrix (diagonal)
-    A* = ((A'.W.A)^(-1)).A'.W
-    '''
-    assert W.dtype == 'float32'
-
-    # A'.W.A
-    B = np.einsum('...ji,...jk,...kl->...il', A, W, A)
-
-    # (B^-1).A'.W
-    pA = np.einsum('...ij,...kj,...kl->...il', inv(B), A, W)
-
-    return pA
 
 
 cdef int in_bounds(float[:] x, float[:,:] bounds):
@@ -372,9 +37,10 @@ cdef int raiseflag(unsigned short[:,:] bitmask, int i, int j, int flag):
 cdef int testflag(unsigned short[:,:] bitmask, int i, int j, int flag):
     return bitmask[i,j] & flag != 0
 
-cdef class PolymerMinimizer:
 
-    cdef F f
+cdef class PolymerSolver:
+
+    cdef PolymerMinimizer f
     cdef int Nparams
     cdef int BITMASK_INVALID
     cdef float NaN
@@ -408,7 +74,7 @@ cdef class PolymerMinimizer:
 
         self.Nparams = len(params.initial_step)
         self.Ncoef = params.Ncoef   # number of atmospheric coefficients
-        self.f = F(self.Ncoef, watermodel, params, self.Nparams)
+        self.f = PolymerMinimizer(self.Ncoef, watermodel, params, self.Nparams)
         self.BITMASK_INVALID = params.BITMASK_INVALID
         self.NaN = np.nan
 
@@ -441,74 +107,74 @@ cdef class PolymerMinimizer:
         self.N_bands_read = len(params.bands_read())
 
 
-    cdef int loop(self, block,
+    cdef loop(self,
+              float[:,:,:] Rprime,
+              float[:,:,:] Rprime_noglint,
+              float[:,:] Rnir,
+              float[:,:,:] Tmol,
+              float[:,:,:] wav,
+              float[:] cwav,
+              float[:,:] sza,
+              float[:,:] vza,
+              float[:,:] raa,
+              double[:,:] wind_speed,  # FIXME: should be float. Fix issue with interpolation
+              unsigned short[:,:] bitmask,
               float[:,:,:,:] A,
-              float[:,:,:,:] pA
-              ) except -1:
+              float[:,:,:,:] pA,
+              float[:,:,:] Rtoa_var=None,
+              ):
         '''
         cython method which does the main pixel loop
         (over a block)
         '''
 
-        cdef float[:,:,:] Rprime = block.Rprime
-        cdef float[:,:,:] Rprime_noglint = block.Rprime_noglint
-        cdef float[:,:] Rnir = block.Rnir
-        cdef float[:,:,:] Tmol = block.Tmol
-        cdef float[:,:,:] wav = block.wavelen
-        cdef float[:] cwav = block.cwavelen
-        cdef float[:,:] sza = block.sza
-        cdef float[:,:] vza = block.vza
-        cdef float[:,:] raa = block.raa
-        cdef float[:,:] wind_speed = block.wind_speed.astype('float32')
-
-        cdef unsigned short[:,:] bitmask = block.bitmask
         cdef int Nx = Rprime.shape[0]
         cdef int Ny = Rprime.shape[1]
+        cdef int block_nbands = Rprime.shape[2]
         cdef int rw_neg
+        block_size = (Nx, Ny)
 
         cdef float[:] x0 = np.zeros(self.Nparams, dtype='float32')
         x0[:] = self.initial_point_1[:]
 
         # create the output datasets
-        block.logchl = np.zeros(block.size, dtype='float32')
-        cdef float[:,:] logchl = block.logchl
-        block.fa = np.zeros(block.size, dtype='float32')
-        cdef float[:,:] fa = block.fa
-        block.logfb = np.zeros(block.size, dtype='float32')
-        cdef float[:,:] logfb = block.logfb
-        block.SPM = np.zeros(block.size, dtype='float32')
-        cdef float[:,:] SPM = block.SPM
-        block.niter = np.zeros(block.size, dtype='uint32')
-        cdef unsigned int[:,:] niter = block.niter
-        block.Rw = np.zeros(block.size+(block.nbands,), dtype='float32')
-        cdef float[:,:,:] Rw = block.Rw
-        block.Ratm = np.zeros(block.size+(block.nbands,), dtype='float32')
-        cdef float[:,:,:] Ratm = block.Ratm
-        block.Rwmod = np.zeros(block.size+(block.nbands,), dtype='float32') + np.nan
-        cdef float[:,:,:] Rwmod = block.Rwmod
-        block.eps = np.zeros(block.size, dtype='float32')
-        cdef float[:,:] eps = block.eps
-        block.Ci = np.zeros(block.size+(self.Ncoef,), dtype='float32')
-        cdef float[:,:,:] Ci = block.Ci
+        block_logchl = np.zeros(block_size, dtype='float32')
+        cdef float[:,:] logchl = block_logchl
+        block_fa = np.zeros(block_size, dtype='float32')
+        cdef float[:,:] fa = block_fa
+        block_logfb = np.zeros(block_size, dtype='float32')
+        cdef float[:,:] logfb = block_logfb
+        block_SPM = np.zeros(block_size, dtype='float32')
+        cdef float[:,:] SPM = block_SPM
+        block_niter = np.zeros(block_size, dtype='uint32')
+        cdef unsigned int[:,:] niter = block_niter
+        block_Rw = np.zeros(block_size+(block_nbands,), dtype='float32')
+        cdef float[:,:,:] Rw = block_Rw
+        block_Ratm = np.zeros(block_size+(block_nbands,), dtype='float32')
+        cdef float[:,:,:] Ratm = block_Ratm
+        block_Rwmod = np.zeros(block_size+(block_nbands,), dtype='float32') + np.nan
+        cdef float[:,:,:] Rwmod = block_Rwmod
+        block_eps = np.zeros(block_size, dtype='float32')
+        cdef float[:,:] eps = block_eps
+        block_Ci = np.zeros(block_size+(self.Ncoef,), dtype='float32')
+        cdef float[:,:,:] Ci = block_Ci
 
         cdef float[:,:] logchl_unc
         cdef float[:,:] logfb_unc
         cdef float[:,:,:] rho_w_unc
-        cdef float[:,:,:] Rtoa_var
         cdef float[:,:] rho_w_mod_cov
         cdef float[:,:] d_rw_x_cov
         cdef float[:,:] d_rw_x
         if self.uncertainties:
-            block.logchl_unc = np.zeros(block.size, dtype='float32') + np.nan
-            logchl_unc = block.logchl_unc
-            block.logfb_unc = np.zeros(block.size, dtype='float32') + np.nan
-            logfb_unc = block.logfb_unc
-            block.rho_w_unc = np.zeros(block.size+(block.nbands,), dtype='float32') + np.nan
-            rho_w_unc = block.rho_w_unc
-            Rtoa_var = block.Rtoa_var
-            d_rw_x = np.zeros((block.nbands, self.Nparams), dtype='float32') + np.nan
-            rho_w_mod_cov = np.zeros((block.nbands, block.nbands), dtype='float32') + np.nan
-            d_rw_x_cov = np.zeros((block.nbands, self.Nparams), dtype='float32') + np.nan
+            block_logchl_unc = np.zeros(block_size, dtype='float32') + np.nan
+            logchl_unc = block_logchl_unc
+            block_logfb_unc = np.zeros(block_size, dtype='float32') + np.nan
+            logfb_unc = block_logfb_unc
+            block_rho_w_unc = np.zeros(block_size+(block_nbands,), dtype='float32') + np.nan
+            rho_w_unc = block_rho_w_unc
+            d_rw_x = np.zeros((block_nbands, self.Nparams), dtype='float32') + np.nan
+            rho_w_mod_cov = np.zeros((block_nbands, block_nbands), dtype='float32') + np.nan
+            d_rw_x_cov = np.zeros((block_nbands, self.Nparams), dtype='float32') + np.nan
 
         cdef int i, j, ib, ioc, iparam
         cdef int flag_reinit = 0
@@ -521,7 +187,7 @@ cdef class PolymerMinimizer:
 
         
         if self.initial_points.size:
-            Rwmod_fg = np.zeros((self.initial_points.shape[0], block.nbands),
+            Rwmod_fg = np.zeros((self.initial_points.shape[0], block_nbands),
                                 dtype='float32') + np.nan
             self.init_first_guess(Rwmod_fg, cwav)
 
@@ -738,6 +404,19 @@ cdef class PolymerMinimizer:
             # (allowing to interrupt execution)
             PyErr_CheckSignals()
 
+        return (
+            block_logchl,
+            block_fa,
+            block_logfb,
+            block_SPM,
+            block_niter,
+            block_Rw,
+            block_Ratm,
+            block_Rwmod,
+            block_eps,
+            block_Ci,
+        )
+
 
     cdef int init_first_guess(self,
                               float[:,:] Rwmod_fg,
@@ -829,7 +508,33 @@ cdef class PolymerMinimizer:
         # the model coefficients, at bands_read
         A = atm_func(block, self.params, self.params.bands_read())
 
-        self.loop(block, A, pA)
+        (
+            block.logchl,
+            block.fa,
+            block.logfb,
+            block.SPM,
+            block.niter,
+            block.Rw,
+            block.Ratm,
+            block.Rwmod,
+            block.eps,
+            block.Ci,
+        ) = self.loop(
+            block.Rprime,
+            block.Rprime_noglint,
+            block.Rnir,
+            block.Tmol,
+            block.wavelen,
+            block.cwavelen,
+            block.sza,
+            block.vza,
+            block.raa,
+            block.wind_speed.astype('float64'),
+            block.bitmask,
+            A,
+            pA,
+            block.Rtoa_var if self.uncertainties else None,
+            )
 
     def visu_costfunction(self):
         '''
@@ -866,3 +571,31 @@ cdef class PolymerMinimizer:
             if self.f.size() < self.size_end_iter:
                 break
 
+    def apply(self, ds: xr.Dataset):
+        raise NotImplementedError
+        # ds['rho_w'] = xr.apply_ufunc(
+        #     self.loop,
+        #     ds.Rprime,
+        #     ds.Rprime_noglint,
+        #     ds.rho_r,
+        #     ds.Tmol,
+        #     ds.wav.broadcast_like(ds.Rprime),  # can we avoid that when not necessary ?
+        #     ds.Rgli,
+        #     ds.sza,
+        #     ds.vza,
+        #     ds.raa,
+        #     1/ds.mus + 1/ds.muv,
+        #     ds.horizontal_wind.astype('float64'),  # TODO: avoid that (see issue with interpolation)
+        #     ds.flags,
+        #     dask='parallelized',
+        #     input_core_dims=[
+        #         ['bands'],
+        #         ['bands'],
+        #         ['bands'],
+        #         ['bands'],
+        #         ['bands'],
+        #         [], [], [], [], [], [], [],
+        #         ],
+        #     output_core_dims=[['bands']],
+        #     output_dtypes=['float32'],
+        # )

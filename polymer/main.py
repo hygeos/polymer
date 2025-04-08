@@ -13,7 +13,7 @@ from multiprocessing import Pool
 from datetime import datetime
 from polymer.params import Params
 from polymer.bodhaine import rod
-from polymer.polymer_main import PolymerMinimizer
+from polymer.polymer_main import PolymerSolver
 from polymer.water import ParkRuddick, MorelMaritorena
 from warnings import warn
 from polymer.uncertainties import toa_uncertainties
@@ -59,7 +59,7 @@ class InitCorr(object):
         else:
             raise Exception('Invalid water model "{}"'.format(self.params.water_model))
 
-        return PolymerMinimizer(watermodel, self.params)
+        return PolymerSolver(watermodel, self.params)
 
 
     def preprocessing(self, block):
