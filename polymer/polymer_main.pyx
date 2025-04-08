@@ -110,17 +110,18 @@ cdef class PolymerSolver:
     cdef loop(self,
               float[:,:,:] Rprime,
               float[:,:,:] Rprime_noglint,
+              float[:,:,:] Rmol,
               float[:,:] Rnir,
+              float[:,:] Rgli,
               float[:,:,:] Tmol,
               float[:,:,:] wav,
               float[:] cwav,
               float[:,:] sza,
               float[:,:] vza,
               float[:,:] raa,
+              float[:,:] air_mass,
               double[:,:] wind_speed,  # FIXME: should be float. Fix issue with interpolation
               unsigned short[:,:] bitmask,
-              float[:,:,:,:] A,
-              float[:,:,:,:] pA,
               float[:,:,:] Rtoa_var=None,
               ):
         '''
@@ -190,6 +191,31 @@ cdef class PolymerSolver:
             Rwmod_fg = np.zeros((self.initial_points.shape[0], block_nbands),
                                 dtype='float32') + np.nan
             self.init_first_guess(Rwmod_fg, cwav)
+
+        # Atmospheric model calculation
+        # at bands_corr
+        A = atm_func(wav,
+                     Rmol,
+                     Tmol,
+                     Rgli,
+                     air_mass,
+                     self.params,
+                     self.params.bands_corr)
+    
+        if self.params.weights_corr is None:
+            pA = pseudoinverse(A)
+        else:
+            pA = weighted_pseudoinverse(
+                    A, np.diag(self.params.weights_corr).astype('float32'))
+
+        # the model coefficients, at bands_read
+        A = atm_func(wav,
+                     Rmol,
+                     Tmol,
+                     Rgli,
+                     air_mass,
+                     self.params,
+                     self.params.bands_read())
 
         #
         # pixel loop
@@ -496,30 +522,6 @@ cdef class PolymerSolver:
         if self.params.partial >= 1:
             return
 
-        # calculate the atmospheric inversion coefficients
-        # at bands_corr
-        A = atm_func(block.wavelen,
-                     block.Rmol,
-                     block.Tmol,
-                     block.Rgli,
-                     block.air_mass,
-                     self.params,
-                     self.params.bands_corr)
-        if self.params.weights_corr is None:
-            pA = pseudoinverse(A)
-        else:
-            pA = weighted_pseudoinverse(
-                    A, np.diag(self.params.weights_corr).astype('float32'))
-
-        # the model coefficients, at bands_read
-        A = atm_func(block.wavelen,
-                     block.Rmol,
-                     block.Tmol,
-                     block.Rgli,
-                     block.air_mass,
-                     self.params,
-                     self.params.bands_read())
-
         (
             block.logchl,
             block.fa,
@@ -534,17 +536,18 @@ cdef class PolymerSolver:
         ) = self.loop(
             block.Rprime,
             block.Rprime_noglint,
+            block.Rmol,
             block.Rnir,
+            block.Rgli,
             block.Tmol,
             block.wavelen,
             block.cwavelen,
             block.sza,
             block.vza,
             block.raa,
+            1/block.mus + 1/block.muv,  # air mass
             block.wind_speed.astype('float64'),
             block.bitmask,
-            A,
-            pA,
             block.Rtoa_var if self.uncertainties else None,
             )
 
