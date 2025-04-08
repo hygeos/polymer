@@ -498,7 +498,13 @@ cdef class PolymerSolver:
 
         # calculate the atmospheric inversion coefficients
         # at bands_corr
-        A = atm_func(block, self.params, self.params.bands_corr)
+        A = atm_func(block.wavelen,
+                     block.Rmol,
+                     block.Tmol,
+                     block.Rgli,
+                     block.air_mass,
+                     self.params,
+                     self.params.bands_corr)
         if self.params.weights_corr is None:
             pA = pseudoinverse(A)
         else:
@@ -506,7 +512,13 @@ cdef class PolymerSolver:
                     A, np.diag(self.params.weights_corr).astype('float32'))
 
         # the model coefficients, at bands_read
-        A = atm_func(block, self.params, self.params.bands_read())
+        A = atm_func(block.wavelen,
+                     block.Rmol,
+                     block.Tmol,
+                     block.Rgli,
+                     block.air_mass,
+                     self.params,
+                     self.params.bands_read())
 
         (
             block.logchl,

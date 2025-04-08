@@ -6,7 +6,11 @@ from pathlib import Path
 
 
 def atm_func(
-        block,
+        wav,
+        Rmol,
+        Tmol,
+        Rgli,
+        air_mass,
         params,
         bands):
     '''
@@ -25,24 +29,35 @@ def atm_func(
     Rgli: sun glint reflectance (x, y)
     air_mass (x, y)
     bands: spectral bands used in the model (nlam)
+
+    # TODO: apply band subsetting upstream ?
     '''
     # bands for atmospheric fit
     Nlam = len(bands)
-    assert Nlam > 0
-    shp = block.size
+    assert Nlam
+    shp = Rgli.shape
+    assert wav.shape[-1] == len(params.bands_read())
     Ncoef = params.Ncoef   # number of polynomial coefficients
     assert Ncoef > 0
+
+    # convert the memoryviews to numpy arrays
+    wav = np.array(wav)
+    Rmol = np.array(Rmol)
+    Tmol = np.array(Tmol)
+    Rgli = np.array(Rgli)
+    air_mass = np.array(air_mass)
 
     # correction bands wavelengths
     idx = np.searchsorted(params.bands_read(), bands)
     # transpose: move the wavelength dimension to the end
-    lam = block.wavelen[:,:,idx]
+    lam = wav[:,:,idx]
 
     # initialize the matrix for inversion
 
-    taum = 0.00877*((np.array(block.bands)[idx]/1000.)**(-4.05))
+    # FIXME: should use the exact wavelength
+    taum = 0.00877*((np.array(params.bands_read())[idx]/1000.)**(-4.05))
     Rgli0 = 0.02
-    T0 = np.exp(-taum*((1-0.5*np.exp(-block.Rgli/Rgli0))*block.air_mass)[:,:,None])
+    T0 = np.exp(-taum*((1-0.5*np.exp(-Rgli/Rgli0))*air_mass)[:,:,None])
 
     if 'veg' in params.atm_model:
         veg = pd.read_csv(
@@ -65,7 +80,7 @@ def atm_func(
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
         A[:,:,:,0] = T0*(lam/1000.)**0.
         A[:,:,:,1] = (lam/1000.)**-1.
-        A[:,:,:,2] = block.Rmol[:,:,idx]
+        A[:,:,:,2] = Rmol[:,:,idx]
     elif params.atm_model == 'T0,-1':
         assert Ncoef == 2
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
@@ -81,14 +96,14 @@ def atm_func(
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
         A[:,:,:,0] = T0*(lam/1000.)**0.
         A[:,:,:,1] = (lam/1000.)**-1.
-        A[:,:,:,2] = block.Tmol[:,:,idx] * veg_interpolated# * (lam/1000)**-4.
+        A[:,:,:,2] = Tmol[:,:,idx] * veg_interpolated# * (lam/1000)**-4.
     elif params.atm_model == 'T0,-1,-4,veg':
         assert Ncoef == 4
         A = np.zeros((shp[0], shp[1], Nlam, Ncoef), dtype='float32')
         A[:,:,:,0] = T0*(lam/1000.)**0.
         A[:,:,:,1] = (lam/1000.)**-1.
         A[:,:,:,2] = (lam/1000.)**-4.
-        A[:,:,:,3] = block.Tmol[:,:,idx] * veg_interpolated# * (lam/1000)**-4.
+        A[:,:,:,3] = Tmol[:,:,idx] * veg_interpolated# * (lam/1000)**-4.
     else:
         raise Exception('Invalid atmospheric model "{}"'.format(params.atm_model))
 
