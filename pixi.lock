@@ -258,13 +258,13 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/3b/00/2344469e2084fb287c2e0b57b72910309874c3245463acd6cf5e3db69324/appdirs-1.4.4-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/e9/da/824b92d9942f4e472702488857914bdd50f73021efea15b4cad9aca8ecef/click_plugins-1.1.1-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/73/86/43fa9f15c5b9fb6e82620428827cd3c284aa933431405d1bcf5231ae3d3e/cligj-0.7.2-py3-none-any.whl
-      - pypi: git+https://github.com/hygeos/core#a6a125a260ffbedae15308363295c567db2db2d5
+      - pypi: git+https://github.com/hygeos/core#550f6c71c5934f2fa31045376fd8d00ecff49845
       - pypi: git+https://github.com/hygeos/eoread#4cf967baf583aedf1b46253ba697d3501d5b9ad1
-      - pypi: git+https://github.com/hygeos/eotools#256b747f0a92e3cc8704eb733154e925e1c7a496
+      - pypi: git+https://github.com/hygeos/eotools#7edc25f1f1a37e4be9bfc5b4a1ec940702c71fba
       - pypi: https://files.pythonhosted.org/packages/ed/1d/409e819e00aed51f3e23df570e219621c0d64c458c9b8df4e7ae1c27e23d/eumdac-3.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b9/5c/a3d95dc1ec6cdeb032d789b552ecc76effa3557ea9186e1566df6aac18df/fs-2.4.16-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b2/fc/e73747f3dd31906bfbb78c76069f67d91525fefa28492a1f949cbb4a3c7f/h5netcdf-1.6.1-py3-none-any.whl
-      - pypi: git+https://github.com/hygeos/luts.git#5c363a7d114e4eed2d3aac5c5d9c2247a81ea418
+      - pypi: git+https://github.com/hygeos/luts.git#03fac1ea8026425491119d9de04963ff7b8957ae
       - pypi: https://files.pythonhosted.org/packages/c3/c0/c33c8792c3e50193ef55adb95c1c3c2786fe281123291c2dbf0eaab95a6f/pyotp-2.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/71/d4/d9440ff5da6547ac2587f93a9af7e779be0aed78e1f0734dede94e440f6b/pysolar-0.13-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1e/18/98a99ad95133c6a6e2005fe89faedf294a748bd5dc803008059409ac9b1e/python_dotenv-1.1.0-py3-none-any.whl
@@ -897,7 +897,7 @@ packages:
   - pkg:pypi/contourpy?source=hash-mapping
   size: 276332
   timestamp: 1731428454756
-- pypi: git+https://github.com/hygeos/core#a6a125a260ffbedae15308363295c567db2db2d5
+- pypi: git+https://github.com/hygeos/core#550f6c71c5934f2fa31045376fd8d00ecff49845
   name: core
   version: 1.0.28
   requires_dist:
@@ -1059,7 +1059,7 @@ packages:
   - pysolar
   - fs
   requires_python: '>=3.11'
-- pypi: git+https://github.com/hygeos/eotools#256b747f0a92e3cc8704eb733154e925e1c7a496
+- pypi: git+https://github.com/hygeos/eotools#7edc25f1f1a37e4be9bfc5b4a1ec940702c71fba
   name: eotools
   version: 0.1.dev0
   requires_dist:
@@ -2600,7 +2600,7 @@ packages:
   - pkg:pypi/locket?source=hash-mapping
   size: 8250
   timestamp: 1650660473123
-- pypi: git+https://github.com/hygeos/luts.git#5c363a7d114e4eed2d3aac5c5d9c2247a81ea418
+- pypi: git+https://github.com/hygeos/luts.git#03fac1ea8026425491119d9de04963ff7b8957ae
   name: luts
   version: 1.0.2
   requires_dist:

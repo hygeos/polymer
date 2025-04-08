@@ -162,7 +162,10 @@ def run_polymer_dataset(ds: xr.Dataset, ancillary=None, **kwargs) -> xr.Dataset:
         method="map_blocks"
     )
 
-    Rayleigh_correction(ds).apply(method='map_blocks')
+    Rayleigh_correction(
+        ds,
+        bitmask_invalid=params.BITMASK_INVALID,
+    ).apply(method="map_blocks")
 
     ds['Rnir'] = ds['Rprime_noglint'].sel(bands=params.band_cloudmask)
 
