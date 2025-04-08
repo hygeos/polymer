@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Literal, Optional, Union
 
 import xarray as xr
 from core.interpolate import Nearest, interp
@@ -23,39 +23,58 @@ from polymer.water import ParkRuddick
 from polymer.params import Params
 
 
+default_output_datasets = [
+    "latitude",
+    "longitude",
+    "rho_w",
+    "Rgli",
+    "Rnir",
+    "flags",
+]
+
+
 def run_polymer(
     level1: Union[Path, xr.Dataset],
     *,
     roi: Optional[Dict] = None,
+    file_out: Optional[Path] = None,
     ext: str = ".polymer.nc",
     dir_out: Optional[Path] = None,
-    file_out: Optional[Path] = None,
-    scheduler='sync',
-    split_bands=True,
+    scheduler: str = "sync",
+    split_bands: bool = True,
+    output_datasets: Optional[list] = None,
+    if_exists: Literal["skip", "overwrite", "backup", "error"] = "error",
     **kwargs,
-):
+) -> Path:
     """
     Polymer: main function at file level
 
-    Input:
-        `level1` is either a Path or a xr.Dataset
-    
     Arguments:
+        level1 is either a Path or a xr.Dataset (read with the  eoread library)
         roi: dictionary such as
              {'x': slice(xmin, xmax, xstep), # or [xmin, xmax, xstep]
               'y': slice(ymin, ymax, ystep)}
+        file_out (Path, optional): path to the output file. If not provided, use the
+            two next arguments to determine the output file.
+        ext (str): output filename extension
+        dir_out (Path, optional): path to the output directory
+        scheduler (str):
+            "sync" for single-threaded
+            "threads" for parallel processing (multiple threads)
+        split_bands (bool): whether to split the output spectral bands into individual
+            variables. Example: rho_w -> [rho_w_412, rho_w_443, ...]
+        output_datasets: list of datasets to write to the output product.
+        if_exists: how to deal with existing output file
+            ["skip", "overwrite", "backup", "error"]
 
-    Output:
-        Either provide `file_out`or `dir_out`
+    Returns:
+        The path to the output product.
     """
     if file_out is None:
         # determine file_out from dir_out and ext
         assert dir_out is not None
         file_out = dir_out / (level1.name + ext)
     assert file_out is not None
-
-    if file_out.exists():
-        raise FileExistsError(f"{file_out} exists")
 
     if isinstance(level1, Path):
         ds = Level1(level1)
@@ -70,29 +89,18 @@ def run_polymer(
     # Run polymer main function
     ds = run_polymer_dataset(ds, **kwargs)
 
-    # Add Rtoa865
-    # assert "Rnir" not in ds
-    # ds['Rnir'] = ds.Rtoa.sel(bands=kwargs['band_nir'])
-
     # bands selection
-    output_datasets = [
-        "latitude",
-        "longitude",
-        # "Rprime",
-        "rho_w",
-        # # "Ratm",
-        # "Rtoa",
-        "Rgli",
-        "Rnir",
-        "flags",
-    ]  # FIXME: should not be hardcoded
+    if output_datasets is None:
+        output_datasets = default_output_datasets
     ds = ds[output_datasets]
 
     if split_bands:
         ds = split(ds, 'bands')
 
     with dask_config.set(scheduler=scheduler):
-        to_netcdf(ds, filename=file_out)
+        to_netcdf(ds, filename=file_out, if_exists=if_exists)
+    
+    return file_out
 
 
 def init(ds: xr.Dataset, srf: xr.Dataset, params, ancillary=None):
@@ -137,7 +145,7 @@ def run_polymer_dataset(ds: xr.Dataset, ancillary=None, **kwargs) -> xr.Dataset:
         # empty dictionary when srfs are not provided
         srf = xr.Dataset()
 
-    params = Params(ds.sensor, **kwargs)
+    params = Params(getattr(ds, 'sensor', None), **kwargs)
 
     init(ds, srf, params, ancillary=ancillary)
     
