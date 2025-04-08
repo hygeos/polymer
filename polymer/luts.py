@@ -432,6 +432,7 @@ class LUT(object):
                 interpolate = True
                 inf = k.astype('int')
                 inf[inf == self.data.shape[i]-1] -= 1
+                inf[np.isfinite(k) == 0] = 0
                 x = k-inf
                 if k.ndim > 0:
                     x = x.reshape(shp_res)
