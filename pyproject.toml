@@ -5,7 +5,7 @@ requires-python = ">= 3.11"
 version = "v4.17-beta2-dev"
 description = "Polymer atmospheric correction algorithm (http://dx.doi.org/91364/OE.19.009783)"
 dependencies = [
-    "numpy",
+    "numpy<2",
     "h5py",
     "glymur",
     "pyhdf",
@@ -19,6 +19,8 @@ dependencies = [
     "pyproj",
     "xarray",
     "core @ git+https://github.com/hygeos/core",
+    "eoread @ git+https://github.com/hygeos/eoread",
+    "eotools @ git+https://github.com/hygeos/eotools",
 ]
 
 [project.scripts]
@@ -43,7 +45,7 @@ polymer = "polymer"
 tests = "pytest tests"
 
 [tool.pixi.dependencies]
-numpy = "*"
+numpy = "<2"
 pytest = "*"
 pytest-html = "*"
 pytest-xdist = "*"
@@ -62,4 +64,6 @@ pyproj = "*"
 pyepr = "*"
 netcdf4 = "*"
 xarray = "*"
+pint-xarray = "*"
+cf-xarray = "*"
 dask = "*"
