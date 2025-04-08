@@ -90,7 +90,7 @@ class InitCorr(object):
         # Add TOA uncertainties
         #
         if self.params.uncertainties:
-            toa_uncertainties(block, self.params)
+            block.Rtoa_var = toa_uncertainties(block, self.params.dir_common)
 
 
     def convert_reflectance(self, block):
