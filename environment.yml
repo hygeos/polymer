@@ -36,6 +36,7 @@ dependencies:
   - pyproj
   - lxml
   - cfgrib
+  - openjpeg
 
   # For Prisma:
   - h5py
