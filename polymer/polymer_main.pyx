@@ -7,6 +7,7 @@ from cpython.exc cimport PyErr_CheckSignals
 import pandas as pd
 from pathlib import Path
 import xarray as xr
+from core import tools
 
 from polymer.neldermead cimport dot
 from polymer.glint import glitter
@@ -120,9 +121,9 @@ cdef class PolymerSolver:
               float[:,:] vza,
               float[:,:] raa,
               float[:,:] air_mass,
-              double[:,:] wind_speed,  # FIXME: should be float. Fix issue with interpolation
+              float[:,:] wind_speed,
               unsigned short[:,:] bitmask,
-              float[:,:,:] Rtoa_var=None,
+              float[:,:,:] Rtoa_var,
               ):
         '''
         cython method which does the main pixel loop
@@ -440,7 +441,7 @@ cdef class PolymerSolver:
             block_Ratm,
             block_Rwmod,
             block_eps,
-            block_Ci,
+            # block_Ci,  # FIXME:
         )
 
 
@@ -532,7 +533,7 @@ cdef class PolymerSolver:
             block.Ratm,
             block.Rwmod,
             block.eps,
-            block.Ci,
+            # block.Ci,   # FIXME:
         ) = self.loop(
             block.Rprime,
             block.Rprime_noglint,
@@ -548,7 +549,7 @@ cdef class PolymerSolver:
             1/block.mus + 1/block.muv,  # air mass
             block.wind_speed.astype('float64'),
             block.bitmask,
-            block.Rtoa_var if self.uncertainties else None,
+            block.Rtoa_var if self.uncertainties else np.zeros_like(block.Rprime),
             )
 
     def visu_costfunction(self):
@@ -587,30 +588,68 @@ cdef class PolymerSolver:
                 break
 
     def apply(self, ds: xr.Dataset):
-        raise NotImplementedError
-        # ds['rho_w'] = xr.apply_ufunc(
-        #     self.loop,
-        #     ds.Rprime,
-        #     ds.Rprime_noglint,
-        #     ds.rho_r,
-        #     ds.Tmol,
-        #     ds.wav.broadcast_like(ds.Rprime),  # can we avoid that when not necessary ?
-        #     ds.Rgli,
-        #     ds.sza,
-        #     ds.vza,
-        #     ds.raa,
-        #     1/ds.mus + 1/ds.muv,
-        #     ds.horizontal_wind.astype('float64'),  # TODO: avoid that (see issue with interpolation)
-        #     ds.flags,
-        #     dask='parallelized',
-        #     input_core_dims=[
-        #         ['bands'],
-        #         ['bands'],
-        #         ['bands'],
-        #         ['bands'],
-        #         ['bands'],
-        #         [], [], [], [], [], [], [],
-        #         ],
-        #     output_core_dims=[['bands']],
-        #     output_dtypes=['float32'],
-        # )
+
+        if self.params.uncertainties:
+            Rtoa_var = ds.Rtoa_var
+        else:
+            Rtoa_var = xr.zeros_like(ds.Rprime)
+        wav = ds.wav.broadcast_like(ds.Rprime).astype('float32')
+
+        ret = xr.apply_ufunc(
+            self.loop,
+            ds.Rprime,
+            ds.Rprime_noglint,
+            ds.rho_r,
+            ds.Rnir,
+            ds.Rgli,
+            ds.Tmol,
+            wav,
+            ds.cwav,
+            ds.sza,
+            ds.vza,
+            ds.raa,
+            1/ds.mus + 1/ds.muv,
+            ds.horizontal_wind.astype('float32'),
+            ds.flags,
+            Rtoa_var,
+            dask='parallelized',
+            input_core_dims=[
+                ['bands'], ['bands'], ['bands'],
+                [], [],
+                ['bands'], ['bands'], ['bands'],
+                [], [], [], [], [], [],
+                ['bands'],
+                ],
+            output_core_dims=[
+                [], [], [], [], [],
+                ['bands'], ['bands'], ['bands'],
+                [], [],
+                ] + ([[], [], ['bands']] if self.uncertainties else []),
+            output_dtypes=[
+                'float32', 'float32', 'float32', 'float32', 'uint32',
+                'float32', 'float32', 'float32',
+                'float32', 'uint16',
+                ] + (['float32', 'float32', 'float32'] if self.uncertainties else []),
+        )
+        ds['logchl'] = ret[0]
+        ds['fa'] = ret[1]
+        ds['logfb'] = ret[2]
+        ds['SPM'] = ret[3]
+        ds['niter'] = ret[4]
+        ds['rho_w'] = ret[5]
+        ds['Ratm'] = ret[6]
+        ds['Rwmod'] = ret[7]
+        ds['eps'] = ret[8]
+        flags_out = ret[9]
+        if self.uncertainties:
+            ds['logchl_unc'] = ret[10]
+            ds['logfb_unc'] = ret[11]
+            ds['rho_w_unc'] = ret[12]
+
+        # register the Polymer flags in the attributes
+        flags_out.attrs.update(ds.flags.attrs)
+        for k, v in L2FLAGS.items():
+            tools.raiseflag(flags_out, k, v)
+        ds['flags'] = flags_out
+
+
