@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from tempfile import TemporaryDirectory
 import pytest
-from pathlib import Path
-import os
 from polymer.level2 import Level2
 from polymer.level1_olci import Level1_OLCI
 from polymer.main import run_atm_corr
 from matplotlib import pyplot as plt
 import numpy as np
+from core.env import getdir
 from . import conftest
 
 olci_level1 = str(
-    Path(os.environ['DIR_DATA'])/'sample_products'/
+    getdir('DIR_SAMPLES')/
     'S3A_OL_1_EFR____20160720T093221_20160720T093421_20171002T063740_0119_006_307______MR1_R_NT_002.SEN3')
 
 
@@ -124,3 +124,25 @@ def test_spectrum(request):
     plt.legend()
     plt.grid(True)
     conftest.savefig(request)
+
+
+@pytest.mark.parametrize('roi_desc,roi', [
+    ('roi1_small', {
+        'scol':1930+120,
+        'ecol':2100,
+        'sline':2556+40,
+        'eline':2650,
+    }),
+    ('inland_water', {
+        'scol':980,
+        'ecol':1168,
+        'sline':2524,
+        'eline':2639,
+    }),
+])
+def test_olci_write(roi_desc, roi):
+    with TemporaryDirectory() as tmpdir:
+        run_atm_corr(
+            Level1_OLCI(olci_level1, **roi),
+            Level2(outdir=tmpdir),
+        )

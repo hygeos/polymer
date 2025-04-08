@@ -18,6 +18,7 @@ dependencies = [
     "netcdf4",
     "pyproj",
     "xarray",
+    "core @ git+https://github.com/hygeos/core",
 ]
 
 [project.scripts]
@@ -61,3 +62,4 @@ pyproj = "*"
 pyepr = "*"
 netcdf4 = "*"
 xarray = "*"
+dask = "*"
