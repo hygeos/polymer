@@ -11,7 +11,7 @@ from polymer.level1_meris import BANDS_MERIS
 from polymer.common import L2FLAGS
 from polymer.utils import raiseflag, coeff_sun_earth_distance
 from polymer.level1_meris import central_wavelength_meris
-from polymer.level1_nasa import tau_r_seadas_modis, tau_r_seadas_seawifs, tau_r_seadas_viirsn, tau_r_seadas_viirsj1
+from polymer.level1_nasa import tau_r_seadas_modisa, tau_r_seadas_modist, tau_r_seadas_seawifs, tau_r_seadas_viirsn, tau_r_seadas_viirsj1
 
 # bands stored in the ASCII extractions
 BANDS_MODIS = [412,443,469,488,531,547,555,645,667,678,748,859,869,1240]
@@ -303,13 +303,16 @@ class Level1_ASCII(object):
             block.altitude = np.zeros(size)
 
         # tau_ray
-        if self.sensor in ['SeaWiFS', 'MODIS', 'VIIRS', 'VIIRSN', 'VIIRSJ1']:
+        if self.sensor in ['SeaWiFS', 'MODIS', 'MODISA', 'MODIST', 'VIIRS', 'VIIRSN', 'VIIRSJ1', 'VIIRSJ2']:
             tau_r_seadas = {
                     'MODIS': tau_r_seadas_modis,
+                    'MODISA': tau_r_seadas_modisa,
+                    'MODIST': tau_r_seadas_modisb,
                     'SeaWiFS': tau_r_seadas_seawifs,
                     'VIIRS': tau_r_seadas_viirsn,
                     'VIIRSN': tau_r_seadas_virrsn,
-                    'VIIRSJ1': tau_r_seadas_viirsj1
+                    'VIIRSJ1': tau_r_seadas_viirsj1,
+                    'VIIRSJ2': tau_r_seadas_viirsj2
                 }[self.sensor]
             block.tau_ray = np.zeros((ysize, xsize, nbands), dtype='float32') + np.nan
             for iband, band in enumerate(bands):
