@@ -84,7 +84,7 @@ class Params(object):
     '''
     A class to store the processing parameters
     '''
-    def __init__(self, sensor, **kwargs):
+    def __init__(self, sensor=None, **kwargs):
 
         # store attributes in an OrderedDict
         self.__dict__['_odict'] = OrderedDict()
@@ -256,23 +256,7 @@ class Params(object):
             self.defaults_oli()
         elif sensor == 'PRISMA':
             self.defaults_prisma()
-        elif sensor == 'GENERIC':
-            self.defaults_generic()
-        else:
-            raise Exception('Params.sensor_specific: invalid sensor "{}"'.format(sensor))
 
-    def defaults_generic(self):
-        '''
-        sensor_specific parameters should be provided by the user
-        '''
-
-        self.bands_corr = []
-        self.bands_oc =   []
-        self.bands_rw =   []
-        self.band_cloudmask = -999
-        self.calib = {}
-        self.K_OZ = {}
-        self.K_NO2 = {}
 
     def defaults_meris(self):
         '''
