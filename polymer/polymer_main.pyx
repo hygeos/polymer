@@ -431,18 +431,39 @@ cdef class PolymerSolver:
             # (allowing to interrupt execution)
             PyErr_CheckSignals()
 
-        return (
-            block_logchl,
-            block_fa,
-            block_logfb,
-            block_SPM,
-            block_niter,
-            block_Rw,
-            block_Ratm,
-            block_Rwmod,
-            block_eps,
-            # block_Ci,  # FIXME:
-        )
+        if self.uncertainties:
+            ret = (
+                block_logchl,
+                block_fa,
+                block_logfb,
+                block_SPM,
+                block_niter,
+                block_Rw,
+                block_Ratm,
+                block_Rwmod,
+                block_eps,
+                # block_Ci,
+                bitmask,
+                block_logchl_unc,
+                block_logfb_unc,
+                block_rho_w_unc,
+            )
+        else:
+            ret = (
+                block_logchl,
+                block_fa,
+                block_logfb,
+                block_SPM,
+                block_niter,
+                block_Rw,
+                block_Ratm,
+                block_Rwmod,
+                block_eps,
+                bitmask,
+                # block_Ci,
+            )
+
+        return ret
 
 
     cdef int init_first_guess(self,
@@ -523,18 +544,7 @@ cdef class PolymerSolver:
         if self.params.partial >= 1:
             return
 
-        (
-            block.logchl,
-            block.fa,
-            block.logfb,
-            block.SPM,
-            block.niter,
-            block.Rw,
-            block.Ratm,
-            block.Rwmod,
-            block.eps,
-            # block.Ci,   # FIXME:
-        ) = self.loop(
+        ret = self.loop(
             block.Rprime,
             block.Rprime_noglint,
             block.Rmol,
@@ -547,10 +557,26 @@ cdef class PolymerSolver:
             block.vza,
             block.raa,
             1/block.mus + 1/block.muv,  # air mass
-            block.wind_speed.astype('float64'),
+            block.wind_speed.astype('float32'),
             block.bitmask,
             block.Rtoa_var if self.uncertainties else np.zeros_like(block.Rprime),
             )
+        
+        block.logchl = ret[0]
+        block.fa = ret[1]
+        block.logfb = ret[2]
+        block.SPM = ret[3]
+        block.niter = ret[4]
+        block.Rw = ret[5]
+        block.Ratm = ret[6]
+        block.Rwmod = ret[7]
+        block.eps = ret[8]
+        block.bitmask[:] = ret[9]
+        if self.uncertainties:
+            block.logchl_unc = ret[10]
+            block.logfb_unc = ret[11]
+            block.rho_w_unc = ret[12]
+
 
     def visu_costfunction(self):
         '''
