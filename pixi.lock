@@ -259,7 +259,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/e9/da/824b92d9942f4e472702488857914bdd50f73021efea15b4cad9aca8ecef/click_plugins-1.1.1-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/73/86/43fa9f15c5b9fb6e82620428827cd3c284aa933431405d1bcf5231ae3d3e/cligj-0.7.2-py3-none-any.whl
       - pypi: git+https://github.com/hygeos/core#550f6c71c5934f2fa31045376fd8d00ecff49845
-      - pypi: git+https://github.com/hygeos/eoread#c565fec66ac7ee06aee4ffc1b8a1bbec15cf0b08
+      - pypi: git+https://github.com/hygeos/eoread#9ea84338e901b996d404aa1d13c59a851447f80a
       - pypi: git+https://github.com/hygeos/eotools#7edc25f1f1a37e4be9bfc5b4a1ec940702c71fba
       - pypi: https://files.pythonhosted.org/packages/ed/1d/409e819e00aed51f3e23df570e219621c0d64c458c9b8df4e7ae1c27e23d/eumdac-3.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b9/5c/a3d95dc1ec6cdeb032d789b552ecc76effa3557ea9186e1566df6aac18df/fs-2.4.16-py2.py3-none-any.whl
@@ -1043,7 +1043,7 @@ packages:
   - pkg:pypi/distributed?source=hash-mapping
   size: 799717
   timestamp: 1742601963648
-- pypi: git+https://github.com/hygeos/eoread#c565fec66ac7ee06aee4ffc1b8a1bbec15cf0b08
+- pypi: git+https://github.com/hygeos/eoread#9ea84338e901b996d404aa1d13c59a851447f80a
   name: eoread
   version: 0.3.dev0
   requires_dist:
