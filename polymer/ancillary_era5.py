@@ -13,6 +13,7 @@ import numpy as np
 import cdsapi
 import xarray as xr
 from polymer.ancillary import LUT_LatLon
+from polymer.params import dir_ancillary
 
 
 class Ancillary_ERA5(object):
@@ -27,7 +28,7 @@ class Ancillary_ERA5(object):
         If true, sets offline mode: don't download anything and fail upon missing file.
     '''
     def __init__(self,
-                 directory='ANCILLARY/ERA5/',
+                 directory=str(dir_ancillary/'ERA5/'),
                  pattern='%Y/%m/%d/era5_%Y%m%d_%H%M%S.nc',
                  time_resolution=1,
                  offline=False,
@@ -112,7 +113,7 @@ class ERA5(object):
     * offline: don't download anything, use existing files
     '''
     def __init__(self,
-                 directory='ANCILLARY/ERA5/',
+                 directory=str(dir_ancillary/'ERA5/'),
                  pattern='%Y/%m/%d/era5_%Y%m%d_%H%M%S.nc',
                  offline=False,
                  ):

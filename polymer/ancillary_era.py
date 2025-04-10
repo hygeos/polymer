@@ -7,6 +7,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from polymer.ancillary import LUT_LatLon, LockFile
 from os.path import join, exists, dirname
+from polymer.params import dir_ancillary
 from os import makedirs
 
 
@@ -54,7 +55,7 @@ class Ancillary_ERA(object):
     '''
 
     def __init__(self,
-                 directory='ANCILLARY/ERA-Interim/',
+                 directory=str(dir_ancillary/'ERA-Interim/'),
                  pattern='%Y/era_interim_%Y%m%d.grib',
                  offline=False):
         self.directory = directory

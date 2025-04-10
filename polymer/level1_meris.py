@@ -7,7 +7,8 @@ from polymer.block import Block
 import numpy as np
 from datetime import datetime
 from polymer.common import L2FLAGS
-from os.path import basename, join, dirname
+from os.path import basename, join
+from polymer.params import dir_static
 from collections import OrderedDict
 from polymer.utils import raiseflag, coeff_sun_earth_distance
 from polymer.level1 import Level1_base
@@ -134,7 +135,7 @@ class Level1_MERIS_ENVISAT(Level1_base):
         self.ancillary = ancillary
 
         if dir_smile is None:
-            dir_smile = join(dirname(dirname(__file__)), 'auxdata', 'meris', 'smile', 'v2')
+            dir_smile = dir_static/'meris'/'smile'/'v2'
 
         self.band_names = dict(map(lambda b: (b[1], 'Radiance_{:d}'.format(b[0]+1)),
                                    enumerate(BANDS_MERIS)))

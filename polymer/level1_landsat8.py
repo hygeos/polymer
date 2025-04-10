@@ -15,7 +15,8 @@ from osgeo import osr
 from glob import glob
 import numpy as np
 import os
-from os.path import dirname, join
+from os.path import join
+from polymer.params import dir_static
 import xlrd
 
 gdal_major_version = int(osgeo.__version__.split('.')[0])
@@ -204,7 +205,7 @@ class Level1_OLI(Level1_base):
 
 
     def init_spectral(self):
-        dir_aux_oli = join(dirname(dirname(__file__)), 'auxdata', 'oli')
+        dir_aux_oli = dir_static / 'oli'
         srf_file = join(dir_aux_oli, 'Ball_BA_RSR.v1.2.xlsx')
 
         wb = xlrd.open_workbook(srf_file)

@@ -50,7 +50,19 @@ Note: after updating Polymer, it may be necessary to recreate this environment.
 
 ### 1.2 Auxiliary data
 
-The auxiliary data can be downloaded with the following command:
+Two directories are necessary to store data files required by Polymer. These files are located
+using environment variables - please define these variables where is appropriate in your system:
+
+- A directory for storing static data files, `$DIR_POLYMER_AUXDATA`, or if this environment variable is not provided, in `auxdata` in the current directory.
+- A directory for storing ancillary meteo files downloaded on the fly, `$DIR_POLYMER_ANCILLARY`, or if this environment variable is not provided, in `ANCILLARY` in the current directory.
+
+Please define these variables (`$DIR_POLYMER_AUXDATA` and `$DIR_POLYMER_ANCILLARY`) to existing empty directories it in your `.bashrc` or in a `.env` file at the root of the Polymer repository.
+
+```
+DIR_POLYMER_AUXDATA=/path/to/polymer_auxdata/
+DIR_POLYMER_ANCILLARY=/path/to/polymer_ancillary/
+```
+The auxiliary data can then be downloaded in this folder with the following command:
 ```
 $ make auxdata
 ```

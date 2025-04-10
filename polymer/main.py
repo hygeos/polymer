@@ -482,6 +482,7 @@ def run_atm_corr(level1, level2, **kwargs):
         N != 0: use multiple threads, with
         N < 0: use as many threads as there are CPUs on local machine
     - dir_base: location of base directory to locate auxiliary data
+        (DEPRECATED - use environment variables - check README.md)
     - calib: a dictionary for applying calibration coefficients
     - normalize: select water reflectance normalization
            * no geometry nor wavelength normalization (0)

@@ -7,7 +7,8 @@ from pathlib import Path
 from glymur import Jp2k
 from glob import glob
 from lxml import objectify
-from os.path import join, dirname, exists
+from os.path import join, exists
+from polymer.params import dir_static
 from datetime import datetime
 import numpy as np
 from polymer.block import Block
@@ -210,7 +211,7 @@ class Level1_MSI(Level1_base):
         """ calculate equivalent wavelength from SRF """
 
         if self.srf_file is None:
-            dir_aux_msi = join(dirname(dirname(__file__)), 'auxdata', 'msi')
+            dir_aux_msi = dir_static/'msi'
             srf_file = join(dir_aux_msi, 'S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_{}.csv'.format(self.platform))
         else:
             srf_file = self.srf_file

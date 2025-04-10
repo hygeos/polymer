@@ -7,16 +7,16 @@ from polymer.block import Block
 from netCDF4 import Dataset
 import numpy as np
 import xarray as xr
-from warnings import warn
 from datetime import datetime
 from polymer.common import L2FLAGS
 from polymer.utils import raiseflag, coeff_sun_earth_distance
 from polymer.ancillary import Ancillary_NASA
 from polymer.level1_meris import central_wavelength_meris
 from polymer.level1_olci import central_wavelength_olci
-from os.path import basename, join, dirname
+from os.path import join
 from collections import OrderedDict
 import pandas as pd
+from polymer.params import dir_static
 
 
 
@@ -88,7 +88,7 @@ class Level1_NETCDF(Level1_base):
 
             # read detector wavelength and solar irradiance
             if dir_smile is None:
-                dir_smile = join(dirname(dirname(__file__)), 'auxdata/meris/smile/v2/')
+                dir_smile = dir_static/'meris/smile/v2/'
 
             if 'MERIS Full Resolution' in title:
                 self.F0 = np.genfromtxt(join(dir_smile, 'sun_spectral_flux_fr.txt'), names=True)
@@ -196,7 +196,7 @@ class Level1_NETCDF(Level1_base):
                     1375: 'B10', 1610: 'B11',
                     2190: 'B12',
                     }
-            dir_aux_msi = join(dirname(dirname(__file__)), 'auxdata', 'msi')
+            dir_aux_msi = dir_static/'msi'
             srf_file = join(dir_aux_msi, 'S2-SRF_COPE-GSEG-EOPG-TN-15-0007_3.0_{}.csv'.format(self.platform))
 
             srf_data = pd.read_csv(srf_file)

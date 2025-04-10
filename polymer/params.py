@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, division, absolute_import
+import warnings
 import numpy as np
 from os.path import join, dirname
 from collections import OrderedDict
@@ -9,6 +10,24 @@ from pyhdf.SD import SD
 from polymer.hico import bands_hico, K_OZ_HICO, K_NO2_HICO
 from polymer import prisma
 from scipy.interpolate import interp1d
+from core.env import getdir
+from pathlib import Path
+
+# The directory with static auxiliary data is determined from the DIR_POLYMER_AUXDATA
+# environment variable, or $DIR_DATA/static, defaulting to "auxdata" in the current
+# directory.
+dir_static = getdir(
+    "DIR_POLYMER_AUXDATA",
+    getdir("DIR_DATA", Path("auxdata")) / "static"
+)
+
+# The directory with ancillary meteo data is determined from the DIR_POLYMER_ANCILLARY
+# environment variable, or $DIR_DATA/ancillary, defaulting to "ANCILLARY" in the current
+# directory.
+dir_ancillary = getdir(
+    "DIR_POLYMER_ANCILLARY",
+    getdir("DIR_DATA", Path("ANCILLARY")) / "ancillary"
+)
 
 # pass these parameters to polymer to obtain the quasi-same results as polymer v3.5
 # polymer(<level>, <level2>, **params_v3_5)
@@ -90,12 +109,12 @@ class Params(object):
         self.__dict__['_odict'] = OrderedDict()
 
         if 'dir_base' in kwargs:
-            self.dir_base = kwargs['dir_base']
-        else:
-            self.dir_base = dirname(dirname(__file__))
+            warnings.warn("The 'dir_base' argument is deprecated, please locate it with the DIR_POLYMER_AUXDATA", DeprecationWarning)
+
         self.sensor = sensor
 
-        self.dir_common = join(self.dir_base, 'auxdata/common/')
+        self.dir_static = dir_static
+        self.dir_common = dir_static/'common'
 
         # define common parameters
         self.common(**kwargs)
@@ -128,7 +147,7 @@ class Params(object):
         self.external_mask = None
 
         # Generic look-up table
-        self.lut_file = join(self.dir_base, 'auxdata/generic/LUT.hdf')
+        self.lut_file = str(self.dir_static/'generic'/'LUT.hdf')
 
         self.thres_chi2 = 0.005
 
@@ -204,8 +223,8 @@ class Params(object):
 
 
         # no2 absorption data
-        self.no2_climatology = join(self.dir_base, 'auxdata/common/no2_climatology.hdf')
-        self.no2_frac200m  = join(self.dir_base, 'auxdata/common/trop_f_no2_200m.hdf')
+        self.no2_climatology = str(self.dir_static/'common/no2_climatology.hdf')
+        self.no2_frac200m  = str(self.dir_static/'common/trop_f_no2_200m.hdf')
 
         self.multiprocessing = 0 # 0: single thread
                                  # N != 0: multiprocessing, with:
@@ -801,8 +820,7 @@ class Params(object):
 
         # Ozone optical depth for 1000 DU
         self.K_OZ = OrderedDict()
-        srf_file = join(self.dir_base, 'auxdata', 'oli',
-                        'Ball_BA_RSR.v1.2.xlsx')
+        srf_file = self.dir_static / "oli" / "Ball_BA_RSR.v1.2.xlsx"
         wb = xlrd.open_workbook(srf_file)
 
         solar_spectrum_file = join(self.dir_common, 'SOLAR_SPECTRUM_WMO_86')

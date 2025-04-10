@@ -14,7 +14,8 @@ import sys
 import bz2
 import tempfile
 from dateutil.parser import parse
-from .utils import closest, round_date
+from .utils import round_date
+from polymer.params import dir_ancillary
 
 '''
 Ancillary NASA data provider
@@ -167,7 +168,7 @@ class Ancillary_NASA(object):
         allow to use other non-forecast data
     '''
     def __init__(self, meteo=None, ozone=None,
-                 directory='ANCILLARY/METEO/',
+                 directory=str(dir_ancillary/'METEO/'),
                  offline=False,
                  allow_standard=True,
                  allow_forecast=True,

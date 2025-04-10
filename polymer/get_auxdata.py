@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-from pathlib import Path
 from core.download import download_url
-from core.env import getdir
+from polymer.params import dir_static
 
 """
 A script that fetches auxiliary data required bu Polymer
@@ -10,7 +9,6 @@ A script that fetches auxiliary data required bu Polymer
 
 
 if __name__ == "__main__":
-    dir_static = getdir("DIR_POLYMER_AUXDATA", Path("auxdata"))
 
     URL = "http://download.hygeos.com/POLYMER/auxdata/"
     for rpath in [
