@@ -1,20 +1,41 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from pathlib import Path
 from tempfile import TemporaryDirectory
-import pytest
-from polymer.level2 import Level2
-from polymer.level1_olci import Level1_OLCI
-from polymer.main import run_atm_corr
-from matplotlib import pyplot as plt
-import numpy as np
-from core.env import getdir
-from . import conftest
 
+import numpy as np
+import pytest
+from core import pytest_utils
+from core.env import getdir
+from core.fileutils import mdir
+from eoread import autodetect, olci
+from eoread.common import timeit
+from matplotlib import pyplot as plt
+
+from polymer.level1 import Level1
+from polymer.level1_olci import Level1_OLCI
+from polymer.level2 import Level2, OutputExists
+from polymer.level2_nc import Level2_NETCDF
+from polymer.main import run_atm_corr
+from polymer.main_v5 import run_polymer, run_polymer_dataset
+from tests.common import diff, diff_flags, load_polymer, plot, run_v4, run_v5
+
+from . import conftest
 
 olci_level1 = str(
     getdir('DIR_DATA')/'sample_products'/
     'S3A_OL_1_EFR____20160720T093221_20160720T093421_20171002T063740_0119_006_307______MR1_R_NT_002.SEN3')
+
+
+@pytest.fixture
+def testcase():
+    return {
+        # Gironde estuary
+        "level1": olci.get_sample("level1_fr")/olci.get_sample("level1_fr").name,
+        "roi": {"x": slice(1717, 2151), "y": slice(2330, 2607)},
+        "px": {"x": 100, "y": 100},
+    }
 
 
 @pytest.mark.parametrize('uncertainties', [False, True])
@@ -147,3 +168,61 @@ def test_olci_write(roi_desc, roi):
             Level1_OLCI(olci_level1, **roi),
             Level2(outdir=tmpdir),
         )
+
+def test_browse(request, testcase):
+    """ 
+    Test initialization, simple scene view
+    """
+    with timeit('polymer v5 init'):
+        ds = run_polymer_dataset(
+            autodetect.Level1(testcase['level1'])
+        )
+    plt.imshow(ds.Rtoa.sel(bands=865))
+    plt.colorbar()
+    conftest.savefig(request)
+
+
+def test_v4(request, testcase):
+    ds = run_v4(testcase)
+    plot(request, testcase, ds)
+
+
+@pytest.mark.parametrize("uncertainties", **pytest_utils.parametrize_dict({
+    'unc': True,
+    'nounc': False,
+}))
+def test_v5(request, uncertainties: bool, testcase: dict):
+    ds = run_v5(testcase, uncertainties=uncertainties)
+    plot(request, testcase, ds)
+
+
+def test_v4_v5(testcase, request):
+    """
+    Test non-regression from v4 to v5
+    """
+
+    v4 = run_v4(testcase)
+    v5 = run_v5(testcase)
+
+    for b in v5.bands.values:
+        diff(v4.rho_w.sel(bands=b), f'rho_w({b}) v4',
+                v5.rho_w.sel(bands=b), f'rho_w({b}) v5')
+        conftest.savefig(request)
+    
+    for varname in ['logchl', 'logfb', 'latitude', 'longitude', 'Rgli', 'Rnir']:
+        diff(v4[varname], f'{varname} v4',
+                v5[varname], f'{varname} v5')
+        conftest.savefig(request)
+
+    diff(v4.flags, 'bitmask v4',
+            v5.flags, 'flags v5', percentile=0)
+    conftest.savefig(request)
+
+    for _ in diff_flags(
+        v4.flags,
+        v5.flags,
+        None, # v4.flags.description.split(","),
+        v5.flags.flag_meanings.split(),
+        plot=True
+    ):
+        conftest.savefig(request)
