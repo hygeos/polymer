@@ -13,7 +13,7 @@ clean:
 	rm -fv polymer/*.so
 
 tests: all
-	pytest tests/
+	pytest -n auto tests/test_olci.py -v
 
 ancillary:
 	mkdir -p ANCILLARY/METEO/
