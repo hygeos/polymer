@@ -38,7 +38,7 @@ setup(
         build_dir='build',
         compiler_directives=compiler_directives,
         annotate=ANNOTATE,
-        nthreads=4,
+        nthreads=8,
         ),
     include_dirs = [numpy.get_include()],
     )

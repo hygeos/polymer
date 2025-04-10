@@ -21,25 +21,38 @@ http://www.opticsinfobase.org/oe/abstract.cfm?uri=oe-19-10-9783
 
 ## 1. Installation
 
-### 1.1 Dependencies
+### 1.1 Python environment
 
-Polymer is written in python3. It is highly recommended to use [anaconda](http://anaconda.org)
-to install all required dependencies. The [miniconda](https://docs.conda.io/en/latest/miniconda.html) version is sufficient.
-The file `environment.yml` can be used to install the dependencies, either in your current
-anaconda environment, or in a new one.
+Polymer is written in python. It requires the installation of a python environment with the
+required dependencies.
 
-To create a new anaconda environment (independent python installation) with Polymer dependencies:
+#### 1.1.1 Pixi (recommended)
+
+A python environment for Polymer can be installed with the [pixi](https://pixi.sh/) package
+manager.
+
+In the Polymer directory, run the following command to install and activate the environment:
 ```
-  conda create -n polymer -c conda-forge mamba
-  conda activate polymer
-  mamba env update -f environment.yml
+pixi shell
 ```
+
+Note: after Polymer update, pixi automatically updates the environment.
+
+#### 1.1.2 Conda/mamba
+
+The file `environment.yml` can be used to create a conda environment with Polymer dependencies:
+```
+PIP_NO_DEPS=1 conda env create -n polymer -f environment.yml
+conda activate polymer
+```
+
+Note: after updating Polymer, it may be necessary to recreate this environment.
 
 ### 1.2 Auxiliary data
 
 The auxiliary data can be downloaded with the following command:
 ```
-$ make auxdata_all
+$ make auxdata
 ```
 
 
@@ -55,6 +68,8 @@ NOTE: the command `make all` will download the auxiliary files and proceed to th
 
 
 ## 2. Usage
+
+Note: for version 5 preview, see README_v5.md
 
 ### 2.1 How to run the algorithm
 
