@@ -5,8 +5,9 @@ import xarray as xr
 from eoread import eo
 from matplotlib import pyplot as plt
 from tempfile import TemporaryDirectory
+from polymer.main_v5 import default_output_datasets, additional_output_datasets
 from eoread.common import timeit
-from polymer.main_v5 import run_polymer, run_polymer_dataset
+from polymer.main_v5 import run_polymer
 from polymer.main import run_atm_corr
 from polymer.level1 import Level1
 from polymer.level2 import default_datasets, analysis_datasets
@@ -51,7 +52,7 @@ def run_v5(testcase, **kwargs) -> xr.Dataset:
                 roi=testcase["roi"],
                 split_bands=False,
                 verbose=False,
-                output_datasets=["Rtoa", "rho_gc", "Rprime", "Ratm", "rho_w", "flags"],
+                output_datasets=default_output_datasets+additional_output_datasets,
                 **kwargs,
             )
         ds = load_polymer(file_v5)

@@ -34,6 +34,13 @@ default_output_datasets = [
     "flags",
 ]
 
+additional_output_datasets = [
+    "Rtoa",
+    "rho_gc",
+    "Rprime",
+    "Ratm",
+]
+
 
 def run_polymer(
     level1: Union[Path, str, xr.Dataset],
