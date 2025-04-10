@@ -405,6 +405,8 @@ class Params(object):
             900:4.2, 940:2.732958, 1020:2.267843,
         }
 
+        self.ancillary = None
+
     def defaults_msi(self):
 
         self.bands_corr = [443,490,560,665,705,740,783,    865,                  ]

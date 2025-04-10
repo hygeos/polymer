@@ -36,24 +36,25 @@ default_output_datasets = [
 
 
 def run_polymer(
-    level1: Union[Path, xr.Dataset],
+    level1: Union[Path, str, xr.Dataset],
     *,
     roi: Optional[Dict] = None,
-    file_out: Optional[Path] = None,
+    file_out: Optional[Path|str] = None,
     ext: str = ".polymer.nc",
-    dir_out: Optional[Path] = None,
+    dir_out: Optional[Path|str] = None,
     scheduler: str = "sync",
     split_bands: bool = True,
     output_datasets: Optional[list] = None,
     if_exists: Literal["skip", "overwrite", "backup", "error"] = "error",
+    verbose: bool=True,
     **kwargs,
 ) -> Path:
     """
     Polymer: main function at file level
 
     Arguments:
-        level1 is either a Path or a xr.Dataset (read with the  eoread library)
-        roi: dictionary such as
+        level1 is either a Path or a xr.Dataset (read with the eoread library)
+        roi: definition of the region of interest. A dictionary such as
              {'x': slice(xmin, xmax, xstep), # or [xmin, xmax, xstep]
               'y': slice(ymin, ymax, ystep)}
         file_out (Path, optional): path to the output file. If not provided, use the
@@ -73,16 +74,20 @@ def run_polymer(
     Returns:
         The path to the output product.
     """
+    if isinstance(level1, (Path, str)):
+        ds = Level1(Path(level1))
+        basename = Path(level1).name
+    elif isinstance(level1, xr.Dataset):
+        ds = level1
+        basename : str = ds.attrs['product_name']
+    else:
+        raise TypeError('Error in level1 dtype')
+
     if file_out is None:
         # determine file_out from dir_out and ext
         assert dir_out is not None
-        file_out = dir_out / (level1.name + ext)
+        file_out = Path(dir_out) / (basename + ext)
     assert file_out is not None
-
-    if isinstance(level1, Path):
-        ds = Level1(level1)
-    elif isinstance(level1, xr.Dataset):
-        ds = level1
     
     if (roi is not None):
         ds = ds.isel({k: (v if isinstance(v, slice)
@@ -107,12 +112,12 @@ def run_polymer(
         ds = split(ds, 'bands')
 
     with dask_config.set(scheduler=scheduler):
-        to_netcdf(ds, filename=file_out, if_exists=if_exists)
+        to_netcdf(ds, filename=Path(file_out), if_exists=if_exists, verbose=verbose)
     
-    return file_out
+    return Path(file_out)
 
 
-def init(ds: xr.Dataset, srf: xr.Dataset, params, ancillary=None):
+def init(ds: xr.Dataset, srf: xr.Dataset, params):
     """
     Initialize dataset `ds` for use with Polymer
     (in place)
@@ -122,7 +127,7 @@ def init(ds: xr.Dataset, srf: xr.Dataset, params, ancillary=None):
 
     apply_ancillary(
         ds,
-        ancillary,
+        params.ancillary,
         {
                 'horizontal_wind': 'm/s',
                 'sea_level_pressure': 'hectopascals',
@@ -144,7 +149,7 @@ def init(ds: xr.Dataset, srf: xr.Dataset, params, ancillary=None):
         assert len(ds.wav.dims) == 1
 
 
-def run_polymer_dataset(ds: xr.Dataset, ancillary=None, **kwargs) -> xr.Dataset:
+def run_polymer_dataset(ds: xr.Dataset, **kwargs) -> xr.Dataset:
     """
     Polymer: main function at dataset level
     """
@@ -156,7 +161,7 @@ def run_polymer_dataset(ds: xr.Dataset, ancillary=None, **kwargs) -> xr.Dataset:
 
     params = Params(getattr(ds, 'sensor', None), **kwargs)
 
-    init(ds, srf, params, ancillary=ancillary)
+    init(ds, srf, params)
     
     apply_calib(ds, 'Rtoa', params.calib)
 

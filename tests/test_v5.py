@@ -29,7 +29,6 @@ from . import conftest
 # TODO: better deal with that
 config = {
     'OLCI': {
-        # 'scheduler': 'threads',
     },
     'MSI': {
         'gsw_agg': 1,
@@ -42,7 +41,8 @@ testcases = {
     "OLCI": {
         "sensor": "OLCI",
         "level1": olci.get_sample("level1_fr")/olci.get_sample("level1_fr").name,
-        "roi": {"x": slice(1500, 2000), "y": slice(500, 1000)},
+        # "roi": {"x": slice(1500, 2000), "y": slice(500, 1000)},
+        "roi": {"x": slice(1717, 2151), "y": slice(2330, 2607)},
     },
     "MSI": {
         "sensor": "MSI",
