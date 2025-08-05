@@ -34,6 +34,18 @@ libfresnel = static_library(
     'polymer/fresnel.c',  # Explicitly compile the C file
 )
 
+# POLYMER MINIMIZER
+libpolymerminimizer = py.extension_module(
+    'polymer_minimizer',
+    'polymer/polymer_minimizer.pyx',
+    include_directories: inc,
+    c_args: [
+        '-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION',
+        '-w',  # Suppress warnings (optional)
+    ],
+    cython_args: cython_args,
+)
+
 # CLUT
 libclut = py.extension_module(
     'clut',
@@ -85,6 +97,17 @@ libwater = py.extension_module(
 
 
 # Custom target to copy .so to ./polymer
+custom_target('move-polymer-minimizer-local',
+    input: libpolymerminimizer,
+    output: 'polymer_minimizer.so',
+    command: [
+        'cp',
+        '@INPUT@',
+        meson.current_source_dir() / 'polymer' / '@OUTPUT@'
+    ],
+    build_by_default: true
+)
+
 custom_target('move-clut-local',
     input: libclut,
     output: 'clut.so',
