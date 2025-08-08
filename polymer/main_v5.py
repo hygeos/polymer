@@ -145,6 +145,7 @@ def init(ds: xr.Dataset, srf: xr.Dataset, params):
 
     # Central wavelength
     if 'wav' not in ds:
+        assert len(srf) > 0
         ds['wav'] = xr.DataArray(
             list(integrate_srf(srf, lambda x: x).values()),
             dims=['bands'],
@@ -161,7 +162,11 @@ def run_polymer_dataset(ds: xr.Dataset, **kwargs) -> xr.Dataset:
     Polymer: main function at dataset level
     """
     if "srf_getter" in kwargs:
-        srf = rename(get_SRF(ds, **kwargs), ds.bands.values)
+        srf = rename(
+            get_SRF(ds, **kwargs),
+            ds.bands.values,
+            thres_check=kwargs.get("srf_thres_check", 10.0),
+        )
     else:
         # empty dictionary when srfs are not provided
         srf = xr.Dataset()
