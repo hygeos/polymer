@@ -258,22 +258,18 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/3b/00/2344469e2084fb287c2e0b57b72910309874c3245463acd6cf5e3db69324/appdirs-1.4.4-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/e9/da/824b92d9942f4e472702488857914bdd50f73021efea15b4cad9aca8ecef/click_plugins-1.1.1-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/73/86/43fa9f15c5b9fb6e82620428827cd3c284aa933431405d1bcf5231ae3d3e/cligj-0.7.2-py3-none-any.whl
-      - pypi: git+https://github.com/hygeos/core#550f6c71c5934f2fa31045376fd8d00ecff49845
-      - pypi: git+https://github.com/hygeos/eoread#9ea84338e901b996d404aa1d13c59a851447f80a
-      - pypi: git+https://github.com/hygeos/eotools#7edc25f1f1a37e4be9bfc5b4a1ec940702c71fba
+      - pypi: git+https://github.com/hygeos/core#91161a338660ba731d90bb84afd3afa6105b3a0d
+      - pypi: git+https://github.com/hygeos/eoread#0dc627aa11f368fc9d8440374ac69e1b96c9ac56
+      - pypi: git+https://github.com/hygeos/eotools#1b871c531586580e7e995ff4f8323702e35cad7e
       - pypi: https://files.pythonhosted.org/packages/ed/1d/409e819e00aed51f3e23df570e219621c0d64c458c9b8df4e7ae1c27e23d/eumdac-3.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b9/5c/a3d95dc1ec6cdeb032d789b552ecc76effa3557ea9186e1566df6aac18df/fs-2.4.16-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b2/fc/e73747f3dd31906bfbb78c76069f67d91525fefa28492a1f949cbb4a3c7f/h5netcdf-1.6.1-py3-none-any.whl
-      - pypi: git+https://github.com/hygeos/luts.git#03fac1ea8026425491119d9de04963ff7b8957ae
-      - pypi: https://files.pythonhosted.org/packages/c3/c0/c33c8792c3e50193ef55adb95c1c3c2786fe281123291c2dbf0eaab95a6f/pyotp-2.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/71/d4/d9440ff5da6547ac2587f93a9af7e779be0aed78e1f0734dede94e440f6b/pysolar-0.13-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1e/18/98a99ad95133c6a6e2005fe89faedf294a748bd5dc803008059409ac9b1e/python_dotenv-1.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/67/72/331727423b28fffdfd8bf18bdc55c18d374c0fefd2dde390cd833f8f4477/rasterio-1.4.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/fb/b0/2c74f302512fbd24d68fbba0ec6b650b33ef83e398daeb0a2bb1a4cd641c/rioxarray-0.18.2-py3-none-any.whl
-      - pypi: git+https://github.com/hygeos/sand.git#d6fabbb81e3cdf8e1061109bbc8fdee9fd2e5590
-      - pypi: https://files.pythonhosted.org/packages/62/de/8dbd7df60eb23cb983bb698aac982944b3d602ef0ce877a940c269eae34e/shapely-2.0.7-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/d6/45/fc303eb433e8a2a271739c98e953728422fa61a3c1f36077a49e395c972e/xmltodict-0.14.2-py2.py3-none-any.whl
+      - pypi: ./
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
   sha256: fe51de6107f9edc7aa4f786a70f4a883943bc9d39b3bb7307c04c41410990726
@@ -897,9 +893,9 @@ packages:
   - pkg:pypi/contourpy?source=hash-mapping
   size: 276332
   timestamp: 1731428454756
-- pypi: git+https://github.com/hygeos/core#550f6c71c5934f2fa31045376fd8d00ecff49845
+- pypi: git+https://github.com/hygeos/core#91161a338660ba731d90bb84afd3afa6105b3a0d
   name: core
-  version: 1.0.28
+  version: 1.0.29
   requires_dist:
   - tqdm
   - xarray
@@ -1043,12 +1039,10 @@ packages:
   - pkg:pypi/distributed?source=hash-mapping
   size: 799717
   timestamp: 1742601963648
-- pypi: git+https://github.com/hygeos/eoread#9ea84338e901b996d404aa1d13c59a851447f80a
+- pypi: git+https://github.com/hygeos/eoread#0dc627aa11f368fc9d8440374ac69e1b96c9ac56
   name: eoread
   version: 0.3.dev0
   requires_dist:
-  - core @ git+https://github.com/hygeos/core.git
-  - sand @ git+https://github.com/hygeos/sand.git
   - lxml
   - pyproj
   - rioxarray
@@ -1058,13 +1052,16 @@ packages:
   - pyhdf
   - pysolar
   - fs
+  - core @ git+https://github.com/hygeos/core.git ; extra == 'git'
+  - sand @ git+https://github.com/hygeos/sand.git ; extra == 'git'
   requires_python: '>=3.11'
-- pypi: git+https://github.com/hygeos/eotools#7edc25f1f1a37e4be9bfc5b4a1ec940702c71fba
+- pypi: git+https://github.com/hygeos/eotools#1b871c531586580e7e995ff4f8323702e35cad7e
   name: eotools
   version: 0.1.dev0
   requires_dist:
-  - core @ git+https://github.com/hygeos/core.git
-  - luts @ git+https://github.com/hygeos/luts.git
+  - core @ git+https://github.com/hygeos/core.git ; extra == 'git'
+  - luts @ git+https://github.com/hygeos/luts.git ; extra == 'git'
+  - eoread @ git+https://github.com/hygeos/eoread.git ; extra == 'git'
   requires_python: '>=3.11'
 - pypi: https://files.pythonhosted.org/packages/ed/1d/409e819e00aed51f3e23df570e219621c0d64c458c9b8df4e7ae1c27e23d/eumdac-3.0.0-py3-none-any.whl
   name: eumdac
@@ -2600,15 +2597,6 @@ packages:
   - pkg:pypi/locket?source=hash-mapping
   size: 8250
   timestamp: 1650660473123
-- pypi: git+https://github.com/hygeos/luts.git#03fac1ea8026425491119d9de04963ff7b8957ae
-  name: luts
-  version: 1.0.2
-  requires_dist:
-  - netcdf4>=1.5.4
-  - numpy>=1.19.2
-  - scipy>=1.5.2
-  - xarray>=0.16.1
-  requires_python: '>=3.6'
 - conda: https://conda.anaconda.org/conda-forge/linux-64/lxml-5.3.1-py312he28fd5a_0.conda
   sha256: 4f3a78b59890f2175a381d9ae5e74b4523aea23daaa01cafbb150456bc8b857c
   md5: 52d16dd592060d4b2fa9ad325e0c1f90
@@ -3014,6 +3002,36 @@ packages:
   - pkg:pypi/pluggy?source=hash-mapping
   size: 23595
   timestamp: 1733222855563
+- pypi: ./
+  name: polymer
+  version: 4.17b2.dev0
+  sha256: 019cce003d0a6376504626b8a93d4e50eba4d4a31c5ec1c8dfa8c820d79d6759
+  requires_dist:
+  - numpy<2
+  - h5py
+  - pyhdf
+  - cython
+  - pandas
+  - scipy
+  - netcdf4
+  - xarray
+  - core @ git+https://github.com/hygeos/core ; extra == 'git'
+  - eoread @ git+https://github.com/hygeos/eoread ; extra == 'git'
+  - eotools @ git+https://github.com/hygeos/eotools ; extra == 'git'
+  - glymur ; extra == 'msi'
+  - pyproj ; extra == 'msi'
+  - gdal ; extra == 'gsw'
+  - gdal ; extra == 'landsat8'
+  - cdsapi ; extra == 'era5'
+  - pyepr ; extra == 'meris'
+  - polymer[git] ; extra == 'all'
+  - polymer[msi] ; extra == 'all'
+  - polymer[gsw] ; extra == 'all'
+  - polymer[landsat8] ; extra == 'all'
+  - polymer[era5] ; extra == 'all'
+  - polymer[meris] ; extra == 'all'
+  requires_python: '>=3.11'
+  editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/proj-9.6.0-h0054346_0.conda
   sha256: a9d62fd7fcb3cda36243754f34aee73771500cfc9e81c74d18d90122cb92f214
   md5: c2ad1b40a59bb94a629a812c656973e1
@@ -3154,16 +3172,6 @@ packages:
   - pkg:pypi/pyhdf?source=hash-mapping
   size: 193515
   timestamp: 1736251259308
-- pypi: https://files.pythonhosted.org/packages/c3/c0/c33c8792c3e50193ef55adb95c1c3c2786fe281123291c2dbf0eaab95a6f/pyotp-2.9.0-py3-none-any.whl
-  name: pyotp
-  version: 2.9.0
-  sha256: 81c2e5865b8ac55e825b0358e496e1d9387c811e85bb40e71a3b29b288963612
-  requires_dist:
-  - coverage ; extra == 'test'
-  - wheel ; extra == 'test'
-  - ruff ; extra == 'test'
-  - mypy ; extra == 'test'
-  requires_python: '>=3.7'
 - conda: https://conda.anaconda.org/conda-forge/noarch/pyparsing-3.2.3-pyhd8ed1ab_1.conda
   sha256: b92afb79b52fcf395fd220b29e0dd3297610f2059afac45298d44e00fcbf23b6
   md5: 513d3c262ee49b54a8fec85c5bc99764
@@ -3492,19 +3500,6 @@ packages:
   purls: []
   size: 353374
   timestamp: 1741231104518
-- pypi: git+https://github.com/hygeos/sand.git#d6fabbb81e3cdf8e1061109bbc8fdee9fd2e5590
-  name: sand
-  version: 0.2.2
-  requires_dist:
-  - core @ git+https://github.com/hygeos/core.git
-  - numpy
-  - requests
-  - eumdac
-  - shapely
-  - pyotp
-  - xmltodict
-  - pillow
-  requires_python: '>=3.10'
 - conda: https://conda.anaconda.org/conda-forge/linux-64/scipy-1.15.2-py312ha707e6e_0.conda
   sha256: b9faaa024b77a3678a988c5a490f02c4029c0d5903998b585100e05bc7d4ff36
   md5: 00b999c5f9d01fb633db819d79186bd4
@@ -3539,20 +3534,6 @@ packages:
   - pkg:pypi/setuptools?source=hash-mapping
   size: 777736
   timestamp: 1740654030775
-- pypi: https://files.pythonhosted.org/packages/62/de/8dbd7df60eb23cb983bb698aac982944b3d602ef0ce877a940c269eae34e/shapely-2.0.7-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-  name: shapely
-  version: 2.0.7
-  sha256: a9469f49ff873ef566864cb3516091881f217b5d231c8164f7883990eec88b73
-  requires_dist:
-  - numpy>=1.14,<3
-  - pytest ; extra == 'test'
-  - pytest-cov ; extra == 'test'
-  - numpydoc==1.1.* ; extra == 'docs'
-  - matplotlib ; extra == 'docs'
-  - sphinx ; extra == 'docs'
-  - sphinx-book-theme ; extra == 'docs'
-  - sphinx-remove-toctrees ; extra == 'docs'
-  requires_python: '>=3.7'
 - conda: https://conda.anaconda.org/conda-forge/noarch/six-1.17.0-pyhd8ed1ab_0.conda
   sha256: 41db0180680cc67c3fa76544ffd48d6a5679d96f4b71d7498a759e94edc9a2db
   md5: a451d576819089b0d672f18768be0f65
@@ -3826,11 +3807,6 @@ packages:
   purls: []
   size: 1648243
   timestamp: 1727733890754
-- pypi: https://files.pythonhosted.org/packages/d6/45/fc303eb433e8a2a271739c98e953728422fa61a3c1f36077a49e395c972e/xmltodict-0.14.2-py2.py3-none-any.whl
-  name: xmltodict
-  version: 0.14.2
-  sha256: 20cc7d723ed729276e808f26fb6b3599f786cbc37e06c65e192ba77c40f20aac
-  requires_python: '>=3.6'
 - conda: https://conda.anaconda.org/conda-forge/linux-64/xorg-libxau-1.0.12-hb9d3cd8_0.conda
   sha256: ed10c9283974d311855ae08a16dfd7e56241fac632aec3b92e3cfe73cff31038
   md5: f6ebe2cb3f82ba6c057dde5d9debe4f7
