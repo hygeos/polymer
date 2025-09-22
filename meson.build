@@ -10,17 +10,20 @@ project(
     ],
 )
 
+# Python and dependencies setup
 py = import('python').find_installation('python3')
 cython = find_program('cython', required : true)
 numpy_inc = run_command(py, ['-c', 'import numpy; print(numpy.get_include())'], check: true).stdout().strip()
 python_inc = run_command(py, ['-c', 'from sysconfig import get_paths as gp; print(gp()["include"])'], check: true).stdout().strip()
 
+# Common include directories
 inc = [
     numpy_inc,
     python_inc,
     'polymer',
 ]
 
+# Common Cython arguments
 cython_args = [
     '-X', 'boundscheck=false',
     '-X', 'initializedcheck=false',
@@ -29,133 +32,71 @@ cython_args = [
     '-X', 'language_level=0',
 ]
 
+# Common C arguments for extensions
+common_c_args = [
+    '-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION',
+    '-w',  # Suppress warnings (optional)
+]
+
+# Static library for Fresnel C code
 libfresnel = static_library(
     'fresnel',
-    'polymer/fresnel.c',  # Explicitly compile the C file
+    'polymer/fresnel.c',
 )
 
-# POLYMER MINIMIZER
-libpolymerminimizer = py.extension_module(
-    'polymer_minimizer',
-    'polymer/polymer_minimizer.pyx',
-    include_directories: inc,
-    c_args: [
-        '-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION',
-        '-w',  # Suppress warnings (optional)
-    ],
-    cython_args: cython_args,
-)
+# Extension modules configuration
+extension_modules = {
+    'polymer_minimizer': {
+        'source': 'polymer/polymer_minimizer.pyx',
+        'link_with': [],
+    },
+    'clut': {
+        'source': 'polymer/clut.pyx',
+        'link_with': [],
+    },
+    'neldermead': {
+        'source': 'polymer/neldermead.pyx',
+        'link_with': [],
+    },
+    'polymer_main': {
+        'source': 'polymer/polymer_main.pyx',
+        'link_with': [],
+    },
+    'water': {
+        'source': 'polymer/water.pyx',
+        'link_with': [libfresnel],
+    },
+}
 
-# CLUT
-libclut = py.extension_module(
-    'clut',
-    'polymer/clut.pyx',
-    include_directories: inc,
-    c_args: [
-        '-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION',
-        '-w',  # Suppress warnings (optional)
-    ],
-    cython_args: cython_args,
-)
-
-# NELDERMEAD
-libneldermead = py.extension_module(
-    'neldermead',
-    'polymer/neldermead.pyx',
-    include_directories: inc,
-    c_args: [
-        '-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION',
-        '-w',  # Suppress warnings (optional)
-    ],
-    cython_args: cython_args,
-)
-
-# POLYMER_MAIN
-libpolymer_main = py.extension_module(
-    'polymer_main',
-    'polymer/polymer_main.pyx',
-    include_directories: inc,
-    c_args: [
-        '-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION',
-        '-w',  # Suppress warnings (optional)
-    ],
-    cython_args: cython_args,
-)
-
-# WATER
-libwater = py.extension_module(
-    'water',
-    'polymer/water.pyx',
-    include_directories: inc,
-    c_args: [
-        '-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION',
-        '-w',  # Suppress warnings (optional)
-    ],
-    cython_args: cython_args,
-    link_with: [libfresnel],  # Link the precompiled C code
-)
+# Build extension modules
+extension_targets = {}
+foreach name, config : extension_modules
+    extension_targets += {name: py.extension_module(
+        name,
+        config['source'],
+        include_directories: inc,
+        c_args: common_c_args,
+        cython_args: cython_args,
+        link_with: config['link_with'],
+    )}
+endforeach
 
 
-# Custom target to copy .so to ./polymer
-custom_target('move-polymer-minimizer-local',
-    input: libpolymerminimizer,
-    output: 'polymer_minimizer.so',
-    command: [
-        'cp',
-        '@INPUT@',
-        meson.current_source_dir() / 'polymer' / '@OUTPUT@'
-    ],
-    build_by_default: true
-)
+# Create custom targets to copy .so files to ./polymer directory
+foreach name, target : extension_targets
+    custom_target('move-@0@-local'.format(name.underscorify()),
+        input: target,
+        output: '@0@.so'.format(name),
+        command: [
+            'cp',
+            '@INPUT@',
+            meson.current_source_dir() / 'polymer' / '@OUTPUT@'
+        ],
+        build_by_default: true
+    )
+endforeach
 
-custom_target('move-clut-local',
-    input: libclut,
-    output: 'clut.so',
-    command: [
-        'cp',
-        '@INPUT@',
-        meson.current_source_dir() / 'polymer' / '@OUTPUT@'
-    ],
-    build_by_default: true
-)
-
-# Custom target to copy .so to ./polymer
-custom_target('move-neldermead-local',
-    input: libneldermead,
-    output: 'neldermead.so',
-    command: [
-        'cp',
-        '@INPUT@',
-        meson.current_source_dir() / 'polymer' / '@OUTPUT@'
-    ],
-    build_by_default: true
-)
-
-# Custom target to copy .so to ./polymer
-custom_target('move-polymer_main-local',
-    input: libpolymer_main,
-    output: 'polymer_main.so',
-    command: [
-        'cp',
-        '@INPUT@',
-        meson.current_source_dir() / 'polymer' / '@OUTPUT@'
-    ],
-    build_by_default: true
-)
-
-# Custom target to copy .so to ./polymer
-custom_target('move-water-local',
-    input: libwater,
-    output: 'water.so',
-    command: [
-        'cp',
-        '@INPUT@',
-        meson.current_source_dir() / 'polymer' / '@OUTPUT@'
-    ],
-    build_by_default: true
-)
-
-# install package in site-packages
+# Install package in site-packages
 install_subdir(
     'polymer',                          # Source directory
     install_dir: py.get_install_dir(),  # Target: site-packages/
