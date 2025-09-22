@@ -96,6 +96,7 @@ foreach name, target : extension_targets
     )
 endforeach
 
+
 # Install package in site-packages
 install_subdir(
     'polymer',                          # Source directory

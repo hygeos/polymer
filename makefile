@@ -2,7 +2,7 @@
 .PHONY: main all rebuild clean test auxdata
 
 main:
-	python setup.py build_ext --inplace -j 4
+	meson setup build && meson compile -C build
 
 all: auxdata main ancillary
 
