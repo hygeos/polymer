@@ -42,7 +42,7 @@ Note: after Polymer update, pixi automatically updates the environment.
 
 The file `environment.yml` can be used to create a conda environment with Polymer dependencies:
 ```
-PIP_NO_DEPS=1 conda env create -n polymer -f environment.yml
+conda env create -n polymer -f environment.yml
 conda activate polymer
 ```
 

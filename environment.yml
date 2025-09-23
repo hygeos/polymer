@@ -165,6 +165,7 @@ dependencies:
   - lzo=2.10=hd590300_1001
   - markupsafe=3.0.2=py312h178313f_1
   - matplotlib-base=3.10.1=py312hd3ec401_0
+  - meson=1.9.0=pyhcf101f3_0
   - minizip=4.0.7=h05a5f5f_3
   - msgpack-python=1.1.0=py312h68727a3_0
   - multiurl=0.3.5=pyhd8ed1ab_0
@@ -172,6 +173,7 @@ dependencies:
   - narwhals=1.33.0=pyhd8ed1ab_0
   - ncurses=6.5=h2d0b736_3
   - netcdf4=1.7.2=nompi_py312h21d6d8e_101
+  - ninja=1.13.1=h171cf75_0
   - nlohmann_json=3.11.3=he02047a_1
   - numpy=1.26.4=py312heda63a1_0
   - openjpeg=2.5.3=h5fbd93e_0
@@ -248,21 +250,17 @@ dependencies:
   - pip:
       - affine==2.4.0
       - appdirs==1.4.4
-      - click-plugins==1.1.1
+      - click-plugins==1.1.1.2
       - cligj==0.7.2
       - eumdac==3.0.0
       - fs==2.4.16
-      - h5netcdf==1.6.1
-      - pyotp==2.9.0
+      - h5netcdf==1.6.4
       - pysolar==0.13
-      - python-dotenv==1.1.0
+      - python-dotenv==1.1.1
       - rasterio==1.4.3
-      - rioxarray==0.18.2
-      - shapely==2.0.7
+      - rioxarray==0.19.0
       - toml==0.10.2
-      - xmltodict==0.14.2
-      - core @ git+https://github.com/hygeos/core@550f6c71c5934f2fa31045376fd8d00ecff49845
-      - eoread @ git+https://github.com/hygeos/eoread@9ea84338e901b996d404aa1d13c59a851447f80a
-      - eotools @ git+https://github.com/hygeos/eotools@7edc25f1f1a37e4be9bfc5b4a1ec940702c71fba
-      - luts @ git+https://github.com/hygeos/luts@03fac1ea8026425491119d9de04963ff7b8957ae
-      - sand @ git+https://github.com/hygeos/sand@d6fabbb81e3cdf8e1061109bbc8fdee9fd2e5590
+      - core @ git+https://github.com/hygeos/core@bfbcce23a9605e74f841d5c863ff349a5f78a1ae
+      - eoread @ git+https://github.com/hygeos/eoread@0dc627aa11f368fc9d8440374ac69e1b96c9ac56
+      - eotools @ git+https://github.com/hygeos/eotools@1b871c531586580e7e995ff4f8323702e35cad7e
+      - luts @ git+https://github.com/hygeos/luts@354b37df2eb0f3aee1bede05d9e366316ba80bf5
