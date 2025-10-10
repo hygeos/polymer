@@ -296,7 +296,6 @@ The Polymer flags are the following:
 | LAND               | 1           | Land mask                                  |
 | CLOUD_BASE         | 2           | Polymer's basic cloud mask                 |
 | L1_INVALID         | 4           | Invalid level1 pixel                       |
-| NEGATIVE_BB        | 8           | (deprecated flag)                          |
 | OUT_OF_BOUNDS      | 16          | Retrieved marine parameters are outside    |
 |                    |             | valid bounds                               |
 | EXCEPTION          | 32          | A processing error was encountered         |

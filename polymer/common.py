@@ -6,7 +6,6 @@ L2FLAGS = {
         'LAND'          : 1,
         'CLOUD_BASE'    : 2,
         'L1_INVALID'    : 4,
-        'NEGATIVE_BB'   : 8,
         'OUT_OF_BOUNDS' : 16,
         'EXCEPTION'     : 32,
         'THICK_AEROSOL' : 64,

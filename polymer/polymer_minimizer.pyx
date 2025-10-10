@@ -1,14 +1,8 @@
 import numpy as np
 cimport numpy as np
-from numpy.linalg import inv
-from polymer.common import L2FLAGS
-from libc.math cimport nan, exp, log, abs, sqrt, isnan
-from cpython.exc cimport PyErr_CheckSignals
-import pandas as pd
-from pathlib import Path
+from libc.math cimport exp, log, abs
 
 from polymer.neldermead cimport NelderMeadMinimizer
-from polymer.water cimport WaterModel
 
 
 """
