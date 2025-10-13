@@ -6,9 +6,9 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 import pytest
-from core import pytest_utils
+from core.tests import pytest_utils
 from core.env import getdir
-from core.fileutils import mdir
+from core.files.fileutils import mdir
 from eoread import autodetect, olci
 from eoread.common import timeit
 from matplotlib import pyplot as plt
