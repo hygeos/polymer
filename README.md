@@ -310,8 +310,8 @@ The Polymer flags are the following:
 --------------------------------------------------------------------------------|
 ```
 
-The recommended flagging of output pixels is the following ('&'
-represents the bitwise AND operator):
+The recommended flagging of output pixels is the following ('&' represents
+the bitwise AND operator):
 
 ```
 ------------------------------------------------------------------------------

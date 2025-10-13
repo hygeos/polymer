@@ -7,7 +7,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 from polymer.luts import read_mlut_hdf, Idx
 from polymer.utils import stdNxN, raiseflag
-from polymer.common import L2FLAGS
+from polymer.common import L2FLAGS, L2FLAGS_POLYMER
 from pyhdf.SD import SD
 from multiprocessing import Pool
 from datetime import datetime
@@ -68,10 +68,10 @@ class InitCorr(object):
         # filter pixels such that ths > 88° as EXCEPTION
         #
         raiseflag(block.bitmask,
-                  L2FLAGS['EXCEPTION'],
+                  L2FLAGS_POLYMER['EXCEPTION'],
                   block.sza > 88)
         raiseflag(block.bitmask,
-                  L2FLAGS['EXCEPTION'],
+                  L2FLAGS_POLYMER['EXCEPTION'],
                   np.isnan(block.ozone))
 
         #
@@ -81,7 +81,7 @@ class InitCorr(object):
             ox, oy = block.offset
             sx, sy = block.size
             raiseflag(block.bitmask,
-                      L2FLAGS['EXTERNAL_MASK'],
+                      L2FLAGS_POLYMER['EXTERNAL_MASK'],
                       self.params.external_mask[ox:ox+sx,
                                                 oy:oy+sy] != 0
                       )
@@ -209,7 +209,7 @@ class InitCorr(object):
 
         ok = (block.bitmask & self.params.BITMASK_INVALID) == 0
         ok &= ~nightpixel
-        raiseflag(block.bitmask, L2FLAGS['EXCEPTION'], nightpixel)
+        raiseflag(block.bitmask, L2FLAGS_POLYMER['EXCEPTION'], nightpixel)
 
         #
         # ozone correction
@@ -266,7 +266,7 @@ class InitCorr(object):
         musmin = self.mlut.axis('dim_mu')[-1]
         nightpixel = block.mus <= musmin
         ok &= ~nightpixel
-        raiseflag(block.bitmask, L2FLAGS['EXCEPTION'], nightpixel)
+        raiseflag(block.bitmask, L2FLAGS_POLYMER['EXCEPTION'], nightpixel)
 
         inir_block = block.bands.index(params.band_cloudmask)
 
@@ -312,7 +312,7 @@ class InitCorr(object):
 
         # flag high air mass
         # (air_mass > 5)
-        raiseflag(block.bitmask, L2FLAGS['HIGH_AIR_MASS'],
+        raiseflag(block.bitmask, L2FLAGS_POLYMER['HIGH_AIR_MASS'],
                   block.air_mass > 5.)
 
         block.Rprime = np.zeros(block.Rtoa.shape, dtype='float32')+np.nan
@@ -376,7 +376,7 @@ class InitCorr(object):
 
     def set_attributes(self, block):
         flag_meanings = ', '.join(['{}:{}'.format(x[0], x[1])
-                                   for x in sorted(L2FLAGS.items(),
+                                   for x in sorted({**L2FLAGS, **L2FLAGS_POLYMER}.items(),
                                                    key=lambda x: x[1])])
         block.attributes['bitmask'] = {
                 'description': flag_meanings,

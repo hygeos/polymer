@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 from numpy.linalg import inv
-from polymer.common import L2FLAGS
+from polymer.common import L2FLAGS_POLYMER
 from libc.math cimport nan, exp, log, abs, sqrt, isnan
 from cpython.exc cimport PyErr_CheckSignals
 import pandas as pd
@@ -86,12 +86,12 @@ cdef class PolymerSolver:
         self.initial_step = np.array(params.initial_step, dtype='float32')
         self.size_end_iter = params.size_end_iter
         self.max_iter = params.max_iter
-        self.L2_FLAG_CASE2 = L2FLAGS['CASE2']
-        self.L2_FLAG_INCONSISTENCY = L2FLAGS['INCONSISTENCY']
-        self.L2_FLAG_THICK_AEROSOL = L2FLAGS['THICK_AEROSOL']
-        self.L2_FLAG_OUT_OF_BOUNDS = L2FLAGS['OUT_OF_BOUNDS']
-        self.L2_FLAG_EXCEPTION = L2FLAGS['EXCEPTION']
-        self.L2_FLAG_ANOMALY_RWMOD_BLUE = L2FLAGS['ANOMALY_RWMOD_BLUE']
+        self.L2_FLAG_CASE2 = L2FLAGS_POLYMER['CASE2']
+        self.L2_FLAG_INCONSISTENCY = L2FLAGS_POLYMER['INCONSISTENCY']
+        self.L2_FLAG_THICK_AEROSOL = L2FLAGS_POLYMER['THICK_AEROSOL']
+        self.L2_FLAG_OUT_OF_BOUNDS = L2FLAGS_POLYMER['OUT_OF_BOUNDS']
+        self.L2_FLAG_EXCEPTION = L2FLAGS_POLYMER['EXCEPTION']
+        self.L2_FLAG_ANOMALY_RWMOD_BLUE = L2FLAGS_POLYMER['ANOMALY_RWMOD_BLUE']
         self.params = params
         self.uncertainties = params.uncertainties
         self.normalize = params.normalize
@@ -674,7 +674,7 @@ cdef class PolymerSolver:
 
         # register the Polymer flags in the attributes
         flags_out.attrs.update(ds.flags.attrs)
-        for k, v in L2FLAGS.items():
+        for k, v in L2FLAGS_POLYMER.items():
             tools.raiseflag(flags_out, k, v)
         ds['flags'] = flags_out
 
