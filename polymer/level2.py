@@ -158,7 +158,7 @@ class Level2_file(Level2_base):
         assert level1.filename
 
         if self.filename is None:
-            self.filename = level1.filename + self.ext
+            self.filename = str(level1.filename) + self.ext
             if self.outdir is not None:
                 self.filename = join(self.outdir, basename(self.filename))
 
