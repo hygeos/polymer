@@ -155,7 +155,22 @@ def init(ds: xr.Dataset, srf: xr.Dataset, params):
     if 'cwav' not in ds:
         ds['cwav'] = ds.wav
         assert len(ds.wav.dims) == 1
+    
+    # initialize bands_corr, bands_oc, bands_rw if they are defined from a callable
+    if not isinstance(params.bands_corr, list):
+        assert not isinstance(params.bands_oc, list)
+        assert not isinstance(params.bands_rw, list)
+        bands_level1 = ds.bands.values
+        bands_rw = params.bands_rw(bands_level1)
+        setattr(params, "bands_rw", bands_rw)
+        setattr(params, "bands_corr", params.bands_corr(bands_rw))
+        setattr(params, "bands_oc", params.bands_oc(bands_rw))
 
+        # make sure there are no duplicates in bands_rw
+        assert len(bands_rw) == len(set(bands_rw))
+    
+    # Store the params in the object attributes
+    ds.attrs.update(params.items())
 
 def run_polymer_dataset(ds: xr.Dataset, **kwargs) -> xr.Dataset:
     """

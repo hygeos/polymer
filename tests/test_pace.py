@@ -4,7 +4,6 @@ from polymer.main_v5 import run_polymer_dataset
 from polymer.pace import (
     get_sample,
     Level1B_PACE_OCI,
-    prepare_pace_level1,
     get_config_pace,
 )
 from core.tests.conftest import savefig
@@ -29,9 +28,9 @@ def test_pace_reader(request, sample):
 def test_pace_polymer(request, sample):
     product_level1 = get_sample(sample)
 
-    l1 = prepare_pace_level1(Level1B_PACE_OCI(product_level1["path"]))
+    l1 = Level1B_PACE_OCI(product_level1["path"])
 
-    l2 = run_polymer_dataset(l1, **get_config_pace(l1)).sel(product_level1["roi"])
+    l2 = run_polymer_dataset(l1, **get_config_pace()).sel(product_level1["roi"])
 
     l2.rho_w.sel(bands=500, method="nearest").plot(vmin=0, vmax=0.05)
 
@@ -41,7 +40,7 @@ def test_pace_polymer(request, sample):
 @pytest.mark.parametrize("sample", [1, 2])
 def test_pace_polymer_singlepixel(request, sample):
     product_level1 = get_sample(sample)
-    l1 = prepare_pace_level1(Level1B_PACE_OCI(product_level1["path"]))
+    l1 = Level1B_PACE_OCI(product_level1["path"])
 
     if "px" not in product_level1:
         return
@@ -53,7 +52,7 @@ def test_pace_polymer_singlepixel(request, sample):
             y=slice(y, y + 1),
             x=slice(x, x + 1),
         ),
-        **get_config_pace(l1),
+        **get_config_pace(),
     ).isel(x=0, y=0)
 
     for var in [
@@ -65,9 +64,8 @@ def test_pace_polymer_singlepixel(request, sample):
     ]:
         l2[var].plot(label=var)  # type: ignore
 
-    bands_corr = get_config_pace(l1)["bands_corr"]
     plt.plot(
-        bands_corr, [0 for _ in bands_corr], "r.", label="bands used by Polymer AC"
+        l2.bands_corr, [0 for _ in l2.bands_corr], "r.", label="bands used by Polymer AC"
     )
 
     plt.legend()

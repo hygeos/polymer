@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import xarray as xr
 from core.download import download_url
@@ -73,27 +73,23 @@ def Level1B_PACE_OCI(product_pace_oci: Path) -> xr.Dataset:
     return ds
 
 
-def prepare_pace_level1(l1: xr.Dataset) -> xr.Dataset:
-    """
-    Prepare pace Level1 for Polymer processing
-    """
-    # select PACE bands that are incompatible with Polymer processing (wrong ordering)
-    l1 = l1.isel(
-        bands=[
-            i
-            for i, x in enumerate(l1.bands.values)
+def get_config_pace() -> Dict:
+    def filter_pace_bands(A: List) -> List:
+        return [
+            x
+            for x in A
             # avoid overlap between blue and red bands https://pace.oceansciences.org/about_pace_data.htm
             if (not 590 < x < 610)
             # avoid SWIR bands
             and (x < 1200)
+            # avoid LUT limitation
+            and x > 400
         ]
-    )
 
-    return l1
-
-
-def get_config_pace(l1: xr.Dataset) -> Dict:
-    def filter_pace_bands(A):
+    def filter_pace_bands_ac(A: List) -> List:
+        """
+        From a list of bands, return which bands are used for atmospheric correction
+        """
         return [
             x
             for x in A
@@ -109,9 +105,9 @@ def get_config_pace(l1: xr.Dataset) -> Dict:
     return {
         "ancillary": Ancillary_NASA(),
         "calib": None,
-        "bands_corr": filter_pace_bands(l1.bands.values),
-        "bands_oc": filter_pace_bands(l1.bands.values),
-        "bands_rw": [x for x in l1.bands.values if x > 400],  # Avoid LUT limitation
+        "bands_corr": filter_pace_bands_ac,
+        "bands_oc": filter_pace_bands_ac,
+        "bands_rw": filter_pace_bands,
         "band_cloudmask": 859,
     }
 
