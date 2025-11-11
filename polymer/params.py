@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, division, absolute_import
+from typing import List
 import warnings
 import numpy as np
 from os.path import join, dirname
@@ -275,6 +276,8 @@ class Params(object):
             self.defaults_oli()
         elif sensor == 'PRISMA':
             self.defaults_prisma()
+        elif sensor == 'OCI':
+            self.defaults_pace_oci()
         elif sensor.startswith('HYPSO'):
             self.defaults_hypso()
 
@@ -907,7 +910,46 @@ class Params(object):
         self.calib = None
         from eoread.ancillary_nasa import Ancillary_NASA
         self.ancillary = Ancillary_NASA()
+    
 
+    def defaults_pace_oci(self):
+
+        def filter_pace_bands(A: List) -> List:
+            return [
+                x
+                for x in A
+                # avoid overlap between blue and red bands https://pace.oceansciences.org/about_pace_data.htm
+                if (not 590 < x < 610)
+                # avoid SWIR bands
+                and (x < 1200)
+                # avoid LUT limitation
+                and x > 400
+            ]
+
+        def filter_pace_bands_ac(A: List) -> List:
+            """
+            From a list of bands, return which bands are used for atmospheric correction
+            """
+            return [
+                x
+                for x in A
+                if (not x < 450)
+                and (not 685 <= x <= 695)  # O2 B-band
+                and (not 710 <= x <= 740)  # Water vapour
+                and (not 759 <= x <= 771)  # O2 A-band
+                and (not 810 <= x <= 840)  # Water vapour
+                and (not 930 <= x <= 982)  # H20
+                and (not x > 1100)
+            ]
+
+        self.bands_corr = filter_pace_bands_ac
+        self.bands_oc = filter_pace_bands_ac
+        self.bands_rw = filter_pace_bands
+        self.calib = None
+        self.band_cloudmask = 859
+
+        from eoread.ancillary_nasa import Ancillary_NASA
+        self.ancillary = Ancillary_NASA()
 
     def bands_read(self):
         assert (np.diff(self.bands_corr) > 0).all()

@@ -1,11 +1,7 @@
 from matplotlib import pyplot as plt
 import pytest
 from polymer.main_v5 import run_polymer_dataset
-from polymer.pace import (
-    get_sample,
-    Level1B_PACE_OCI,
-    get_config_pace,
-)
+from polymer.pace import get_sample, Level1B_PACE_OCI
 from core.tests.conftest import savefig
 
 
@@ -30,7 +26,7 @@ def test_pace_polymer(request, sample):
 
     l1 = Level1B_PACE_OCI(product_level1["path"])
 
-    l2 = run_polymer_dataset(l1, **get_config_pace()).sel(product_level1["roi"])
+    l2 = run_polymer_dataset(l1).sel(product_level1["roi"])
 
     l2.rho_w.sel(bands=500, method="nearest").plot(vmin=0, vmax=0.05)
 
@@ -52,7 +48,6 @@ def test_pace_polymer_singlepixel(request, sample):
             y=slice(y, y + 1),
             x=slice(x, x + 1),
         ),
-        **get_config_pace(),
     ).isel(x=0, y=0)
 
     for var in [

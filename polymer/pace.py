@@ -1,12 +1,11 @@
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 import xarray as xr
 from core.download import download_url
 from core.env import getdir
 from core.tools import raiseflag
 from dateutil.parser import parse
-from eoread.ancillary_nasa import Ancillary_NASA
 
 from polymer.common import L2FLAGS
 
@@ -71,45 +70,6 @@ def Level1B_PACE_OCI(product_pace_oci: Path) -> xr.Dataset:
     ds = ds.rename(scans="y", pixels="x")
 
     return ds
-
-
-def get_config_pace() -> Dict:
-    def filter_pace_bands(A: List) -> List:
-        return [
-            x
-            for x in A
-            # avoid overlap between blue and red bands https://pace.oceansciences.org/about_pace_data.htm
-            if (not 590 < x < 610)
-            # avoid SWIR bands
-            and (x < 1200)
-            # avoid LUT limitation
-            and x > 400
-        ]
-
-    def filter_pace_bands_ac(A: List) -> List:
-        """
-        From a list of bands, return which bands are used for atmospheric correction
-        """
-        return [
-            x
-            for x in A
-            if (not x < 450)
-            and (not 685 <= x <= 695)  # O2 B-band
-            and (not 710 <= x <= 740)  # Water vapour
-            and (not 759 <= x <= 771)  # O2 A-band
-            and (not 810 <= x <= 840)  # Water vapour
-            and (not 930 <= x <= 982)  # H20
-            and (not x > 1100)
-        ]
-
-    return {
-        "ancillary": Ancillary_NASA(),
-        "calib": None,
-        "bands_corr": filter_pace_bands_ac,
-        "bands_oc": filter_pace_bands_ac,
-        "bands_rw": filter_pace_bands,
-        "band_cloudmask": 859,
-    }
 
 
 def get_sample(sample: int = 1) -> Dict:
