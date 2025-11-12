@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import pytest
 from polymer.main_v5 import run_polymer_dataset
-from polymer.pace import get_sample, Level1B_PACE_OCI
+from eoread.pace import get_sample, Level1B_PACE_OCI
 from core.tests.conftest import savefig
 
 

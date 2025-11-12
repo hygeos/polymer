@@ -51,7 +51,7 @@ platforms = ["linux-64"]
 [tool.pixi.pypi-dependencies]
 # polymer = { path = ".", editable = true, extras = ["git"]}
 core = { git = "git+https://github.com/hygeos/core"}
-eoread = { git = "git+https://github.com/hygeos/eoread", rev="f2ebb8596b681268a93717ec45c1136d6d64e975"}
+eoread = { git = "git+https://github.com/hygeos/eoread" }
 eotools = { git = "git+https://github.com/hygeos/eotools" }
 luts = { git = "git+https://github.com/hygeos/luts" }
 

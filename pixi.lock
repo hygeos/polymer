@@ -260,8 +260,8 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/3b/00/2344469e2084fb287c2e0b57b72910309874c3245463acd6cf5e3db69324/appdirs-1.4.4-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3d/9a/2abecb28ae875e39c8cad711eb1186d8d14eab564705325e77e4e6ab9ae5/click_plugins-1.1.1.2-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/73/86/43fa9f15c5b9fb6e82620428827cd3c284aa933431405d1bcf5231ae3d3e/cligj-0.7.2-py3-none-any.whl
-      - pypi: git+https://github.com/hygeos/core#65dec058ac6cab05f527c1f0323433ec9a88f072
-      - pypi: git+https://github.com/hygeos/eoread?rev=f2ebb8596b681268a93717ec45c1136d6d64e975#f2ebb8596b681268a93717ec45c1136d6d64e975
+      - pypi: git+https://github.com/hygeos/core#85a28c303d28fdae71ee0772fee06d49cbac4fda
+      - pypi: git+https://github.com/hygeos/eoread#2860bc7c844815d8d742b8f6a5efc503fc3175f5
       - pypi: git+https://github.com/hygeos/eotools#6754fc791c59930a0f47617b7c760f684f8ad837
       - pypi: https://files.pythonhosted.org/packages/ed/1d/409e819e00aed51f3e23df570e219621c0d64c458c9b8df4e7ae1c27e23d/eumdac-3.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b9/5c/a3d95dc1ec6cdeb032d789b552ecc76effa3557ea9186e1566df6aac18df/fs-2.4.16-py2.py3-none-any.whl
@@ -898,7 +898,7 @@ packages:
   - pkg:pypi/contourpy?source=hash-mapping
   size: 276332
   timestamp: 1731428454756
-- pypi: git+https://github.com/hygeos/core#65dec058ac6cab05f527c1f0323433ec9a88f072
+- pypi: git+https://github.com/hygeos/core#85a28c303d28fdae71ee0772fee06d49cbac4fda
   name: core
   version: 1.1.0
   requires_dist:
@@ -910,6 +910,7 @@ packages:
   - python-dotenv
   - toml
   - lxml
+  requires_python: '>=3.10,<3.14'
 - conda: https://conda.anaconda.org/conda-forge/noarch/cycler-0.12.1-pyhd8ed1ab_1.conda
   sha256: 9827efa891e507a91a8a2acf64e210d2aff394e1cde432ad08e1f8c66b12293c
   md5: 44600c4667a319d67dbe0681fc0bc833
@@ -1045,7 +1046,7 @@ packages:
   - pkg:pypi/distributed?source=hash-mapping
   size: 799717
   timestamp: 1742601963648
-- pypi: git+https://github.com/hygeos/eoread?rev=f2ebb8596b681268a93717ec45c1136d6d64e975#f2ebb8596b681268a93717ec45c1136d6d64e975
+- pypi: git+https://github.com/hygeos/eoread#2860bc7c844815d8d742b8f6a5efc503fc3175f5
   name: eoread
   version: 0.3.dev0
   requires_dist:
