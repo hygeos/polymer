@@ -255,12 +255,15 @@ dependencies:
       - eumdac==3.0.0
       - fs==2.4.16
       - h5netcdf==1.6.4
+      - llvmlite==0.45.1
+      - numba==0.62.1
       - pysolar==0.13
       - python-dotenv==1.1.1
       - rasterio==1.4.3
       - rioxarray==0.19.0
       - toml==0.10.2
-      - core @ git+https://github.com/hygeos/core@bfbcce23a9605e74f841d5c863ff349a5f78a1ae
-      - eoread @ git+https://github.com/hygeos/eoread@0dc627aa11f368fc9d8440374ac69e1b96c9ac56
-      - eotools @ git+https://github.com/hygeos/eotools@1b871c531586580e7e995ff4f8323702e35cad7e
+      - xlrd==2.0.2
+      - core @ git+https://github.com/hygeos/core@85a28c303d28fdae71ee0772fee06d49cbac4fda
+      - eoread @ git+https://github.com/hygeos/eoread@2860bc7c844815d8d742b8f6a5efc503fc3175f5
+      - eotools @ git+https://github.com/hygeos/eotools@6754fc791c59930a0f47617b7c760f684f8ad837
       - luts @ git+https://github.com/hygeos/luts@354b37df2eb0f3aee1bede05d9e366316ba80bf5

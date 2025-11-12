@@ -41,6 +41,7 @@ requires = [
     "meson-python",
     "cython",
     "numpy",
+    "ninja",
 ]
 build-backend = "mesonpy"
 

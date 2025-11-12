@@ -65,6 +65,7 @@ Supported sensors
 | Landsat8 OLI    | X   |     |
 | ISS HICO        | X   |     |
 | HYPSO-2 HSI     |     | X   |
+| PACE OCI        |     | X   |
 
 
 

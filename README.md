@@ -48,6 +48,12 @@ conda activate polymer
 
 Note: after updating Polymer, it may be necessary to recreate this environment.
 
+#### 1.1.3 As a python package
+
+Polymer can be installed directly in your python environment with the following command
+
+pip install git+https://github.com/hygeos/polymer
+
 ### 1.2 Auxiliary data
 
 Two directories are necessary to store data files required by Polymer. These files are located
