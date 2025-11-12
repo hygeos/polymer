@@ -5,6 +5,34 @@
                            #                   #
                            #####################
 
+
+v4.17
+-----
+
+Release date: 2025-11-12
+
+* Reworked the build and install system:
+    - The build now relies on the `meson` build system
+    - Polymer can now be installed in an environment with
+      `pip install git+https://github.com/hygeos/polymer`
+    - Polymer supports the use of pixi (https://pixi.sh/) for package management, in addition
+      to conda (environment.yml)
+    - Environment variables can now be used to control the ancillary data storage directories
+* Implementation of the Polymer v5 processing framework.
+    - Polymer v5 is a major update of the processing framework, now relying on xarray and dask objects
+    - Many functions from Polymer are moved to external packages (eoread, eotools, core)
+    - The support of all sensors is progressively migrated to the v5 codebase
+    - The v4 and v5 codebases coexist until the switch to v5 is complete
+    - See README_v5.md for more details
+* Sensors support:
+    * Support processing of PACE OCI
+    * Support NTNU HYPSO (Hyper-Spectral Small Satellite for Ocean Observation)
+* Ancillary data:
+    - Implement Copernicus 90m and 30m DEM support (thanks @martin-boettcher)
+    - ERA5: compatibility with new CDS
+* Various fixes and cleanup
+
+
 v4.17beta2
 ----------
 
