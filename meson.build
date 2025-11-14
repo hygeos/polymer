@@ -82,15 +82,17 @@ foreach name, config : extension_modules
 endforeach
 
 
-# Create custom targets to copy .so files to ./polymer directory
+# Create custom targets to copy .so (Linux/Mac) or .pyd (Windows) files to ./polymer directory
 foreach name, target : extension_targets
     custom_target('move-@0@-local'.format(name.underscorify()),
         input: target,
-        output: '@0@.so'.format(name),
+        output: '@0@'.format(name),
         command: [
-            'cp',
+            py,
+            '-c',
+            'import shutil, sys, os; shutil.copyfile(sys.argv[1], os.path.join(sys.argv[2], os.path.basename(sys.argv[1])))',
             '@INPUT@',
-            meson.current_source_dir() / 'polymer' / '@OUTPUT@'
+            meson.current_source_dir() / 'polymer'
         ],
         build_by_default: true
     )
@@ -102,5 +104,5 @@ install_subdir(
     'polymer',                          # Source directory
     install_dir: py.get_install_dir(),  # Target: site-packages/
     strip_directory: false,             # Preserve `polymer/` as a subdir
-    exclude_files: ['*.pyx', '*.c'],    # Exclude source files (keep .so/.py)
+    exclude_files: ['*.pyx', '*.c'],    # Exclude source files (keep .so/.pyd/.py)
 )
