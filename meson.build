@@ -86,7 +86,7 @@ endforeach
 foreach name, target : extension_targets
     custom_target('move-@0@-local'.format(name.underscorify()),
         input: target,
-        output: '@0@.so'.format(name),
+        output: '@0@'.format(name),
         command: [
             'cp',
             '@INPUT@',
@@ -102,5 +102,5 @@ install_subdir(
     'polymer',                          # Source directory
     install_dir: py.get_install_dir(),  # Target: site-packages/
     strip_directory: false,             # Preserve `polymer/` as a subdir
-    exclude_files: ['*.pyx', '*.c'],    # Exclude source files (keep .so/.py)
+    exclude_files: ['*.pyx', '*.c'],    # Exclude source files (keep .so/.pyd/.py)
 )
