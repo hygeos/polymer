@@ -82,7 +82,7 @@ foreach name, config : extension_modules
 endforeach
 
 
-# Create custom targets to copy .so files to ./polymer directory
+# Create custom targets to copy .so (Linux/Mac) or .pyd (Windows) files to ./polymer directory
 foreach name, target : extension_targets
     custom_target('move-@0@-local'.format(name.underscorify()),
         input: target,
