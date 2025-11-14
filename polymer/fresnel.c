@@ -7,6 +7,13 @@
 #define MAX(a,b)	(((a) > (b)) ? (a) : (b))
 
 
+// Define M_PI for Windows/MSVC compilers, which do not provide it by default.
+// This ensures that mathematical constants like pi are available for Fresnel calculations.
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+
 /* ---------------------------------------------------------------------------------------- */
 /* windex() - return wavelength index of table which is closest to sensor wavelength        */
 /* ---------------------------------------------------------------------------------------- */
