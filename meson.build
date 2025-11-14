@@ -88,9 +88,11 @@ foreach name, target : extension_targets
         input: target,
         output: '@0@'.format(name),
         command: [
-            'cp',
+            py,
+            '-c',
+            'import shutil, sys, os; shutil.copyfile(sys.argv[1], os.path.join(sys.argv[2], os.path.basename(sys.argv[1])))',
             '@INPUT@',
-            meson.current_source_dir() / 'polymer' / '@OUTPUT@'
+            meson.current_source_dir() / 'polymer'
         ],
         build_by_default: true
     )
