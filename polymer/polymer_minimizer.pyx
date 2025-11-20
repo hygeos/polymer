@@ -33,7 +33,7 @@ cdef class PolymerMinimizer(NelderMeadMinimizer):
 
         self.w = watermodel
         self.C = np.zeros(Ncoef, dtype='float32')
-        self.Ratm = np.zeros(len(params.bands_read()), dtype='float32') + np.NaN
+        self.Ratm = np.zeros(len(params.bands_read()), dtype='float32') + np.nan
         self.Ncoef = Ncoef
 
         self.thres_chi2 = params.thres_chi2

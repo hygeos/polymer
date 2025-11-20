@@ -44,7 +44,7 @@ cdef class PolymerSolver:
     cdef PolymerMinimizer f
     cdef int Nparams
     cdef int BITMASK_INVALID
-    cdef float NaN
+    cdef float nan
     cdef float[:,:] bounds
     cdef float[:] initial_point_1
     cdef float[:] initial_point_2
@@ -77,7 +77,7 @@ cdef class PolymerSolver:
         self.Ncoef = params.Ncoef   # number of atmospheric coefficients
         self.f = PolymerMinimizer(self.Ncoef, watermodel, params, self.Nparams)
         self.BITMASK_INVALID = params.BITMASK_INVALID
-        self.NaN = np.nan
+        self.nan = np.nan
 
         self.bounds = np.array(params.bounds, dtype='float32')
         self.initial_point_1 = np.array(params.initial_point_1, dtype='float32')
@@ -225,12 +225,12 @@ cdef class PolymerSolver:
             for i in range(Nx):
 
                 if (bitmask[i,j] & self.BITMASK_INVALID) != 0:
-                    logchl[i,j] = self.NaN
-                    fa[i,j] = self.NaN
-                    SPM[i,j] = self.NaN
-                    logfb[i,j] = self.NaN
-                    Rw[i,j,:] = self.NaN
-                    Ci[i,j,:] = self.NaN
+                    logchl[i,j] = self.nan
+                    fa[i,j] = self.nan
+                    SPM[i,j] = self.nan
+                    logfb[i,j] = self.nan
+                    Rw[i,j,:] = self.nan
+                    Ci[i,j,:] = self.nan
                     continue
 
                 if self.f.init_pixel(

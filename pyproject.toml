@@ -1,11 +1,11 @@
 [project]
 authors = [{name = "François Steinmetz", email = "fs@hygeos.com"}]
 name = "polymer"
-requires-python = ">= 3.11"
+requires-python = "<= 3.13"
 version = "v4.17-beta2-dev"
 description = "Polymer atmospheric correction algorithm (http://dx.doi.org/91364/OE.19.009783)"
 dependencies = [
-    "numpy<2",
+    "numpy",
     "h5py",
     "pyhdf",
     "cython",
@@ -63,7 +63,7 @@ polymer = "polymer"
 tests = "pytest tests"
 
 [tool.pixi.dependencies]
-numpy = "<2"
+numpy = ">=2"
 pytest = "*"
 pytest-html = "*"
 pytest-xdist = "*"
