@@ -395,7 +395,7 @@ class Level1_MSI(Level1_base):
             if iband == 0:
                 raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], raw_data == 0)
 
-            Rtoa = (raw_data + self.radio_offset_list[iband])/self.quantif
+            Rtoa = (raw_data.astype('float32') + self.radio_offset_list[iband])/self.quantif
 
             if self.add_noise is not None:
                 stdev = self.add_noise(band=band,
