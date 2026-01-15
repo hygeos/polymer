@@ -251,7 +251,7 @@ class Level1_MSI(Level1_base):
 
         print('Initialize MSI projection {}'.format(code))
 
-        proj = pyproj.Proj('+init={}'.format(code))
+        proj = pyproj.Proj(code)
 
         # lookup position in the UTM grid
         for e in self.geocoding.findall('Geoposition'):
