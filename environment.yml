@@ -183,7 +183,7 @@ dependencies:
   - openssl=3.6.0=h26f9b46_0
   - orc=2.2.1=hd747db4_0
   - packaging=24.2=pyhd8ed1ab_2
-  - pandas=2.3.3=py313h08cd8bf_1
+  - pandas=2.2.3=py313ha87cce1_1
   - partd=1.4.2=pyhd8ed1ab_0
   - pcre2=10.46=h1321c63_0
   - pillow=12.0.0=py313h50355cd_0
@@ -237,6 +237,7 @@ dependencies:
   - urllib3=2.3.0=pyhd8ed1ab_0
   - xarray=2025.3.1=pyhd8ed1ab_0
   - xerces-c=3.3.0=h988505b_0
+  - xlrd=1.2.0=pyh9f0ad1d_1
   - xorg-libxau=1.0.12=hb9d3cd8_0
   - xorg-libxdmcp=1.1.5=hb9d3cd8_0
   - xyzservices=2025.1.0=pyhd8ed1ab_0
@@ -253,20 +254,25 @@ dependencies:
   - pip:
       - affine==2.4.0
       - appdirs==1.4.4
-      - click-plugins==1.1.1.2
+      - cfgrib==0.9.15.1
       - cligj==0.7.2
-      - eumdac==3.0.0
+      - eccodes==2.44.0
+      - eccodeslib==2.44.1.8
+      - eckitlib==1.32.4.8
+      - eumdac==3.1.1
+      - fckitlib==0.14.1.8
+      - findlibs==0.1.2
       - fs==2.4.16
-      - h5netcdf==1.6.4
-      - llvmlite==0.45.1
-      - numba==0.62.1
+      - h5netcdf==1.7.3
+      - llvmlite==0.46.0
+      - numba==0.63.1
+      - paho-mqtt==2.1.0
       - pysolar==0.13
-      - python-dotenv==1.1.1
-      - rasterio==1.4.3
-      - rioxarray==0.19.0
+      - python-dotenv==1.2.1
+      - rasterio==1.5.0
+      - rioxarray==0.20.0
       - toml==0.10.2
-      - xlrd==2.0.2
-      - core @ git+https://github.com/hygeos/core@e176f674eb93ec058e33822bf268295fc5a2e3d4
-      - eoread @ git+https://github.com/hygeos/eoread@3997d176ec43231064d7455dc1e23e689cc4a528
-      - eotools @ git+https://github.com/hygeos/eotools@78502021823a146639630bfc6b19687f037c9002
-      - luts @ git+https://github.com/hygeos/luts@1d6452697e65af60304cf49448a6ce336b498b69
+      - core @ git+https://github.com/hygeos/core#e176f674eb93ec058e33822bf268295fc5a2e3d4
+      - eoread @ git+https://github.com/hygeos/eoread#3997d176ec43231064d7455dc1e23e689cc4a528
+      - eotools @ git+https://github.com/hygeos/eotools#78502021823a146639630bfc6b19687f037c9002
+      - luts @ git+https://github.com/hygeos/luts#1d6452697e65af60304cf49448a6ce336b498b69

@@ -264,11 +264,17 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb8e6e7a_2.conda
       - pypi: https://files.pythonhosted.org/packages/0b/f7/85273299ab57117850cc0a936c64151171fac4da49bc6fba0dad984a7c5f/affine-2.4.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3b/00/2344469e2084fb287c2e0b57b72910309874c3245463acd6cf5e3db69324/appdirs-1.4.4-py2.py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/6d/e8/16c58c57c9ce1474dd1e50090ebd78b008c70fc4f06793da65f9a0aba391/cfgrib-0.9.15.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/73/86/43fa9f15c5b9fb6e82620428827cd3c284aa933431405d1bcf5231ae3d3e/cligj-0.7.2-py3-none-any.whl
       - pypi: git+https://github.com/hygeos/core#e176f674eb93ec058e33822bf268295fc5a2e3d4
+      - pypi: https://files.pythonhosted.org/packages/dd/b8/9d15cea1f63fb2e1e14fda4160c355e6187e69b71b848c05faaae08b2e6c/eccodes-2.44.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9a/84/719acdb4f5fd8146e2a5d8b9064be53179119e43e894b588f564a7b2ceaf/eccodeslib-2.44.1.8-cp313-cp313-manylinux_2_28_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/87/7c/3e97f50f9d1abeab9b573c5896fd8e58cc1488907323fb4778278362353e/eckitlib-1.32.4.8-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       - pypi: git+https://github.com/hygeos/eoread#3997d176ec43231064d7455dc1e23e689cc4a528
       - pypi: git+https://github.com/hygeos/eotools#78502021823a146639630bfc6b19687f037c9002
       - pypi: https://files.pythonhosted.org/packages/f2/50/19f18fb17dc7bad32070fbca54d40f6fe8e5711deb1c744c84ac9d13ec10/eumdac-3.1.1-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/4f/46/6a7f4f92e811db5c108e2268aa0bdc5eaad21c1fa46648b146b5b18ba685/fckitlib-0.14.1.8-cp313-cp313-manylinux_2_28_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/2f/ff/76dd547e129206899e4e26446c3ca7aeaff948c31b05250e9b8690e76883/findlibs-0.1.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b9/5c/a3d95dc1ec6cdeb032d789b552ecc76effa3557ea9186e1566df6aac18df/fs-2.4.16-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d6/49/1f35189c1ca136b2f041b72402f2eb718bdcb435d9e88729fe6f6909c45d/h5netcdf-1.7.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/0e/54/737755c0a91558364b9200702c3c9c15d70ed63f9b98a2c32f1c2aa1f3ba/llvmlite-0.46.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
@@ -810,6 +816,23 @@ packages:
   - pkg:pypi/cffi?source=hash-mapping
   size: 298211
   timestamp: 1758716239290
+- pypi: https://files.pythonhosted.org/packages/6d/e8/16c58c57c9ce1474dd1e50090ebd78b008c70fc4f06793da65f9a0aba391/cfgrib-0.9.15.1-py3-none-any.whl
+  name: cfgrib
+  version: 0.9.15.1
+  sha256: f1bee90e86917389be9f767051bf32d00f95f6f4e4312b344567511b3cfd62d2
+  requires_dist:
+  - attrs>=19.2
+  - click
+  - eccodes>=0.9.8
+  - numpy
+  - xarray>=0.15 ; extra == 'xarray'
+  - dask[array] ; extra == 'tests'
+  - flake8 ; extra == 'tests'
+  - pytest ; extra == 'tests'
+  - pytest-cov ; extra == 'tests'
+  - scipy ; extra == 'tests'
+  - xarray>=0.15 ; extra == 'tests'
+  requires_python: '>=3.7'
 - conda: https://conda.anaconda.org/conda-forge/linux-64/cftime-1.6.4-py313h29aa505_2.conda
   sha256: 8cc3a1ce59dabdc875f39a96392444bf50c49aee94fe443a53c24a5792c65382
   md5: 1363e8db910e403edc8fd486f8470ec6
@@ -1032,6 +1055,27 @@ packages:
   - pkg:pypi/distributed?source=hash-mapping
   size: 799717
   timestamp: 1742601963648
+- pypi: https://files.pythonhosted.org/packages/dd/b8/9d15cea1f63fb2e1e14fda4160c355e6187e69b71b848c05faaae08b2e6c/eccodes-2.44.0-py3-none-any.whl
+  name: eccodes
+  version: 2.44.0
+  sha256: c3f11041bde7c3f53767c5bbed608c43695f257c09c58bb4de24bcd9cdae4e3a
+  requires_dist:
+  - numpy
+  - attrs
+  - cffi
+  - findlibs
+  - eccodeslib ; sys_platform != 'win32'
+- pypi: https://files.pythonhosted.org/packages/9a/84/719acdb4f5fd8146e2a5d8b9064be53179119e43e894b588f564a7b2ceaf/eccodeslib-2.44.1.8-cp313-cp313-manylinux_2_28_x86_64.whl
+  name: eccodeslib
+  version: 2.44.1.8
+  sha256: 0f0b899b259d2ca8938407d29df22f016eee10d1e20543b97d7a3e800ef8d551
+  requires_dist:
+  - eckitlib==1.32.4.8
+  - fckitlib==0.14.1.8
+- pypi: https://files.pythonhosted.org/packages/87/7c/3e97f50f9d1abeab9b573c5896fd8e58cc1488907323fb4778278362353e/eckitlib-1.32.4.8-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
+  name: eckitlib
+  version: 1.32.4.8
+  sha256: 72f6db669b5fe3b42a158073753786951803544d38810f64fd5909237784fa4e
 - pypi: git+https://github.com/hygeos/eoread#3997d176ec43231064d7455dc1e23e689cc4a528
   name: eoread
   version: 0.4.0
@@ -1098,6 +1142,19 @@ packages:
   - pkg:pypi/execnet?source=hash-mapping
   size: 38835
   timestamp: 1733231086305
+- pypi: https://files.pythonhosted.org/packages/4f/46/6a7f4f92e811db5c108e2268aa0bdc5eaad21c1fa46648b146b5b18ba685/fckitlib-0.14.1.8-cp313-cp313-manylinux_2_28_x86_64.whl
+  name: fckitlib
+  version: 0.14.1.8
+  sha256: 05e3f1190c4bbef4942d6b4088d6eb9e3248b1d4f18f33bebdf88e28b82786d2
+  requires_dist:
+  - eckitlib==1.32.4.8
+- pypi: https://files.pythonhosted.org/packages/2f/ff/76dd547e129206899e4e26446c3ca7aeaff948c31b05250e9b8690e76883/findlibs-0.1.2-py3-none-any.whl
+  name: findlibs
+  version: 0.1.2
+  sha256: 5348bbc7055d2a505962576c2e285b6c0aae6d749f82ba71296e7d41336e66e8
+  requires_dist:
+  - pytest ; extra == 'test'
+  - pyfakefs ; extra == 'test'
 - conda: https://conda.anaconda.org/conda-forge/noarch/flexcache-0.3-pyhd8ed1ab_1.conda
   sha256: acdb7b73d84268773fcc8192965994554411edc488ec3447925a62154e9d3baa
   md5: f1e618f2f783427019071b14a111b30d

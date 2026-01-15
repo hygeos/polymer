@@ -13,6 +13,7 @@ dependencies = [
     "scipy",
     "netcdf4",
     "xarray",
+    "cfgrib",
 ]
 
 [project.optional-dependencies]
