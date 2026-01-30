@@ -9,7 +9,7 @@ from core.tools import Var
 Definition of top of atmosphere uncertainties
 """
 
-vardef = Var('Rtoa_var', "float32", ('y', 'x', 'bands'))
+vardef = Var(name='Rtoa_var', dtype="float32", dims=('y', 'x', 'bands'))
 
 def init_uncertainties(ds: xr.Dataset, params):
     """
