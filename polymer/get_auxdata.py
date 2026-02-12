@@ -8,9 +8,7 @@ A script that fetches auxiliary data required bu Polymer
 """
 
 
-if __name__ == "__main__":
-
-    URL = "http://download.hygeos.com/POLYMER/auxdata/"
+def get_auxdata(URL = "http://download.hygeos.com/POLYMER/auxdata/"):
     for rpath in [
         # Common
         "generic/LUT.hdf",
@@ -57,3 +55,7 @@ if __name__ == "__main__":
         "oli/Ball_BA_RSR.v1.2.xlsx",
     ]:
         download_url(URL + rpath, (dir_static / rpath).parent)
+
+
+if __name__ == "__main__":
+    get_auxdata()
