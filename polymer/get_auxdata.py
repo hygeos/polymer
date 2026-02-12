@@ -8,7 +8,7 @@ A script that fetches auxiliary data required bu Polymer
 """
 
 
-def get_auxdata(URL = "http://download.hygeos.com/POLYMER/auxdata/"):
+def get_auxdata(URL = "https://download.hygeos.com/POLYMER/auxdata/"):
     for rpath in [
         # Common
         "generic/LUT.hdf",
