@@ -11,6 +11,7 @@ L2FLAGS = {
     
 # Polymer-specific flags
 L2FLAGS_POLYMER = {
+        'CLOUD_EDGE'    : 8,
         'OUT_OF_BOUNDS' : 16,
         'EXCEPTION'     : 32,
         'THICK_AEROSOL' : 64,
