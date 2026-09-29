@@ -5,9 +5,9 @@
 Add CLOUD_EDGE to MODIS by post-processing.
 """
 
+from argparse import ArgumentParser
 from pathlib import Path
 from shutil import move
-from sys import argv
 from tempfile import TemporaryDirectory
 
 import numpy as np
@@ -22,6 +22,7 @@ def modis_cloud_mask(
     thres_Rcloud: float = 0.027,
     thres_Rcloud_std: float | None = 0.004,
     kernel: tuple[int, int] | None = None,
+    dilate_l1_invalid: tuple[int, int] | None = (3, 3),
 ) -> np.ndarray:
     """
     MODIS cloud mask post-processing from a Polymer L2 product
@@ -44,6 +45,8 @@ def modis_cloud_mask(
       that size:
 
         cloud |= dilate(cloud)
+    - dilate_l1_invalid: if not None, the L1_INVALID mask is first dilated by a
+      rectangular kernel of that size. Default: (3, 3) ; None disables it
     """
 
     ds = xr.open_dataset(str(polymer_file))
@@ -56,6 +59,9 @@ def modis_cloud_mask(
 
     # L1_INVALID pixels are flagged as cloud sources as well (see docstring)
     l1_invalid = (bitmask & L2FLAGS['L1_INVALID']) != 0
+    if dilate_l1_invalid is not None:
+        K = np.ones(dilate_l1_invalid, dtype=bool)
+        l1_invalid |= ndimage.binary_dilation(l1_invalid, structure=K)
     cloud = ((Rnir - Rgli) > thres_Rcloud) | l1_invalid
 
     if thres_Rcloud_std is not None:
@@ -73,6 +79,7 @@ def modis_cloud_mask_postprocess(filename: Path, dir_out: Path,
                                  thres_Rcloud: float = 0.027,
                                  thres_Rcloud_std: float | None = 0.004,
                                  kernel: tuple[int, int] | None = None,
+                                 dilate_l1_invalid: tuple[int, int] | None = (3, 3),
                                  datasets: list[str] | None = None,
                                  compress: bool = True) -> None:
     """
@@ -89,6 +96,8 @@ def modis_cloud_mask_postprocess(filename: Path, dir_out: Path,
       (None disables it)
     - kernel: straylight halo kernel size, passed to modis_cloud_mask
       (None: no halo)
+    - dilate_l1_invalid: L1_INVALID dilation kernel size, passed to
+      modis_cloud_mask (default (3, 3); None: no dilation)
     - datasets: list of output datasets. Default: all datasets.
     - compress: activate file compression
     """
@@ -106,6 +115,7 @@ def modis_cloud_mask_postprocess(filename: Path, dir_out: Path,
         thres_Rcloud=thres_Rcloud,
         thres_Rcloud_std=thres_Rcloud_std,
         kernel=kernel,
+        dilate_l1_invalid=dilate_l1_invalid,
     )
 
     ds = xr.open_dataset(filename)
@@ -127,4 +137,41 @@ def modis_cloud_mask_postprocess(filename: Path, dir_out: Path,
         move(target_tmp, target)
 
 if __name__ == '__main__':
-    modis_cloud_mask_postprocess(Path(argv[1]), Path(argv[2]))
+    def _pair(s: str) -> tuple[int, int] | None:
+        if s.lower() == 'none':
+            return None
+        h, w = s.lower().split('x')
+        return int(h), int(w)
+
+    ap = ArgumentParser(
+        description='Add the MODIS cloud mask (CLOUD_EDGE bit) to a Polymer L2 product')
+    ap.add_argument('filename', type=Path, help='input Polymer L2 product')
+    ap.add_argument('dir_out', type=Path, help='output directory (created if needed)')
+    ap.add_argument('--thres_Rcloud', type=float, default=0.027,
+                    help='Rnir-Rgli cloud threshold (default: 0.027)')
+    ap.add_argument('--thres_Rcloud_std', default='0.004',
+                    help='3x3 std threshold on Rnir ; "none" disables it (default: 0.004)')
+    ap.add_argument('--kernel', default='none',
+                    help='straylight halo kernel size HxW ; "none" for no halo (default: none)')
+    ap.add_argument('--dilate_l1_invalid', default='3x3',
+                    help='L1_INVALID dilation kernel size HxW ; "none" disables it (default: 3x3)')
+    ap.add_argument('--datasets', default=None,
+                    help='comma-separated list of output datasets (default: all)')
+    ap.add_argument('--no-compress', action='store_true',
+                    help='disable netCDF compression (on by default)')
+    args = ap.parse_args()
+
+    thres_Rcloud_std = None if str(args.thres_Rcloud_std).lower() == 'none' \
+        else float(args.thres_Rcloud_std)
+    datasets = [d.strip() for d in args.datasets.split(',')] if args.datasets is not None else None
+
+    modis_cloud_mask_postprocess(
+        args.filename,
+        args.dir_out,
+        thres_Rcloud=args.thres_Rcloud,
+        thres_Rcloud_std=thres_Rcloud_std,
+        kernel=_pair(args.kernel),
+        dilate_l1_invalid=_pair(args.dilate_l1_invalid),
+        datasets=datasets,
+        compress=not args.no_compress,
+    )
