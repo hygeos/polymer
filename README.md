@@ -330,15 +330,16 @@ the bitwise AND operator):
 |          |                              |                                  |
 | MERIS    | bitmask & 1023 == 0          |                                  |
 |          |                              |                                  |
-| VIIRS    | bitmask & 1023 == 0          | Sun glint and bright (cloudy)    |
-|          | and (Rnir<0.1)               | pixels are discarded             |
-|          | and (Rgli<0.1)               |                                  |
+| VIIRS    | bitmask & 1023+4096 == 0     | Sun glint and bright (cloudy)    |
+|          | (see postprocess_viirs.py)   | pixels are discarded             |
+|          |                              | ANOMALY_RWMOD_BLUE (4096)        |
+|          |                              | removes some outliers.           |
 |          |                              |                                  |
 | SeaWiFS  | bitmask & 1023+2048 == 0     | The INCONSISTENCY flag           |
 |          |                              | cleans up most noisy pixels      |
 |          |                              |                                  |
 | MODIS    | bitmask & 1023+4096 == 0     | The ANOMALY_RWMOD_BLUE removes   |
-|          |                              | outliers appearing on MODIS      |
+|          | (see postprocess_modis.py)   | outliers appearing on MODIS      |
 |          |                              | results at high SZA              |
 -----------------------------------------------------------------------------|
 ```
