@@ -14,6 +14,8 @@ from core.tests.graphics import xrimshow
 from tests.common import plot, plot_spectra, run_v4, run_v5
 from tests.test_samples import sample
 from eoread import autodetect
+from polymer.ancillary import Ancillary_NASA
+from polymer.ancillary_era5 import Ancillary_ERA5
 
 from . import conftest
 
@@ -75,6 +77,19 @@ def test_v4(request, testcase, multiprocessing):
     """Run polymer v4 and plot results for the current testcase."""
     ds = run_v4(testcase, BITMASK_INVALID=0, multiprocessing=multiprocessing)   # FIXME: BITMASK_INVALID
     plot(request, testcase, ds)
+
+@pytest.mark.parametrize("ancillary", **pytest_utils.parametrize_dict({
+    'ERA5': Ancillary_ERA5,
+    'NASA': Ancillary_NASA,
+}))
+def test_v4_ancillary(request, testcase, ancillary):
+    """
+    Run polymer v4 with external ancillary data (instead of the
+    ancillary data embedded in the level1, when available)
+    """
+    ds = run_v4(testcase, level1_kwargs={'ancillary': ancillary()})
+    plot(request, testcase, ds)
+
 
 def test_v4_px(request, testcase: dict):
     """Run polymer v4 on a single central pixel only."""

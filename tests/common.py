@@ -15,7 +15,14 @@ from polymer.level2_nc import Level2_NETCDF
 
 from . import conftest
 
-def run_v4(testcase, roi=None, **kwargs) -> xr.Dataset:
+def run_v4(testcase, roi=None, level1_kwargs=None, **kwargs) -> xr.Dataset:
+    """
+    Run polymer v4
+
+    level1_kwargs: additional arguments passed to the Level1 reader
+        (for example `ancillary`)
+    other kwargs are passed to run_atm_corr
+    """
     assert testcase["level1"].exists()
     if roi is None:
         roi = testcase["roi"]
@@ -31,6 +38,7 @@ def run_v4(testcase, roi=None, **kwargs) -> xr.Dataset:
                     eline=sy.stop,
                     scol=sx.start,
                     ecol=sx.stop,
+                    **(level1_kwargs or {}),
                 ),
                 Level2_NETCDF(
                     outdir=tmpdir,
