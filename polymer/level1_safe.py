@@ -18,6 +18,36 @@ from collections import OrderedDict
 
 
 
+def read_variable(var, key):
+    """
+    Read netCDF variable `var` at index `key` as a regular ndarray
+
+    The dataset should be opened with auto mask and scale disabled, to avoid
+    masked arrays. Scaling (scale_factor, add_offset) is applied here, and
+    fill values are kept as is (scaled).
+
+    Returns (data, is_fill), where is_fill is a boolean array indicating the
+    values equal to _FillValue (None if the variable has no _FillValue)
+    """
+    raw = var[key]
+
+    scale_factor = getattr(var, 'scale_factor', None)
+    add_offset = getattr(var, 'add_offset', None)
+    if scale_factor is not None:
+        data = raw * scale_factor
+        if add_offset is not None:
+            data = data + add_offset
+    elif add_offset is not None:
+        data = raw + add_offset
+    else:
+        data = raw
+
+    fill_value = getattr(var, '_FillValue', None)
+    is_fill = None if fill_value is None else (raw == fill_value)
+
+    return data, is_fill
+
+
 class Level1_SAFE(Level1_base):
     '''
     OLCI reader using the netcdf module
@@ -140,12 +170,25 @@ class Level1_SAFE(Level1_base):
         if filename in self.nc_datasets:
             return self.nc_datasets[filename]
 
-        self.nc_datasets[filename] = Dataset(os.path.join(self.dirname, filename))
+        ds = Dataset(os.path.join(self.dirname, filename))
+        # Avoid masked arrays: scaling and fill values are handled in read_variable
+        ds.set_auto_maskandscale(False)
+        self.nc_datasets[filename] = ds
 
         return self.nc_datasets[filename]
 
 
-    def read_band(self, band_name, size, offset):
+    def read_band(self, band_name, size, offset, return_fill=False):
+        """
+        Read band `band_name` over the block defined by `size` and `offset`
+
+        Fill values are set to NaN for latitude and longitude, and kept as
+        is (scaled) for the other bands.
+
+        If return_fill, returns (data, is_fill), where is_fill is a boolean
+        array indicating the fill values (or None if not available, for
+        example for tie-point data).
+        """
 
         (ysize, xsize) = size
         (yoffset, xoffset) = offset
@@ -187,7 +230,8 @@ class Level1_SAFE(Level1_base):
             ymax = min(int(np.ceil((yoffset+self.sline+ysize-1)/al)), var.shape[0])
             xmin = int(np.floor((xoffset+self.scol)/ac))
             xmax = min(int(np.ceil((xoffset+self.scol+xsize-1)/ac)), var.shape[1])
-            data = var[ymin:ymax+1, xmin:xmax+1]
+            data, _ = read_variable(var, (slice(ymin, ymax+1), slice(xmin, xmax+1)))
+            is_fill = None
 
             if band_name == 'horizontal_wind':
                 # wind modulus from zonal and meridional components
@@ -209,12 +253,19 @@ class Level1_SAFE(Level1_base):
             ]
 
         else:
-            data = var[
-                yoffset+self.sline:yoffset+self.sline+ysize,
-                xoffset+self.scol:xoffset+self.scol+xsize,
-                ]
+            data, is_fill = read_variable(var, (
+                slice(yoffset+self.sline, yoffset+self.sline+ysize),
+                slice(xoffset+self.scol, xoffset+self.scol+xsize),
+                ))
 
-        return data
+            # geolocation may contain fill values (MERIS 4th reprocessing)
+            if (band_name in ['latitude', 'longitude']) and (is_fill is not None):
+                data[is_fill] = np.nan
+
+        if return_fill:
+            return data, is_fill
+        else:
+            return data
 
 
     def date(self):
@@ -242,8 +293,12 @@ class Level1_SAFE(Level1_base):
 
         # read LTOA
         block.Ltoa = np.zeros((ysize,xsize,nbands)) + np.nan
+        Ltoa_fill = np.zeros(size, dtype='bool')  # fill value in any band
         for iband, band in enumerate(bands):
-            Ltoa_data = self.read_band(self.band_names[band], size, offset)
+            Ltoa_data, is_fill = self.read_band(self.band_names[band], size, offset,
+                                                return_fill=True)
+            if is_fill is not None:
+                Ltoa_fill |= is_fill
             if self.add_noise:
                 stdev = np.sqrt(Ltoa_data/self.Ltyp[band])*self.sigma_typ[band]
                 noise = stdev*np.random.normal(0, 1, stdev.size).reshape(stdev.shape)
@@ -287,7 +342,9 @@ class Level1_SAFE(Level1_base):
                           xoffset:xoffset+xsize,
                                          ])
 
-        l1_invalid = bitmask & self.quality_flags['invalid'] != 0
+        # L1 invalid pixels, and pixels with fill values in any band
+        # (saturated pixels are not flagged as invalid in OLCI L1)
+        l1_invalid = (bitmask & self.quality_flags['invalid'] != 0) | Ltoa_fill
         raiseflag(block.bitmask, L2FLAGS['L1_INVALID'], l1_invalid)
 
         # read ancillary data
