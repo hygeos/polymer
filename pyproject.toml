@@ -2,7 +2,7 @@
 authors = [{name = "François Steinmetz", email = "fs@hygeos.com"}]
 name = "polymer"
 requires-python = ">= 3.11"
-version = "v4.17.3"
+version = "v4.18"
 description = "Polymer atmospheric correction algorithm (http://dx.doi.org/91364/OE.19.009783)"
 dependencies = [
     "numpy",

@@ -6,6 +6,30 @@
                            #####################
 
 
+v4.18
+-----
+
+Release date: 2026-11-20
+
+* Sensors support:
+    * Support HawkEye
+    * PACE OCI: TOA uncertainties
+* Polymer v5: complete v5 solver pipeline, normalize_water_reflectance,
+  rework of the multiprocessing option of run_polymer (chunks can be passed)
+* Ancillary data:
+    * Fix the interpolation of external ancillary data (ERA5, NASA) for the
+      OLCI and MERIS SAFE readers ("masked arrays are not supported"),
+      regression from v4.17.2
+    * Work around missing GMAO-FP ancillary files
+* get_auxdata can be imported as a function, not only run as a script
+* Fixes:
+    * MERIS SAFE files: handle NaNs in geolocation variables
+    * MSI: fix the reader with numpy 2; fix level1_netcdf with recent
+      versions of SNAP
+    * Fix the file type detection for VIIRS
+    * Fix in bodhaine.py
+
+
 v4.17
 -----
 
